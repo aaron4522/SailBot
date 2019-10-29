@@ -5,6 +5,40 @@ message SkipperCommand {
 	sint32 rudderPosition = 2;
 }
 
+message SailCommand {
+	int32 position = 1;
+}
+
+message RudderCommand {
+	sint32 position = 1;
+}
+
 message Mode {
 	int32 mode = 1;
+}
+
+message BaseToBoat {
+	oneof command {
+		SkipperCommand skipper = 1;
+		SailCommand sail = 2;
+		RudderCommand rudder = 3;
+		Mode mode = 5;
+	}
+}
+
+
+message SailStatus {
+	int32 sailPosition = 1;
+	sint32 rudderPosition = 2;
+}
+
+message PowerStatus {
+	int32 batteryVoltage = 1;
+}
+
+message BoatToBase {
+	oneof command {
+		SailStatus sails = 1;
+		PowerStatus power = 2;
+	}
 }

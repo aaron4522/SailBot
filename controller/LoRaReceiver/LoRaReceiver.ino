@@ -76,44 +76,8 @@ void setup() {
   stream = pb_ostream_from_buffer(outBuffer, sizeof(outBuffer));
 }
 
-bool transmitBuffer(){
-  rf95.send(outBuffer, stream.bytes_written);
-}
-
-/* Sets sail position in degrees. Transmits immediately */
-void sailPos(int value){
-  sail.position = value;
-
-  memset(outBuffer, 0, sizeof(outBuffer));
-  pb_encode(&stream, SailCommand_fields, &sail);
-  transmitBuffer();
-}
-
-/* Set rudder position in degrees. Transmits immediately */
-void rudderPos(int value){
-  rudder.position = value;
-  
-  memset(&stream, 0, sizeof(outBuffer));
-  pb_encode(&stream, RudderCommand_fields, &rudder);
-  transmitBuffer();
-}
-
-/* Set sail and rudder positions in degrees. Transmits immediately */
-void sailRudderPos(int sail, int rudder) {
-  skipper.sailPosition = sail;
-  skipper.rudderPosition = rudder;
-
-  memset(&stream, 0, sizeof(outBuffer));
-  pb_encode(&stream, SkipperCommand_fields, &skipper);
-  transmitBuffer();
-}
-
 void loop() {
-  if(Serial.available()){
-    // command from PC precedes controller input
-  }
-  else{
-    // controller input
+  if(rf95.available()){
     
   }
 

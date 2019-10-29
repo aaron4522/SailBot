@@ -11,7 +11,25 @@
 PB_BIND(SkipperCommand, SkipperCommand, AUTO)
 
 
+PB_BIND(SailCommand, SailCommand, AUTO)
+
+
+PB_BIND(RudderCommand, RudderCommand, AUTO)
+
+
 PB_BIND(Mode, Mode, AUTO)
+
+
+PB_BIND(BaseToBoat, BaseToBoat, AUTO)
+
+
+PB_BIND(SailStatus, SailStatus, AUTO)
+
+
+PB_BIND(PowerStatus, PowerStatus, AUTO)
+
+
+PB_BIND(BoatToBase, BoatToBase, AUTO)
 
 
 
