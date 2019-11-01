@@ -4,13 +4,13 @@
 
 #include <LiquidCrystal.h>
 
-#define DISP_RS 18
-#define DISP_EN 19
-#define DISP_D4 20
-#define DISP_D5 21
-#define DISP_D6 22
-#define DISP_D7 23
-#define DISP_BL 5
+#define DISP_RS 12
+#define DISP_EN 11
+#define DISP_D4 10
+#define DISP_D5 9
+#define DISP_D6 6
+#define DISP_D7 5
+#define DISP_BL 3
 
 #define DISP_LENGTH 16
 #define DISP_HEIGHT 2
