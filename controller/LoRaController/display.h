@@ -18,7 +18,7 @@
 #define DISP_BUFFER_SIZE  ((DISP_LENGTH*DISP_HEIGHT)+1)
 
 enum DisplayState {
-  SHOW_MESSAGE,
+  SHOW_MESSAGE = 0,
   DISCONNECTED,
   VIEW_STATUS,
 };
@@ -39,6 +39,11 @@ class Display {
   LiquidCrystal _lcd;
   char _buffer[DISP_BUFFER_SIZE];
   DisplayState _state;
+  bool _changed;
+
+  void _showMessage();
+  void _showDisconnected();
+  void _showStatus();
 
   void _clearBuffer();
   

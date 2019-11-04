@@ -59,7 +59,7 @@ bool Transceiver::transmit(size_t amount){
 }
 
 size_t Transceiver::tryReceive(){
-  if(!_rf95.available())
+  if(!_rf95.waitAvailableTimeout(3000))
     return 0;
 
   digitalWrite(LED_BUILTIN, HIGH);
@@ -67,6 +67,8 @@ size_t Transceiver::tryReceive(){
   uint8_t bytesTransferred = IN_BUFFER_SIZE;
   if(!_rf95.recv(&inBuffer[0], &bytesTransferred))
     return 0;
+
+  Serial.println(bytesTransferred);
 
   digitalWrite(LED_BUILTIN, LOW);
 

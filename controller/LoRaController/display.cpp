@@ -26,15 +26,45 @@ void Display::setBacklight(int level){
 
 void Display::setState(DisplayState state){
   _state = state;
+  _changed = true;
 }
 
 void Display::refresh(){
+  if(!_changed)
+    return;
+  
+  switch(_state){
+    case DisplayState::SHOW_MESSAGE:
+      _showMessage();
+      break;
+    case DisplayState::DISCONNECTED:
+      _showDisconnected();
+      break;
+    case DisplayState::VIEW_STATUS:
+      _showStatus();
+      break;
+  }
+  _lcd.clear();
   _lcd.print(&_buffer[0]);
+  _changed = false;
 }
 
 void Display::showMessage(String message){
   _lcd.clear();
   _lcd.print(message);
+}
+
+void Display::_showMessage(){
+  
+}
+
+void Display::_showDisconnected(){
+  _clearBuffer();
+  strcpy(&_buffer[0], "Disconnected");
+}
+
+void Display::_showStatus(){
+  
 }
 
 void Display::_clearBuffer(){

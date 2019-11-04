@@ -2,6 +2,7 @@
 #include <pb_encode.h>
 #include <pb_decode.h>
 #include <LiquidCrystal.h>
+#include <PS2X_lib.h>
 
 #include "messages.pb.h"
 #include "display.h"
@@ -21,6 +22,7 @@ static Transceiver radio;
 
 static Display disp;
 
+BaseToBoat messageOut = BaseToBoat_init_zero;
 SkipperCommand skipper = SkipperCommand_init_zero;
 SailCommand sail = SailCommand_init_zero;
 RudderCommand rudder = RudderCommand_init_zero;
@@ -45,23 +47,28 @@ void setup() {
 
 bool transmitBuffer(){
   //rf95.send(outBuffer, stream.bytes_written);
+  return radio.transmit(stream.bytes_written);
 }
 
 /* Sets sail position in degrees. Transmits immediately */
 void sailPos(int value){
   sail.position = value;
+  messageOut.command.sail = sail;
+  messageOut.which_command = BaseToBoat_sail_tag;
 
   //memset(outBuffer, 0, sizeof(outBuffer));
-  pb_encode(&stream, SailCommand_fields, &sail);
+  pb_encode(&stream, BaseToBoat_fields, &messageOut);
   transmitBuffer();
 }
 
 /* Set rudder position in degrees. Transmits immediately */
 void rudderPos(int value){
   rudder.position = value;
+  messageOut.command.rudder = rudder;
+  messageOut.which_command = BaseToBoat_rudder_tag;
   
   //memset(&stream, 0, sizeof(outBuffer));
-  pb_encode(&stream, RudderCommand_fields, &rudder);
+  pb_encode(&stream, BaseToBoat_fields, &messageOut);
   transmitBuffer();
 }
 
@@ -70,22 +77,35 @@ void sailRudderPos(int sail, int rudder) {
   skipper.sailPosition = sail;
   skipper.rudderPosition = rudder;
 
+  messageOut.command.skipper = skipper;
+  messageOut.which_command = BaseToBoat_skipper_tag;
+
   //memset(&stream, 0, sizeof(outBuffer));
-  pb_encode(&stream, SkipperCommand_fields, &skipper);
+  pb_encode(&stream, BaseToBoat_fields, &messageOut);
   transmitBuffer();
 }
 
 int led_state = 0;
 
 void loop() {
-  if(Serial.available()){
-    // command from PC precedes controller input
-    // relay data to transmitter
+  disp.setState(DisplayState::DISCONNECTED);
+  disp.refresh();
+
+  size_t bytesReceived = 0;
+  while(Serial.available()){
+    digitalWrite(LED_BUILTIN, led_state);
+    //size_t num = Serial.readBytes(&radio.outBuffer[bytesReceived], (OUT_BUFFER_SIZE - bytesReceived));
+    radio.outBuffer[bytesReceived] = Serial.read();
+    //bytesReceived += num;
+    bytesReceived++;
+    if(bytesReceived >= OUT_BUFFER_SIZE)
+      break;
+    led_state = (led_state+1)%2;
   }
-  else{
-    // controller input
-    
-  }
+  if(bytesReceived > 0)
+    radio.transmit(bytesReceived);
+
+  /* code for reading PS2 contoller here */
 
   /*if(rf95.available()){
     led_state = (led_state+1)%2;
