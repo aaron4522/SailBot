@@ -33,7 +33,7 @@ message SailStatus {
 }
 
 message PowerStatus {
-	int32 batteryVoltage = 1;
+	float batteryVoltage = 1;
 }
 
 message BoatToBase {

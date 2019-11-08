@@ -2,34 +2,40 @@
 
 #include "display.h"
 
-Display::Display() : _lcd(DISP_RS, DISP_EN, DISP_D4, DISP_D5, DISP_D6, DISP_D7){
+  //LiquidCrystal _lcd(DISP_RS, DISP_EN, DISP_D4, DISP_D5, DISP_D6, DISP_D7);
+  char _buffer[DISP_BUFFER_SIZE];
+  DisplayState _state;
+  bool _changed;
+
+/*Display::Display() : _lcd(DISP_RS, DISP_EN, DISP_D4, DISP_D5, DISP_D6, DISP_D7){
   _state = DISCONNECTED;
   _clearBuffer();
-}
+}*/
 
-bool Display::init(){
+bool disp_init(){
 
   //pinMode(DISP_BL, OUTPUT);
+  _clearBuffer();
   _lcd.begin(DISP_LENGTH, DISP_HEIGHT);
 
   //digitalWrite(DISP_BL, LOW);
-  _lcd.home();
+  _lcd.clear();
   _lcd.display();
   return false;
 }
 
-void Display::setBacklight(int level){
+void setBacklight(int level){
   //TODO will be set to a pwm level eventually
 
   //digitalWrite(DISP_BL, level);
 }
 
-void Display::setState(DisplayState state){
+void setState(DisplayState state){
   _state = state;
   _changed = true;
 }
 
-void Display::refresh(){
+void refresh(){
   if(!_changed)
     return;
   
@@ -49,27 +55,27 @@ void Display::refresh(){
   _changed = false;
 }
 
-void Display::showMessage(String message){
+void showMessage(String message){
   _lcd.clear();
   _lcd.print(message);
 }
 
-void Display::_showMessage(){
+void _showMessage(){
   
 }
 
-void Display::_showDisconnected(){
+void _showDisconnected(){
   _clearBuffer();
-  strcpy(&_buffer[0], "Disconnected");
+  //strcpy(&_buffer[0], "Disconnected");
+  _lcd.print("Disconnected");
 }
 
-void Display::_showStatus(){
+void _showStatus(){
   
 }
 
-void Display::_clearBuffer(){
+void _clearBuffer(){
   memset(&_buffer[0], 0, DISP_BUFFER_SIZE);
 }
 
 /* eof */
-

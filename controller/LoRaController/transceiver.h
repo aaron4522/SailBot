@@ -15,22 +15,22 @@
 #define IN_BUFFER_SIZE  256
 
 
-class Transceiver {
+/*class Transceiver {
   public:
   Transceiver(): _rf95(RFM95_CS, RFM95_INT) {};
-  ~Transceiver(){};
+  ~Transceiver(){};*/
 
-  uint8_t outBuffer[OUT_BUFFER_SIZE];
-  uint8_t inBuffer[IN_BUFFER_SIZE];
+  extern uint8_t outBuffer[OUT_BUFFER_SIZE];
+  extern uint8_t inBuffer[IN_BUFFER_SIZE];
 
-  bool init();
+  bool radio_init();
 
   bool transmit(size_t amount);
 
   size_t tryReceive();
 
-  private:
-  RH_RF95 _rf95;
-};
+  //private:
+  extern RH_RF95 _rf95;
+//};
 
 #endif

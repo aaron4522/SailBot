@@ -8,6 +8,8 @@
 #include "display.h"
 #include "transceiver.h"
 
+LiquidCrystal _lcd(DISP_RS, DISP_EN, DISP_D4, DISP_D5, DISP_D6, DISP_D7);
+RH_RF95 _rf95(RFM95_CS, RFM95_INT);
 
 enum Commands {
   SAIL_POSITION,
@@ -18,9 +20,9 @@ enum Commands {
 
 // Singleton instance of the radio driver
 //static RH_RF95 rf95(RFM95_CS, RFM95_INT);
-static Transceiver radio;
+//static Transceiver radio;
 
-static Display disp;
+//static Display disp;
 
 BaseToBoat messageOut = BaseToBoat_init_zero;
 SkipperCommand skipper = SkipperCommand_init_zero;
@@ -32,22 +34,23 @@ Mode autonomyMode = Mode_init_zero;
 pb_ostream_t stream;
 
 void setup() {
+  disp_init();
+  radio_init();
+  
   Serial.begin(115200);
   while (!Serial) {
     delay(1);
   }
 
-  disp.init();
-  disp.showMessage("Initializing...");
   
-  radio.init();
-  
-  stream = pb_ostream_from_buffer(radio.outBuffer, sizeof(radio.outBuffer));
+  showMessage("Initializing...");
+  stream = pb_ostream_from_buffer(outBuffer, OUT_BUFFER_SIZE);
 }
 
 bool transmitBuffer(){
   //rf95.send(outBuffer, stream.bytes_written);
-  return radio.transmit(stream.bytes_written);
+  Serial.println(stream.bytes_written);
+  return transmit(stream.bytes_written);
 }
 
 /* Sets sail position in degrees. Transmits immediately */
@@ -88,22 +91,25 @@ void sailRudderPos(int sail, int rudder) {
 int led_state = 0;
 
 void loop() {
-  disp.setState(DisplayState::DISCONNECTED);
-  disp.refresh();
+  setState(DisplayState::DISCONNECTED);
+  refresh();
 
   size_t bytesReceived = 0;
+  memset(outBuffer, 0, OUT_BUFFER_SIZE);
   while(Serial.available()){
     digitalWrite(LED_BUILTIN, led_state);
     //size_t num = Serial.readBytes(&radio.outBuffer[bytesReceived], (OUT_BUFFER_SIZE - bytesReceived));
-    radio.outBuffer[bytesReceived] = Serial.read();
+    outBuffer[bytesReceived] = Serial.read();
     //bytesReceived += num;
     bytesReceived++;
-    if(bytesReceived >= OUT_BUFFER_SIZE)
-      break;
+    if(bytesReceived >= OUT_BUFFER_SIZE){
+      transmit(bytesReceived);
+      bytesReceived = 0;
+    }
     led_state = (led_state+1)%2;
   }
   if(bytesReceived > 0)
-    radio.transmit(bytesReceived);
+    transmit(bytesReceived);
 
   /* code for reading PS2 contoller here */
 

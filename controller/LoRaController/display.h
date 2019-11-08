@@ -4,13 +4,13 @@
 
 #include <LiquidCrystal.h>
 
-#define DISP_RS 12
-#define DISP_EN 11
-#define DISP_D4 10
-#define DISP_D5 9
-#define DISP_D6 6
-#define DISP_D7 5
-#define DISP_BL 3
+#define DISP_RS A0 //18
+#define DISP_EN A1 //19
+#define DISP_D4 A2 //20
+#define DISP_D5 A3 //21
+#define DISP_D6 A4 //22
+#define DISP_D7 A5 //23
+#define DISP_BL 3 //3
 
 #define DISP_LENGTH 16
 #define DISP_HEIGHT 2
@@ -23,23 +23,23 @@ enum DisplayState {
   VIEW_STATUS,
 };
 
-class Display {
+/*class Display {
   public:
   Display();
-  ~Display() {};
+  ~Display() {};*/
 
-  bool init();
+  bool disp_init();
 
   void setBacklight(int level);
   void setState(DisplayState state);
   void refresh();
   void showMessage(String message);
     
-  private:
-  LiquidCrystal _lcd;
-  char _buffer[DISP_BUFFER_SIZE];
-  DisplayState _state;
-  bool _changed;
+  //private:
+  extern LiquidCrystal _lcd;
+  extern char _buffer[DISP_BUFFER_SIZE];
+  extern DisplayState _state;
+  extern bool _changed;
 
   void _showMessage();
   void _showDisconnected();
@@ -47,7 +47,6 @@ class Display {
 
   void _clearBuffer();
   
-};
+//};
 
 #endif
-

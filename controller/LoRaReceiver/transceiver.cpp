@@ -1,7 +1,11 @@
 #include <Arduino.h>
 #include "transceiver.h"
 
-bool Transceiver::init(){
+//RH_RF95 _rf95(RFM95_CS, RFM95_INT);
+  uint8_t outBuffer[OUT_BUFFER_SIZE];
+  uint8_t inBuffer[IN_BUFFER_SIZE];
+
+bool radio_init(){
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
   
@@ -47,32 +51,36 @@ bool Transceiver::init(){
   digitalWrite(LED_BUILTIN, LOW);
 }
 
-bool Transceiver::transmit(size_t amount){
+bool transmit(size_t amount){
   if(amount > OUT_BUFFER_SIZE)
     return true;
 
+  for(size_t i = 0; i < amount; i++)
+    Serial.print((char)outBuffer[i]);
+  Serial.println();
+
   digitalWrite(LED_BUILTIN, HIGH);
-  _rf95.send(&outBuffer[0], amount);
+  _rf95.send(&outBuffer[0], amount)
   digitalWrite(LED_BUILTIN, LOW);
 
   return false;
 }
 
-size_t Transceiver::tryReceive(){
-  if(!_rf95.waitAvailableTimeout(3000))
-    return 0;
+size_t tryReceive(){
+  if(_rf95.available()){
+  
+    digitalWrite(LED_BUILTIN, HIGH);
+    memset(inBuffer, 0, IN_BUFFER_SIZE);
+  
+    uint8_t bytesTransferred = IN_BUFFER_SIZE;
+    if(!_rf95.recv(&inBuffer[0], &bytesTransferred))
+      return -1;
+  
+    digitalWrite(LED_BUILTIN, LOW);
 
-  digitalWrite(LED_BUILTIN, HIGH);
-
-  uint8_t bytesTransferred = IN_BUFFER_SIZE;
-  if(!_rf95.recv(&inBuffer[0], &bytesTransferred))
-    return 0;
-
-  Serial.println(bytesTransferred);
-
-  digitalWrite(LED_BUILTIN, LOW);
-
-  return bytesTransferred;
+    return bytesTransferred;
+  }
+  return 0;
 }
 
 /* eof */

@@ -6,7 +6,8 @@
 #include "messages.pb.h"
 #include "transceiver.h"
 
-static Transceiver radio;
+//static Transceiver radio;
+RH_RF95 _rf95(RFM95_CS, RFM95_INT);
 
 void setup() {
   Serial.begin(115200);
@@ -14,16 +15,21 @@ void setup() {
     delay(1);
   }
   
-  radio.init();
+  radio_init();
 }
 
 void loop() {
   size_t bytesReceived = 0;
-  if((bytesReceived = radio.tryReceive()) > 0){
+  if((bytesReceived = tryReceive()) > 0){
+    
+    Serial.println(bytesReceived);
     digitalWrite(LED_BUILTIN, HIGH);
     //Serial.write(&radio.inBuffer[0], bytesReceived);
-    Serial.print((char*)radio.inBuffer);
+    
+    Serial.println((char*)inBuffer);
     digitalWrite(LED_BUILTIN, LOW);
   }
+  else if (bytesReceived < 0)
+    Serial.println("receive error");
 
 }
