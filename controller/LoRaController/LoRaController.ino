@@ -45,11 +45,13 @@ void setup() {
   
   showMessage("Initializing...");
   stream = pb_ostream_from_buffer(outBuffer, OUT_BUFFER_SIZE);
+
+  delay(1000);
 }
 
 bool transmitBuffer(){
   //rf95.send(outBuffer, stream.bytes_written);
-  Serial.println(stream.bytes_written);
+  //Serial.println(stream.bytes_written);
   return transmit(stream.bytes_written);
 }
 
@@ -111,17 +113,16 @@ void loop() {
   if(bytesReceived > 0)
     transmit(bytesReceived);
 
-  /* code for reading PS2 contoller here */
-
-  /*if(rf95.available()){
-    led_state = (led_state+1)%2;
-    digitalWrite(LED_BUILTIN, led_state);
-    // relay received data
-    // decode locally for LCD
+  if((bytesReceived = tryReceive()) > 0){
+    
+    //Serial.println(bytesReceived);
+    digitalWrite(LED_BUILTIN, HIGH);
+    //Serial.write(&radio.inBuffer[0], bytesReceived);
+    
+    Serial.print((char*)inBuffer);
+    digitalWrite(LED_BUILTIN, LOW);
   }
-  else {
-    led_state = 0;
-    digitalWrite(LED_BUILTIN, led_state);
-  }*/
+
+ 
 
 }

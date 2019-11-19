@@ -31,8 +31,10 @@ void setBacklight(int level){
 }
 
 void setState(DisplayState state){
+  if(_state != state){
   _state = state;
   _changed = true;
+  }
 }
 
 void refresh(){
@@ -50,8 +52,8 @@ void refresh(){
       _showStatus();
       break;
   }
-  _lcd.clear();
-  _lcd.print(&_buffer[0]);
+  //_lcd.clear();
+  //_lcd.print(&_buffer[0]);
   _changed = false;
 }
 
@@ -65,9 +67,10 @@ void _showMessage(){
 }
 
 void _showDisconnected(){
-  _clearBuffer();
+  //_clearBuffer();
   //strcpy(&_buffer[0], "Disconnected");
-  _lcd.print("Disconnected");
+  _lcd.clear();
+  _lcd.print("Standby");
 }
 
 void _showStatus(){

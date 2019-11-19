@@ -55,12 +55,12 @@ bool transmit(size_t amount){
   if(amount > OUT_BUFFER_SIZE)
     return true;
 
-  for(size_t i = 0; i < amount; i++)
+  /*for(size_t i = 0; i < amount; i++)
     Serial.print((char)outBuffer[i]);
-  Serial.println();
+  Serial.println();*/
 
   digitalWrite(LED_BUILTIN, HIGH);
-  _rf95.send(&outBuffer[0], amount)
+  _rf95.send(&outBuffer[0], amount);
   digitalWrite(LED_BUILTIN, LOW);
 
   return false;

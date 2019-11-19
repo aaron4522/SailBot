@@ -22,14 +22,12 @@ void loop() {
   size_t bytesReceived = 0;
   if((bytesReceived = tryReceive()) > 0){
     
-    Serial.println(bytesReceived);
+    //Serial.println(bytesReceived);
     digitalWrite(LED_BUILTIN, HIGH);
     //Serial.write(&radio.inBuffer[0], bytesReceived);
     
-    Serial.println((char*)inBuffer);
+    Serial.print((char*)inBuffer);
     digitalWrite(LED_BUILTIN, LOW);
   }
-  else if (bytesReceived < 0)
-    Serial.println("receive error");
 
 }
