@@ -21,8 +21,8 @@ class windVane():
 		pump_thread.start()
 
 	def map(self, x, min1, max1, min2, max2):
-   		x = min(max(x, min1), max1)
-    	return min2 + (max2-min2)*((x-min1)/(max1-min1))
+		x = min(max(x, min1), max1)
+		return min2 + (max2-min2)*((x-min1)/(max1-min1))
 
 	@property
 	def angle(self):
@@ -55,3 +55,8 @@ class windVane():
 				counter -= 1
 
 			clkLastState = clkState
+
+if __name__ == '__main__':
+	while True:
+	wv = windVane()
+	print(F"Angle {wv.angle}; Counter {wv.counter}")
