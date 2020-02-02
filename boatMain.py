@@ -1,18 +1,19 @@
 import constants as C
 
 from windvane import windVane
-from GPS import Gps 
+from GPS import gps 
 from drivers import driver
-from transceiver import arduino
+#from transceiver import arduino
+from time import sleep
 
 class boat:
 
     def __init__(self):
 
-        self.gps = Gps()
+        self.gps = gps()
         self.windvane = windVane()
         self.drivers = driver()
-        self.arduino = arduino(C.ARDU_PORT)
+        #self.arduino = arduino(C.ARDU_PORT)
 
         self.currentTarget = None # (longitude, latitude) tuple
         self.targets = [] # holds (longitude, latitude) tuples
@@ -33,9 +34,12 @@ class boat:
             self.adjustRudder()
             
     def adjustSail(self):
-        if self.currentTarget:
-            #adjust sail for best wind
-            targetAngle = ???
+        if self.currentTarget or True:
+            windDir = self.windvane.angle
+            if windDir > 180:
+                windDir = 180 - (windDir - 180)
+            targetAngle = max(min(windDir / 2, 90), 3)
+            print(targetAngle , self.windvane.angle)
             self.drivers.sail.set(targetAngle)
         else:
             #move sail to home position
@@ -65,5 +69,8 @@ class boat:
                 elif ary[0] == 'rudder': self.drivers.rudder.set(float(ary[1]))
                 elif ary[0] == 'mode': print("TODO: add Modes")
 
-boat()
+b = boat()
 
+while True:
+    b.adjustSail()
+    sleep(1)
