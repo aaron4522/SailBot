@@ -23,18 +23,22 @@ def main_loop():
         # IMG = pygame.image.load("tester.jpg")
 
         SURFACE_MAIN.blit(IMG, (0,0))
-        """
+        
         array = iat.get_intrest_tiles(iat.get_pixel_array(constants.IMG_ACCURACY))
         i = 0
         for y, row in enumerate(array):
             for x, elem in enumerate(row):
                 if elem:
                     surface = pygame.Surface((constants.IMG_ACCURACY, constants.IMG_ACCURACY))
-                    surface.fill((255, 100, 100))
-                    surface.set_alpha(170)
+                    
+                    # Define the color of activated boxes
+                    surface.fill((100, 100, 255))
+                    
+                    # Define the transparancy of activated boxes
+                    surface.set_alpha(100)
                     SURFACE_MAIN.blit(surface, (x*constants.IMG_ACCURACY, y*constants.IMG_ACCURACY))
                     i+=1
-        """
+ 
         pygame.display.flip()
 
 

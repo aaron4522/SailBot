@@ -61,11 +61,15 @@ def color_meets_all_reqs(hls, h_ranges = [(0, 80), (300, 360)], s_ranges = [(0, 
 
     return interesting
 
+
+# Determines if a given color value is orange
+# Param: hls defines an HSV color value
+# Return: is_orange defines if orange is found in the pixels
 def color_orange(hls):
-    is_orange = color_meets_all_reqs(hls, h_ranges = [(0, 80), (320, 360)], s_ranges = [(0, 1)], v_ranges = [(.4, .7)])
+    is_orange = color_meets_all_reqs(hls, h_ranges = [(0, 56)], s_ranges = [(.3, 1)], v_ranges = [(.25, 1)])
     return is_orange
 
-
+# Looks at pixel array and returns an array of arrays that define the position of active pixels
 def get_intrest_tiles(array, is_interesting = color_orange):
 
     rows = []

@@ -12,7 +12,7 @@ import adafruit_gps
 def degreesToRadians(degrees):
   return degrees * math.pi / 180;
 
-def distanceInKmBetweenEarthCoordinates(lat1, lon1, lat2, lon2):
+def distanceInMBetweenEarthCoordinates(lat1, lon1, lat2, lon2):
   earthRadiusKm = 6371;
 
   dLat = degreesToRadians(lat2-lat1);
@@ -23,7 +23,36 @@ def distanceInKmBetweenEarthCoordinates(lat1, lon1, lat2, lon2):
 
   a = math.sin(dLat/2) * math.sin(dLat/2) + math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2); 
   c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a)); 
-  return earthRadiusKm * c;
+  return earthRadiusKm * c * 1000;
+
+def computeNewCoordinate(lat, lon, d_lat, d_lon):
+    """
+    finds the gps coordinate that is x meters from given coordinate
+    """
+    earthRadiusKm = 6371;
+    
+    d_lat /= 1000
+    d_lon /= 1000
+    
+    new_lat = lat + (d_lat / earthRadiusKm) * (180/math.pi)
+    new_lon = lon + (d_lon / earthRadiusKm) * (180/math.pi) / math.cos(lat * math.pi/180)
+    
+    return (new_lat, new_lon)
+
+def angleBetweenCoordinates(lat1, lon1, lat2, lon2):
+    theta1 = degreesToRadians(lat1)
+    theta2 = degreesToRadians(lat2)
+    delta1 = degreesToRadians(lat2 - lat1)
+    delta2 = degreesToRadians(lon2 - lon1)
+    
+    y = math.sin(delta2) * math.cos(theta2)
+    x = math.cos(theta1) * math.sin(theta2) - math.sin(theta1)*math.cos(theta2)*math.cos(delta2)
+    brng = math.atan(y/x)
+    brng *= 180/math.pi
+    
+    brng = (brng + 360) % 360
+    
+    return brng
 
 def convertDegMinToDecDeg (degMin):
     min = 0.0

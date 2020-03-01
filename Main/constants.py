@@ -28,6 +28,7 @@ class data:
         self.SAIL_ANGLE_MIN = 0
         self.SAIL_ANGLE_MAX = 90
         
+        self.IMG_ACCURACY = 10
 
         self.RUDDER_SERVO_MIN= 2500
         self.RUDDER_SERVO_CTR = 4850
@@ -41,6 +42,11 @@ class data:
 
         self.SAIL_MIN = 2550
         self.SAIL_MAX = 6750
+
+        self.WIN_TITLE = "Oh God Yes"
+        
+        self.WINDOW_WIDTH = 800
+        self.WINDOW_HEIGHT = 600
 
         self.BAUDRATE = 115200
 
@@ -56,14 +62,14 @@ class data:
         # 1 degree longitude is approx 60 * 1852m * cos(latitude)
 if __name__ == '__main__':
     DATA = data()
-    save()
+    #save()
 else:
     try:
         load()
     except:
         print("Failed to load file, continuing with default constants")
         DATA = data()
-        save()
+        #save()
     
 
 
