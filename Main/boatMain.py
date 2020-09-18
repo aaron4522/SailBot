@@ -11,14 +11,13 @@ class boat:
 
         self.gps = Gps()
         self.windvane = windVane()
-        self.drivers = driver()
+        self.drivers = driver(autoSail = False)
         self.arduino = arduino(C.ARDU_PORT)
 
         self.currentTarget = None # (longitude, latitude) tuple
         self.targets = [] # holds (longitude, latitude) tuples
 
         targetAngle = None
-        windAngleRelativeToBoat = None
 
         noGoZoneDegs = 20
 
@@ -28,7 +27,7 @@ class boat:
         if self.gps.distanceTo(currentTarget) < C.ACCEPTABLE_RANGE and len(self.targets) > 0:
             #next target
 
-            windAngleRelativeToNorth = convertWindAngle(windAngleRelativeToBoat)
+            windAngleRelativeToNorth = convertWindAngle(self.windVane.angle)
 
             if tempTarget == False and targetAngle - windAngleRelativeToNorth < (noGoZoneDegs/2):
                 if targetAngle < windAngleRelativeToNorth or abs(targetAngle - 360) < windAngleRelativeToNorth:
