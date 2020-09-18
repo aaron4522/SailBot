@@ -1,32 +1,55 @@
 import constants as C
 
 from windvane import windVane
-from GPS import gps 
+from GPS import Gps 
 from drivers import driver
-#from transceiver import arduino
-from time import sleep
+from transceiver import arduino
 
 class boat:
 
     def __init__(self):
 
-        self.gps = gps()
+        self.gps = Gps()
         self.windvane = windVane()
         self.drivers = driver()
-        #self.arduino = arduino(C.ARDU_PORT)
+        self.arduino = arduino(C.ARDU_PORT)
 
         self.currentTarget = None # (longitude, latitude) tuple
         self.targets = [] # holds (longitude, latitude) tuples
+
+        targetAngle = None
+        windAngleRelativeToBoat = None
+
+        noGoZoneDegs = 20
+
+        tempTarget = False
 
     def move(self):
         if self.gps.distanceTo(currentTarget) < C.ACCEPTABLE_RANGE and len(self.targets) > 0:
             #next target
 
-            if (False):#check if next target would involve no-go-zone, if so set current target to another point for zig-zag path
-                pass
+            windAngleRelativeToNorth = convertWindAngle(windAngleRelativeToBoat)
 
-            else:
-                self.currentTarget = self.targets.pop(0)
+            if tempTarget == False and targetAngle - windAngleRelativeToNorth < (noGoZoneDegs/2):
+                if targetAngle < windAngleRelativeToNorth or abs(targetAngle - 360) < windAngleRelativeToNorth:
+                    #newTargetAngle < targetangle
+                    newTargetAngle = windAngleRelativeToNorth - (noGoZoneDegs/2 + 10) 
+                else:
+                    #newTargetAngle > targetAngle
+                    newTargetAngle = windAngleRelativeToNorth + (noGoZoneDegs/2 + 10)
+
+                tempTarget = True
+                rotateToAngle(newTargetAngle)
+
+            else if tempTarget and targetAngle - windAngleRelativeToNorth > (noGoZoneDegs/2):
+                tempTarget = False
+                rotateToAngle(angleTo(nextCoord))
+
+            else if tempTarget == False:
+                rotateToAngle(angleTo(nextCoord))
+
+            # else:
+            #     self.currentTarget = self.targets.pop(0)
 
         else:
             #move towards target
@@ -34,12 +57,9 @@ class boat:
             self.adjustRudder()
             
     def adjustSail(self):
-        if self.currentTarget or True:
+        if self.currentTarget:
             windDir = self.windvane.angle
-            if windDir > 180:
-                windDir = 180 - (windDir - 180)
-            targetAngle = max(min(windDir / 2, 90), 3)
-            print(targetAngle , self.windvane.angle)
+            targetAngle = windDir + 35
             self.drivers.sail.set(targetAngle)
         else:
             #move sail to home position
@@ -69,8 +89,7 @@ class boat:
                 elif ary[0] == 'rudder': self.drivers.rudder.set(float(ary[1]))
                 elif ary[0] == 'mode': print("TODO: add Modes")
 
-b = boat()
+if __name__ == "__main__":
 
-while True:
-    b.adjustSail()
-    sleep(1)
+    boat()
+

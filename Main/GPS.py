@@ -1,16 +1,24 @@
 #https://learn.adafruit.com/adafruit-ultimate-gps/circuitpython-parsing
 import time
-import board
-import busio
+try:
+    import board
+    import busio
+    import adafruit_gps
+except:
+    print("Failed to import board, run on Raspberry Pi")
 from time import sleep
 from threading import Thread
 import math
  
-import adafruit_gps
+
 
 
 def degreesToRadians(degrees):
   return degrees * math.pi / 180;
+
+def getCoordinateADistanceAlongAngle(distance, angle):
+    print("write function")
+    return "lat, long"
 
 def distanceInMBetweenEarthCoordinates(lat1, lon1, lat2, lon2):
   earthRadiusKm = 6371;
@@ -165,9 +173,23 @@ class gps():
 
             
 if __name__ == "__main__":
-    g = gps()
-    for i in range(10):
-        g.readgps()
-        sleep(1)
+    # print(convertDegMinToDecDeg(4026.5666))
+    # print(convertDegMinToDecDeg(7957.4877))
+
+    
+    # print(angleBetweenCoordinates(40.44277, 79.9581, 40.84277, 80.9581))
+
+
+
+
+
+    # 40267.5664N, 7957.4877W -> +40 26.5666', -79 57.4878'
+    # DDMM.MMMM,(N/S),DDDMM.MMMM,(E/W)
+    # deal with nesw cases
+
+    # g = gps()
+    # for i in range(10):
+    #     g.readgps()
+    #     sleep(1)
     
  
