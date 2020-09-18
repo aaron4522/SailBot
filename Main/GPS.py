@@ -14,30 +14,30 @@ import math
 
 
 def degreesToRadians(degrees):
-  return degrees * math.pi / 180;
+  return degrees * math.pi / 180
 
 def getCoordinateADistanceAlongAngle(distance, angle):
     print("write function")
     return "lat, long"
 
 def distanceInMBetweenEarthCoordinates(lat1, lon1, lat2, lon2):
-  earthRadiusKm = 6371;
+  earthRadiusKm = 6371
 
-  dLat = degreesToRadians(lat2-lat1);
-  dLon = degreesToRadians(lon2-lon1);
+  dLat = degreesToRadians(lat2-lat1)
+  dLon = degreesToRadians(lon2-lon1)
 
-  lat1 = degreesToRadians(lat1);
-  lat2 = degreesToRadians(lat2);
+  lat1 = degreesToRadians(lat1)
+  lat2 = degreesToRadians(lat2)
 
   a = math.sin(dLat/2) * math.sin(dLat/2) + math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2); 
   c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a)); 
-  return earthRadiusKm * c * 1000;
+  return earthRadiusKm * c * 1000
 
 def computeNewCoordinate(lat, lon, d_lat, d_lon):
     """
     finds the gps coordinate that is x meters from given coordinate
     """
-    earthRadiusKm = 6371;
+    earthRadiusKm = 6371
     
     d_lat /= 1000
     d_lon /= 1000
