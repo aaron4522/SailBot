@@ -17,8 +17,6 @@ class boat:
         self.currentTarget = None # (longitude, latitude) tuple
         self.targets = [] # holds (longitude, latitude) tuples
 
-        targetAngle = None
-
         noGoZoneDegs = 20
 
         tempTarget = False
@@ -26,6 +24,8 @@ class boat:
     def move(self):
         if self.gps.distanceTo(currentTarget) < C.ACCEPTABLE_RANGE and len(self.targets) > 0:
             #next target
+
+            targetAngle = TargetAngleRelativeToNorth() #Func doesnt exist yet
 
             windAngleRelativeToNorth = convertWindAngle(self.windVane.angle)
 
@@ -42,10 +42,10 @@ class boat:
 
             else if tempTarget and targetAngle - windAngleRelativeToNorth > (noGoZoneDegs/2):
                 tempTarget = False
-                rotateToAngle(angleTo(nextCoord))
+                rotateToAngle(targetAngle)
 
             else if tempTarget == False:
-                rotateToAngle(angleTo(nextCoord))
+                rotateToAngle(targetAngle)
 
             # else:
             #     self.currentTarget = self.targets.pop(0)
