@@ -1,6 +1,6 @@
 #https://learn.adafruit.com/adafruit-ultimate-gps/circuitpython-parsing
 import time
-try:
+try: 
     import board
     import busio
     import adafruit_gps
@@ -9,7 +9,6 @@ except:
 from time import sleep
 from threading import Thread
 import math
- 
 
 
 
