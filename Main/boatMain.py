@@ -8,7 +8,7 @@ from transceiver import arduino
 class boat:
 
     def __init__(self):
-
+	
         self.gps = Gps()
         self.windvane = windVane()
         self.drivers = driver(autoSail = False)
