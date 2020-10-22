@@ -27,6 +27,7 @@ class:
     @property
     def vector(self):
         return sensor.magnetic # (mag_x, mag_y, mag_z)
+        
 
     
 
