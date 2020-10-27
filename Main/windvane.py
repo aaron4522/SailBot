@@ -20,7 +20,7 @@ class windVane():
         GPIO.setup(self.dt, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
         GPIO.setup(self.hef , GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-        GPIO.add_event_detect(self.hef, GPIO.BOTH, callback=zerowindvane, bouncetime=200)
+        GPIO.add_event_detect(self.hef, GPIO.BOTH, callback=zerowindvane)
 
 
         self.counter = 0
