@@ -1,14 +1,19 @@
 #https://learn.adafruit.com/adafruit-ultimate-gps/circuitpython-parsing
 import time
-try: 
+try:
     import board
     import busio
     import adafruit_gps
+    import adafruit_lsm303_accel
+    import adafruit_lsm303dlh_mag
 except:
     print("Failed to import board, run on Raspberry Pi")
 from time import sleep
 from threading import Thread
 import math
+
+
+ 
 
 
 
@@ -169,26 +174,25 @@ class gps():
                 print('Horizontal dilution: {}'.format(self.gps.horizontal_dilution))
             if gps.height_geoid is not None:
                 print('Height geo ID: {} meters'.format(self.gps.height_geoid))
-
+                
+class compass():
+    def __init__(self):
+        i2c = busio.I2C(board.SCL, board.SDA)
+        self.mag = adafruit_lsm303dlh_mag.LSM303DLH_Mag(i2c)
+        self.accel = adafruit_lsm303_accel.LSM303_Accel(i2c)
+        
+    
+        
+    def printAccel(self):
+        print("Acceleration (m/s^2)): X=%0.3f Y=%0.3f Z=%0.3f"%self.accel.acceleration)
+    def printMag(self):
+        print("Magnetometer (micro-Teslas)): X=%0.3f Y=%0.3f Z=%0.3f"%self.mag.magnetic)        
             
 if __name__ == "__main__":
-    # print(convertDegMinToDecDeg(4026.5666))
-    # print(convertDegMinToDecDeg(7957.4877))
+    comp = compass()
+    while True:
+        comp.printMag()
+        sleep(1)
 
-    
-    # print(angleBetweenCoordinates(40.44277, 79.9581, 40.84277, 80.9581))
-
-
-
-
-
-    # 40267.5664N, 7957.4877W -> +40 26.5666', -79 57.4878'
-    # DDMM.MMMM,(N/S),DDDMM.MMMM,(E/W)
-    # deal with nesw cases
-
-    # g = gps()
-    # for i in range(10):
-    #     g.readgps()
-    #     sleep(1)
     
  
