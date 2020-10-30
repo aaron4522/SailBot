@@ -41,16 +41,7 @@ class windVane():
 
         counter = counter % self.stepsPerRev
         return self.map(counter, 0, self.stepsPerRev-1, 0, 359)
-
-#    def zerowindvane(self):
-#        
-#        # Called if sensor output changes
-#        if hefState:
-#            pass
-#            # No magnet
-#        else:
-#            self.angle = 0
-
+        
     def flush_queue(self):
         while True:
             self.counter += self.q.get()
@@ -59,12 +50,10 @@ class windVane():
         try:
             while True:
                 self.update()
-#                GPIO.add_event_detect(18, GPIO.RISING, callback=zerowv)
+
         finally:
             GPIO.cleanup()
-#    def zerowv(self):
-#        print(F"mag")
-            
+
     def update(self):
         
         clkState = GPIO.input(self.clk)
