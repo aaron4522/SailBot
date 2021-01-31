@@ -4,7 +4,7 @@ import constants as C
 class arduino:
 
 	def __init__(self, port_num):
-		self.ser1 = serial.Serial('COM'+port_num, C.BAUDRATE) 
+		self.ser1 = serial.Serial('COM'+port_num, c.config['MAIN']['BAUDRATE']) 
 
 
 	def send(self, data):

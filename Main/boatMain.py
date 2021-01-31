@@ -1,4 +1,4 @@
-import constants as C
+import constants as c
 import logging
 
 from windvane import windVane
@@ -11,14 +11,14 @@ from datetime import date, datetime
 class boat:
 
     def __init__(self):
-        with open('boatMainLog.log', 'a') as configfile:
-            configfile.write('\n\n---------------------------------\n')
+        with open('boatMainLog.log', 'a') as logfile:
+            logfile.write('\n\n---------------------------------\n')
         logging.basicConfig(level=logging.INFO, filename='boatMainLog.log', filemode='a', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
         self.gps = Gps()
         self.windvane = windVane()
         self.drivers = driver(autoSail = False)
-        self.arduino = arduino(C.ARDU_PORT)
+        self.arduino = arduino(c.config['MAIN']['ARDU_PORT'])
 
         self.currentTarget = None # (longitude, latitude) tuple
         self.targets = [] # holds (longitude, latitude) tuples
@@ -28,7 +28,7 @@ class boat:
         tempTarget = False
 
     def move(self):
-        if self.gps.distanceTo(currentTarget) < C.ACCEPTABLE_RANGE and len(self.targets) > 0:
+        if self.gps.distanceTo(currentTarget) < c.config['MAIN']['ACCEPTABLE_RANGE'] and len(self.targets) > 0:
             #next target
 
             targetAngle = TargetAngleRelativeToNorth() #Func doesnt exist yet

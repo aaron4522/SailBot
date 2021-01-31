@@ -7,11 +7,11 @@ from windvane import windVane
             
 class obj_sail:
             
-    servo_min = c.SAIL_SERVO_MIN
-    servo_max = c.SAIL_SERVO_MAX
+    servo_min = c.config['MAIN']['SAIL_SERVO_MIN']
+    servo_max = c.config['MAIN']['SAIL_SERVO_MAX']
             
-    angle_min = c.SAIL_ANGLE_MIN
-    angle_max = c.SAIL_ANGLE_MAX
+    angle_min = c.config['MAIN']['SAIL_ANGLE_MIN']
+    angle_max = c.config['MAIN']['SAIL_ANGLE_MAX']
             
     def __init__(self, pca, channel_index, auto):
         self.channel =  pca.channels[channel_index]
@@ -44,12 +44,12 @@ class obj_sail:
                 
 class obj_rudder:
             
-    servo_min = c.RUDDER_SERVO_MIN
-    servo_ctr = c.RUDDER_SERVO_CTR
-    servo_max = c.RUDDER_SERVO_MAX
+    servo_min = c.config['MAIN']['RUDDER_SERVO_MIN']
+    servo_ctr = c.config['MAIN']['RUDDER_SERVO_CTR']
+    servo_max = c.config['MAIN']['RUDDER_SERVO_MAX']
             
-    angle_min = c.RUDDER_ANGLE_MIN
-    angle_max = c.RUDDER_ANGLE_MAX
+    angle_min = c.config['MAIN']['RUDDER_ANGLE_MIN']
+    angle_max = c.config['MAIN']['RUDDER_ANGLE_MAX']
     angle_ctr = angle_min + (angle_max - angle_min) / 2
             
     def __init__(self, pca, channel_index):

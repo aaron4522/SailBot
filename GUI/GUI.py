@@ -117,9 +117,14 @@ def server_update():
 
 		
 		if ARDUINO:
-			message = str(ARDUINO.read())#[2:-3]
-
-			if message:
+			message = str(ARDUINO.read())[2:-5]
+			if message.split(' ', 1)[0] == 'cfg':
+				BOAT_DATA.config.append(message.split(' ', 1)[1])
+				BOAT_DATA.configChanged = True
+				if DATA_REFRESH:
+					DATA_REFRESH()
+			elif message:
+				print(message.split(' ', 1)[0])
 				BOAT_DATA.message = message
 				
 				if DATA_REFRESH:
@@ -145,6 +150,9 @@ class boat_data:
 		
 
 		self.message = None
+
+		self.config = []
+		self.configChanged = False
 
 class mainWindow(QMainWindow):
 	"""
@@ -301,32 +309,70 @@ class tabWidget(QWidget):
 		self.tab4 = QWidget()
 		self.tabs.addTab(self.tab4,"Boat Config")
 		self.configNextline = 0
+		self.configLines = []
 
 		self.tab4.layout = QGridLayout(self)
 
-		self.refresh = QPushButton('Request Config')
+		self.fetch = QPushButton('Fetch Config')
+		self.fetch.setMaximumWidth(175)
+		self.fetch.clicked.connect(self.fetchConfig)
+		self.refresh = QPushButton('Refresh Config')
 		self.refresh.setMaximumWidth(175)
 		self.refresh.clicked.connect(self.refreshConfig)
+		self.publish = QPushButton('Publish Config')
+		self.publish.setMaximumWidth(175)
+		self.publish.clicked.connect(self.publishConfig)
 		self.tab4.layout.addWidget(self.refresh, self.configNextline, 1)
+		self.tab4.layout.addWidget(self.fetch, self.configNextline, 0)
+		self.tab4.layout.addWidget(self.publish, self.configNextline, 2)
 		self.configNextline += 1
 
-		self.configVals = (('example1 = 000 = 00'), ('example2 = abc'), ('example3 = 123'))
-		self.addConfigLine(self.configVals[1])
-		self.addConfigLine(self.configVals[2])
-		self.addConfigLine(self.configVals[0])
+		# self.configVals = (('example1 = 000 = 00'), ('example2 = abc'), ('example3 = 123'))
+		# self.addConfigLine(self.configVals[1])
+		# self.addConfigLine(self.configVals[2])
+		# self.addConfigLine(self.configVals[0])
 
 		self.tab4.setLayout(self.tab4.layout)
 
+	def fetchConfig(self):
+		ARDUINO.send("get config")
+		BOAT_DATA.config = []
+		for lbl, dataBox in self.configLines:
+			lbl.setEnabled(False)
+			dataBox.setEnabled(False)
+
 	def refreshConfig(self):
-		self.addConfigLine(self.configVals[0])
+		if BOAT_DATA.configChanged:
+			for line in BOAT_DATA.config:
+				found = False
+				for lbl, dataBox in self.configLines:
+					if line.split(' : ', 1)[0] == lbl.text():
+						lbl.setEnabled(True)
+						dataBox.setEnabled(True)
+						dataBox.setText(line.split(' : ', 1)[1])
+						found = True
+
+				if found == False:
+					self.addConfigLine(line)
+
+	def publishConfig(self):
+		
+		for line in BOAT_DATA.config:
+			text, val = line.split(' : ', 1)
+			for lbl, dataBox in self.configLines:
+				if text == lbl.text():
+					if dataBox.text() != val:
+						ARDUINO.send(F'{text} : {dataBox.text()}')
+					break
+				
 
 	def addConfigLine(self, text):
-		name, val = text.split(' = ', 1)
+		name, val = text.split(' : ', 1)
 		lbl = QLabel(name)
 		lbl.setMaximumWidth(100)
 		dataBox = QLineEdit()
 		dataBox.setText(val)
-		#dataBox.setMaximumWidth(50)
+		self.configLines.append((lbl, dataBox))
 			
 		self.tab4.layout.addWidget(lbl, self.configNextline, 0)
 		self.tab4.layout.addWidget(dataBox, self.configNextline, 1)
@@ -493,6 +539,8 @@ class tabWidget(QWidget):
 			self.R_pos_lbl.setText("Rudder Position: " + str(BOAT_DATA.rudder_pos))
 			self.S_pos_lbl.setText("Sail Position: " + str(BOAT_DATA.sail_pos))
 
+		
+
 
 	@pyqtSlot()
 	def on_click(self):
@@ -511,7 +559,7 @@ class arduino:
 
 	def __init__(self, port_num):
 		try:
-			self.ser1 = serial.Serial('COM'+port_num, 9600) 
+			self.ser1 = serial.Serial('COM'+port_num, 115200) 
 		except:
 			print("Error Connecting to COM"+port_num)
 
