@@ -119,7 +119,7 @@ void loop()
   delay(1000); // Wait 1 second between transmits, could also 'sleep' here!
   Serial.println("Transmitting..."); // Send a message to rf95_server
   
-  char radiopacket[20] = "none";
+  char radiopacket[20] = "";
   bool msg = false;  
   int availableBytes = Serial.available();
   for(int i=0; i<availableBytes; i++)
@@ -129,7 +129,7 @@ void loop()
   }
   if (msg){
     Serial.print("Sending "); Serial.println(radiopacket);
-    radiopacket[19] = 0;
+    //radiopacket[19] = 0;
     
     Serial.println("Sending...");
     delay(10);
@@ -137,7 +137,7 @@ void loop()
   }
   //itoa(packetnum++, radiopacket+13, 10);
   
-  /*
+  
   Serial.println("Waiting for packet to complete..."); 
   delay(10);
   rf95.waitPacketSent();
@@ -164,6 +164,6 @@ void loop()
   else
   {
     Serial.println("No reply, is there a listener around?");
-  }*/
+  }
  
 }

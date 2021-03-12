@@ -7,4 +7,5 @@ def save():
     with open('config.ini', 'w') as configfile:
         config.write(configfile) 
 
-
+if __name__ == '__main__':
+    print(config['CONSTANTS']['motorKV'])
