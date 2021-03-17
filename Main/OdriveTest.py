@@ -14,7 +14,7 @@ class Odrive():
         self.KVRating = c.config['CONSTANTS']['motorKV']
         self.enc.config.cpr = c.config['CONSTANTS']['odriveEncoderCPR']
         self.od.config.brake_resistance = c.config['CONSTANTS']['odrivebreakresistor']
-        self.od.axis0.motor.config.pole_pairs = 6 #number of coils / 6
+        self.od.axis0.motor.config.pole_pairs = c.config['CONSTANTS']['odrivepolepairs']
         self.od.axis0.motor.config.torque_constant = 1 # read the getting started guide on this, to be changed later
         self.od.axis0.motor.config.motor_type = 0
         self.current = 40
@@ -53,7 +53,7 @@ class Odrive():
     def current(self, value):
         #this will change torque!!!
         #self.torque = (8.27 * value / self.KVRAting)
-        print(F"Warning: Changing the current limit will affect the torque")
+        #print(F"Warning: Changing the current limit will affect the torque")
         self.mo.config.current_lim = value
 
     def getDemandedCurrent(self):
@@ -62,15 +62,19 @@ class Odrive():
 if __name__ == '__main__':
     drv = Odrive()
     
-    drv.current = 1
+    drv.current = 20
     #drv.axis.requested_state = 1 #IDLE
-    sleep(1)
+    #sleep(1)
     drv.axis.requested_state = 3 #CALIBRATION
     sleep(15)
     ut.dump_errors(drv.od)
     drv.axis.requested_state = 8 
-    drv.pos = 1
     sleep(1)
-    drv.pos = 2
+    for i in range(5):
+        drv.pos = 0
+        sleep(3)
+        drv.pos = 5
+        sleep(3)
+        ut.dump_errors(drv.od)
     print('done')
        
