@@ -7,11 +7,11 @@ from windvane import windVane
             
 class obj_sail:
             
-    servo_min = c.config['CONSTANTS']['sail_servo_min']
-    servo_max = c.config['CONSTANTS']['sail_servo_max']
+    servo_min = float(c.config['CONSTANTS']['sail_servo_min'])
+    servo_max = float(c.config['CONSTANTS']['sail_servo_max'])
             
-    angle_min = c.config['CONSTANTS']['sail_angle_min']
-    angle_max = c.config['CONSTANTS']['sail_angle_max']
+    angle_min = float(c.config['CONSTANTS']['sail_angle_min'])
+    angle_max = float(c.config['CONSTANTS']['sail_angle_max'])
             
     def __init__(self, pca, channel_index, auto):
         self.channel =  pca.channels[channel_index]
@@ -44,12 +44,12 @@ class obj_sail:
                 
 class obj_rudder:
             
-    servo_min = c.config['CONSTANTS']['rudder_servo_min']
-    servo_ctr = c.config['CONSTANTS']['rudder_servo_ctr']
-    servo_max = c.config['CONSTANTS']['rudder_servo_max']
+    servo_min = float(c.config['CONSTANTS']['rudder_servo_min'])
+    servo_ctr = float(c.config['CONSTANTS']['rudder_servo_ctr'])
+    servo_max = float(c.config['CONSTANTS']['rudder_servo_max'])
             
-    angle_min = c.config['CONSTANTS']['rudder_angle_min']
-    angle_max = c.config['CONSTANTS']['rudder_angle_max']
+    angle_min = float(c.config['CONSTANTS']['rudder_angle_min'])
+    angle_max = float(c.config['CONSTANTS']['rudder_angle_max'])
     angle_ctr = angle_min + (angle_max - angle_min) / 2
             
     def __init__(self, pca, channel_index):
