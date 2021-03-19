@@ -2,7 +2,7 @@ import constants as c
 import logging
 
 from windvane import windVane
-from GPS import Gps 
+from GPS import gps as Gps 
 from drivers import driver
 from transceiver import arduino
 from datetime import date, datetime
@@ -17,7 +17,7 @@ class boat:
 
         self.gps = Gps()
         self.windvane = windVane()
-        self.drivers = driver(autoSail = False)
+        self.drivers = driver(sailAuto = False)
         self.arduino = arduino(c.config['MAIN']['ardu_port'])
 
         self.currentTarget = None # (longitude, latitude) tuple

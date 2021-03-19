@@ -1,10 +1,11 @@
-from messages_pb2 import *
-import constants as C
+#from messages_pb2 import *
+import serial
+import constants as c
 
 class arduino:
 
 	def __init__(self, port_num):
-		self.ser1 = serial.Serial('COM'+port_num, c.config['MAIN']['baudrate']) 
+		self.ser1 = serial.Serial(port_num, c.config['MAIN']['baudrate']) 
 
 
 	def send(self, data):
