@@ -18,7 +18,7 @@ class boat:
         self.gps = Gps()
         self.windvane = windVane()
         self.drivers = driver(autoSail = False)
-        self.arduino = arduino(c.config['MAIN']['ARDU_PORT'])
+        self.arduino = arduino(c.config['MAIN']['ardu_port'])
 
         self.currentTarget = None # (longitude, latitude) tuple
         self.targets = [] # holds (longitude, latitude) tuples
@@ -28,7 +28,7 @@ class boat:
         tempTarget = False
 
     def move(self):
-        if self.gps.distanceTo(currentTarget) < c.config['MAIN']['ACCEPTABLE_RANGE'] and len(self.targets) > 0:
+        if self.gps.distanceTo(currentTarget) < c.config['MAIN']['acceptable_range'] and len(self.targets) > 0:
             #next target
 
             targetAngle = TargetAngleRelativeToNorth() #Func doesnt exist yet
