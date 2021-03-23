@@ -1,4 +1,4 @@
-from messages_pb2 import *
+#from messages_pb2 import *
 import constants as C
 
 class arduino:

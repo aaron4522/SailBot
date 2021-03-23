@@ -8,4 +8,5 @@ def save():
         config.write(configfile) 
 
 if __name__ == '__main__':
-    print(config['CONSTANTS']['motorKV'])
+    print(config.sections())
+    print(config['CONSTANTS']['win_title'])
