@@ -116,7 +116,7 @@ int16_t packetnum = 0;  // packet counter, we increment per xmission
  
 void loop()
 {
-  delay(1000); // Wait 1 second between transmits, could also 'sleep' here!
+  delay(10); // Wait 1 second between transmits, could also 'sleep' here!
   //Serial.println("Transmitting..."); // Send a message to rf95_server
   
   char radiopacket[20] = "";
