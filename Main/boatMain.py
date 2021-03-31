@@ -2,10 +2,11 @@ import constants as c
 import logging
 
 from windvane import windVane
-from GPS import Gps 
+from GPS import gps as Gps 
 from drivers import driver
 from transceiver import arduino
 from datetime import date, datetime
+from threading import Thread
 
 
 class boat:
@@ -17,7 +18,7 @@ class boat:
 
         self.gps = Gps()
         self.windvane = windVane()
-        self.drivers = driver(autoSail = False)
+        self.drivers = driver(sailAuto = False)
         self.arduino = arduino(c.config['MAIN']['ardu_port'])
 
         self.currentTarget = None # (longitude, latitude) tuple
@@ -26,6 +27,9 @@ class boat:
         noGoZoneDegs = 20
 
         tempTarget = False
+        
+        pump_thread = Thread(target=self.pumpMessages)
+        pump_thread.start()
 
     def move(self):
         if self.gps.distanceTo(currentTarget) < float(c.config['MAIN']['acceptable_range']) and len(self.targets) > 0:
@@ -90,11 +94,18 @@ class boat:
             #move sail to home position
             self.drivers.rudder.set(0)
             logging.info('Adjusted rudder to home position')
+            
+    def pumpMessages(self):
+        while True:
+            self.readMessages()
 
     def readMessages(self):
         msgs = self.arduino.read()
-
-        for msg in msgs:
+        print(msgs)
+        
+        #for msg in msgs:
+        if True:
+            msg = msgs
             ary = msg.split(' ')
             if len(ary) > 1:
                 if ary[0] == 'sail': 
