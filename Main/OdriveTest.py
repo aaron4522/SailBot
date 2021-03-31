@@ -19,6 +19,12 @@ class Odrive():
         self.od.axis0.motor.config.torque_constant = 1 # read the getting started guide on this, to be changed later
         self.od.axis0.motor.config.motor_type = 0
 
+        
+        self.axis0.controller.config.vel_limit = c.config['CONSTANTS']['velLimit']
+        self.axis0.controller.config.pos_gain = c.config['CONSTANTS']['posGain']
+        self.axis0.controller.config.vel_gain = c.config['CONSTANTS']['velGain']
+        self.axis0.controller.config.vel_integrator_gain = c.config['CONSTANTS']['velIntegratorGain']
+
         # Axis 1
 
         self.axis1 = self.od.axis1
@@ -30,16 +36,61 @@ class Odrive():
         self.od.axis1.motor.config.torque_constant = 1 # read the getting started guide on this, to be changed later
         self.od.axis1.motor.config.motor_type = 0
 
-        self.axis1.controller.config.vel_limit = self.axis0.controller.config.vel_limit
 
-        # self.axis1.controller.config.pos_gain = c.config['CONSTANTS']['posGain']
-        # self.axis1.controller.config.vel_gain = c.config['CONSTANTS']['velGain']
-        # self.axis1.controller.config.vel_integrator_gain = c.config['CONSTANTS']['velIntegratorGain']
+        self.axis1.controller.config.vel_limit = c.config['CONSTANTS']['velLimit']
+        self.axis1.controller.config.pos_gain = c.config['CONSTANTS']['posGain']
+        self.axis1.controller.config.vel_gain = c.config['CONSTANTS']['velGain']
+        self.axis1.controller.config.vel_integrator_gain = c.config['CONSTANTS']['velIntegratorGain']
 
         self.current = 20
+
+        #self.od.save_configuration()
         #self.enc0.config.calib_scan_distance *= 4
 
         #print(F"!!!! {self.enc0.config.calib_scan_distance}")
+
+    @property
+    def pos(self):
+        return (self.pos0, self.pos1)
+
+    @pos.setter
+    def pos(self, value):
+        self.axis0.controller.input_pos = value
+        self.axis1.controller.input_pos = value
+
+    @property
+    def vel(self):
+        return (self.vel0, self.vel1)
+
+    @vel.setter
+    def vel(self, value):
+        self.vel0 = value
+        self.vel1 = value
+
+    @property
+    def torque(self):
+        #this will change current drawn
+        return 8.27 * getDrawnCurrent / self.KVRating
+
+    @torque.setter
+    def torque(self, value):
+        self.torque0 = value
+        self.torque1 = value
+
+    @property
+    def current(self):
+        return (self.current0, self.current1)
+
+    @current.setter
+    def current(self, value):
+        #this will change torque!!!
+        #self.torque = (8.27 * value / self.KVRAting)
+        #print(F"Warning: Changing the current limit will affect the torque")
+        self.current0 = value
+        self.current1 = value
+
+    def getDemandedCurrent(self):
+        return (self.getDemandedCurrent0(), self.getDemandedCurrent1())
         
     @property
     def pos0(self):
@@ -78,7 +129,7 @@ class Odrive():
         self.mo0.config.current_lim = value
 
     def getDemandedCurrent0(self):
-        self.axis0.motor.current_control.Iq_setpoint
+        return self.axis0.motor.current_control.Iq_setpoint
 
 
 
@@ -119,39 +170,53 @@ class Odrive():
         self.mo1.config.current_lim = value
 
     def getDemandedCurrent1(self):
-        self.axis1.motor.current_control.Iq_setpoint
+        return self.axis1.motor.current_control.Iq_setpoint
 
 if __name__ == '__main__':
+
+    try:
+        odrive.find_any().reboot()
+        sleep(2)
+        pass
+    except:
+        pass
+    
     drv = Odrive()
 
-    drv.current = 20
-    #drv.axis.requested_state = 1 #IDLE
-    #sleep(1)
     drv.axis0.requested_state = 3 #CALIBRATION
     sleep(15)
     
     ut.dump_errors(drv.od)
+    # print(drv.enc0.config.cpr)
+    # print(drv.od.axis0.motor.config.pole_pairs)
     drv.axis0.requested_state = 8 
-    sleep(1)
-    for i in range(5):
-        drv.pos0 = 0
-        sleep(3)
-        drv.pos0 = 5
-        sleep(3)
-        ut.dump_errors(drv.od)
-
-    # drv.axis1.requested_state = 3 #CALIBRATION
-    # sleep(15)
-    
-    # ut.dump_errors(drv.od)
-    # drv.axis1.requested_state = 8 
     # sleep(1)
-    # for i in range(5):
+    # for i in range(1):
+    #     drv.pos0 = 0
+    #     sleep(3)
+    #     drv.pos0 = 5
+    #     sleep(3)
+    #     #ut.dump_errors(drv.od)
+
+    drv.axis1.requested_state = 3 #CALIBRATION
+    sleep(15)
+    
+    ut.dump_errors(drv.od)
+    drv.axis1.requested_state = 8 
+    # sleep(1)
+    # for i in range(2):
     #     drv.pos1 = 0
     #     sleep(3)
     #     drv.pos1 = 5
     #     sleep(3)
-    #     ut.dump_errors(drv.od)
+    #     #ut.dump_errors(drv.od)
+
+    for i in range(2):
+        drv.pos = 0
+        sleep(2)
+        drv.pos = 5
+        sleep(2)
+        ut.dump_errors(drv.od)
     
 
     # print('done')
