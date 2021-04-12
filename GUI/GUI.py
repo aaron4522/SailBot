@@ -391,6 +391,7 @@ class tabWidget(QWidget):
 		text = textBox.text()
 		if ARDUINO:
 			ARDUINO.send(text)
+			return
 		arry = text.split(' ')
 		if len(arry) > 1 and SERVER:
 			data = {"action": arry[0], 'value' : str(arry[1])}
@@ -567,6 +568,7 @@ class arduino:
 	def send(self, data):
 		print(data)
 		self.ser1.write(str(data).encode())
+		print('done')
 
 	def read(self):
 		message = self.ser1.readline()
@@ -595,7 +597,14 @@ def handle_input():
 		
 		if MANUAL:
 
-			events = get_gamepad()
+			try: 
+				events = get_gamepad()
+			except:
+				global FOUND_GAMEPAD
+				if FOUND_GAMEPAD:
+					FOUND_GAMEPAD = False
+					print("No Gamepad found")
+				events = []
 			for event in events:
 				# if not 'ABS' in str(event.code) and not 'SYN_REPORT' in str(event.code):
 				# 	print(event.ev_type, event.code, event.state)
@@ -657,9 +666,9 @@ def make_arduino(com_port):
 	
 
 if __name__ == "__main__":
-
 	DATA_REFRESH = None
 	MANUAL = False
+	FOUND_GAMEPAD = True
 	
 	try:
 		make_arduino(sys.argv.pop())

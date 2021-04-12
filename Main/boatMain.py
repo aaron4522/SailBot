@@ -32,7 +32,7 @@ class boat:
         pump_thread.start()
 
     def move(self):
-        if self.gps.distanceTo(currentTarget) < c.config['MAIN']['acceptable_range'] and len(self.targets) > 0:
+        if self.gps.distanceTo(currentTarget) < float(c.config['MAIN']['acceptable_range']) and len(self.targets) > 0:
             #next target
 
             targetAngle = TargetAngleRelativeToNorth() #Func doesnt exist yet
