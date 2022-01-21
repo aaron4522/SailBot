@@ -71,11 +71,12 @@ class obj_rudder:
     """
 class arduino:
     def __init__(self):
+        
         #self.ser1 = serial.Serial('COM'+portnum, 9600)
         try:
-            self.ser1 = serial.Serial(str(c.ARDU_PORT), c.BAUDRATE)
+            self.ser1 = serial.Serial(str(c.config['MAIN']['ardu_port']), c.config['MAIN']['baudrate'])
         except:
-            self.ser1 = serial.Serial(str(c.ARDU_PORT2), c.BAUDRATE)
+            self.ser1 = serial.Serial(str(c.config['MAIN']['ardu_port']), c.config['MAIN']['baudrate'])
         print(repr(self.ser1))
         
     def send(self, data):

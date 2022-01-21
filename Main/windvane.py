@@ -10,12 +10,15 @@ class windVane():
 
         self.clk = 17
         self.dt = 18
+        self.hef = 22
+
     
         self.q = Queue(0)
     
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.clk, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
         GPIO.setup(self.dt, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
+        GPIO.setup(self.hef, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
         self.counter = 0
         self.clkLastState = GPIO.input(self.clk)
@@ -38,7 +41,7 @@ class windVane():
 
         counter = counter % self.stepsPerRev
         return self.map(counter, 0, self.stepsPerRev-1, 0, 359)
-
+        
     def flush_queue(self):
         while True:
             self.counter += self.q.get()
@@ -52,20 +55,27 @@ class windVane():
             GPIO.cleanup()
 
     def update(self):
+        
         clkState = GPIO.input(self.clk)
         dtState = GPIO.input(self.dt)
+        hefState = GPIO.input(self.hef)
         if clkState != self.clkLastState:
 
             if dtState != clkState:
 
                 self.q.put_nowait(1)
+                
             else:
                 self.q.put_nowait(-1)
 
             self.clkLastState = clkState
-
+        if hefState == False:
+            self.counter = 0
+            
+        
 if __name__ == '__main__':
     wv = windVane()
     while True:
         sleep(.1)
         print(F"Angle {wv.angle}")
+    
