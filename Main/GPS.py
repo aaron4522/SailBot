@@ -52,6 +52,7 @@ def computeNewCoordinate(lat, lon, d_lat, d_lon):
     return (new_lat, new_lon)
 
 def angleBetweenCoordinates(lat1, lon1, lat2, lon2):
+    #angle (relative to north?) from lat/long1 to lat/long2
     theta1 = degreesToRadians(lat1)
     theta2 = degreesToRadians(lat2)
     delta1 = degreesToRadians(lat2 - lat1)
