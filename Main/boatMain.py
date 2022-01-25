@@ -122,6 +122,30 @@ class boat:
                     logging.info('Received message to adjust rudder')
                 elif ary[0] == 'mode': print("TODO: add Modes")
 
+    def goBetweenBuoy(self, LeftBuoyPixel, RightBuoyPixel):
+        #Both in camera, assuming arguments = none if not in camera
+        if LeftBuoyPixel and RightBuoyPixel:
+            #Find distance of buoys to center line
+            #TODO Add the total camera pixel size to constants (x,y)
+            #Thought it only x distance needs to be checked
+            distLeft = abs(LeftBuoyPixel[1] - c.cameraPixelSizeX/2.0)
+            distRight = abs(RightBuoyPixel[1] - c.cameraPixelSizeX/2.0)
+
+            #Check if one is significantly closer to center
+            #TODO determine pixel wise what is significantly closer
+            if distRight - distLeft > 20: #Left buoy is closer
+                #Turn right
+                newCompassAngle = (self.compass.mag + 10) % 360
+                self.turnToAngle(newCompassAngle)
+            elif distLeft - distRight > 20: #Right buoy closer
+                #Turn left
+                newCompassAngle = (self.compass.mag - 10) % 360
+                self.turnToAngle(newCompassAngle)
+        else:
+            #Go to gps
+            self.goToGps(self.currentTarget[0], self.currentTarget[1])
+
+
     def goToGPS(self, lat, long):
         angleToTarget = GPS.angleBetweenCoordinates(self.gps.latitude, self.gps.longitude) 
         compassAngle = self.compass.mag
@@ -154,6 +178,7 @@ class boat:
                 logging.info(F'turning to angle: {angle} from angle: {compassAngle} by turning rudder to {rudderPos}')
                 adjustRudder(rudderPos)
         logging.info("finished turnToAngle")
+
 
 if __name__ == "__main__":
 

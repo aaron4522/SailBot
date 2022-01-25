@@ -79,6 +79,18 @@ def convertDegMinToDecDeg (degMin):
 
     return decDeg
 
+def convertWindAngle (windAngle):
+    # This assumes windAngle is measured from 0 to 360 degrees
+    if (windAngle >= 0 and windAngle <= 180):
+        tempAngle = (180 - windAngle)*-1
+    else:
+        tempAngle = windAngle - 180
+
+    # This also assumes the compass is measured from 0 to 360 degrees
+    compassAngle = boatCompass + tempAngle # we would need to get the boat compass reading from the compass
+
+    return (compassAngle % 360)
+
 class gps():
 
     def __init__(self):
