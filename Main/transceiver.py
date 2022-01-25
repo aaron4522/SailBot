@@ -32,3 +32,8 @@ class arduino:
         return result
 
 
+if __name__ == "__main__":
+    ardu = arduino("__port num__")
+    while True:
+        print(ardu.read())
+

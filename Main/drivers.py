@@ -4,6 +4,41 @@ import adafruit_pca9685 as pcaLib
 import constants as c
 from threading import Thread
 from windvane import windVane
+from RPi import GPIO
+from time import sleep
+
+class stepperMotor():
+    def __init__(self):
+        self.motorPin = 5
+        self.dirPin = 6
+        self.sleepTime = .00005
+        self.stepping = False
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.motorPin, GPIO.OUT)
+        GPIO.setup(self.dirPin, GPIO.OUT)
+    def step(self, steps):
+        if self.stepping == True:
+            return False
+        
+        stepThread = Thread(target=self.step_Thread, args=[steps])
+        stepThread.start()
+        
+    def step_Thread(self, steps):
+        
+        if steps < 0:
+            GPIO.output(self.dirPin, 0)
+            steps = -steps
+        else:
+            GPIO.output(self.dirPin, 1)
+
+        for i in range(steps):
+            GPIO.output(self.motorPin, 1)
+            sleep(self.sleepTime)
+            GPIO.output(self.motorPin, 0)
+            sleep(self.sleepTime)
+
+        self.stepping = False
             
 class obj_sail:
             
@@ -85,8 +120,8 @@ class driver:
         print('n', sailAuto)
 
 if __name__ == "__main__":
-    drive = driver(0, 1)
-    drive.sail.autoAdjust = False
+    #drive = driver(0, 1)
+    #drive.sail.autoAdjust = False
 
     
     while True:
@@ -107,4 +142,6 @@ if __name__ == "__main__":
         elif arr[0] == "rudder":
               drive.rudder.set(int(arr[1]))
               
-        
+        elif arr[0] == "stepper":
+            stepper = stepperMotor()
+            stepper.step(int(arr[1]))

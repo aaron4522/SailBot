@@ -41,6 +41,13 @@ class windVane():
 
         counter = counter % self.stepsPerRev
         return self.map(counter, 0, self.stepsPerRev-1, 0, 359)
+
+    @property
+    def noGoMin(self):
+        self.angle - c.noGoAngle/2
+
+    def noGoMax(self):
+        self.angle + c.noGoAngle/2
         
     def flush_queue(self):
         while True:
