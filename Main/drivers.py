@@ -2,6 +2,7 @@ import board
 import busio
 import adafruit_pca9685 as pcaLib
 import constants as c
+import stepper
 from threading import Thread
 from windvane import windVane
             
@@ -43,7 +44,23 @@ class obj_sail:
 
                 
 class obj_rudder:
-            
+    # 200 steps = 360 degrees
+    #between -45 and 45 degrees
+    def __init__(self)
+        self.current=0
+        self.step = stepperDriver()
+    
+    def set(self, degrees):
+        
+        self.steps = 200/360 * degrees
+        
+        if degrees < self.current:
+            self.step.turn(self, False, self.steps, .0001, False, .05)
+        else:
+            self.step.turn(self, True, self.steps, .0001, False, .05)
+        self.current = degrees
+
+    """        
     servo_min = c.config['MAIN']['RUDDER_SERVO_MIN']
     servo_ctr = c.config['MAIN']['RUDDER_SERVO_CTR']
     servo_max = c.config['MAIN']['RUDDER_SERVO_MAX']
@@ -60,18 +77,28 @@ class obj_rudder:
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
 
     def set(self, degrees):
-        if degrees < self.angle_ctr:
+        
+        steps = 200/360 * degrees
+        
+        if degrees < self.current:
+            step.turn(self, False,
+                 steps, .0001, False, .05)
             
             val = self.map(degrees, self.angle_min, self.angle_ctr,
                   self.servo_min, self.servo_ctr)
         else:
+            step.turn(self, True,
+                 steps, .0001, False, .05)
+            
             val = self.map(degrees, self.angle_ctr, self.angle_max,
                   self.servo_ctr, self.servo_max)
-
-
+        
+        
+        
+        self.current = degrees
         self.channel.duty_cycle = int(val)
         return
-
+"""
 class driver:
 
     def __init__(self, sail_channel = 0, rudder_channel = 1, sailAuto = True):

@@ -70,7 +70,7 @@ if __name__ == '__main__':
     ut.dump_errors(drv.od)
     drv.axis.requested_state = 8 
     sleep(1)
-    for i in range(5):
+    for i in range(3):
         drv.pos = 0
         sleep(3)
         drv.pos = 5

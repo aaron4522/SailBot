@@ -2,6 +2,10 @@ from RPi import GPIO
 from time import sleep
 from threading import Thread, Lock
 from queue import Queue
+import board
+from adafruit_seesaw import seesaw, rotaryio, digitalio
+
+
 class windVane():
 
     def __init__(self):
@@ -11,9 +15,14 @@ class windVane():
         self.clk = 17
         self.dt = 18
         self.hef = 22
+        
+        
 
     
         self.q = Queue(0)
+        
+        self.saw = seesaw.Seesaw (board.I2C(), 0x36)
+        self.encoder = rotaryio.IncrementalEncoder(self.saw)
     
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.clk, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
@@ -41,7 +50,11 @@ class windVane():
 
         counter = counter % self.stepsPerRev
         return self.map(counter, 0, self.stepsPerRev-1, 0, 359)
-        
+    
+    @property
+    def position(self):
+        return self.encoder.position
+    
     def flush_queue(self):
         while True:
             self.counter += self.q.get()
@@ -77,5 +90,5 @@ if __name__ == '__main__':
     wv = windVane()
     while True:
         sleep(.1)
-        print(F"Angle {wv.angle}")
+        print(F"Angle {wv.position}")
     

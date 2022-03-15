@@ -1,13 +1,13 @@
 #https://learn.adafruit.com/adafruit-ultimate-gps/circuitpython-parsing
 import time
-try:
-    import board
-    import busio
-    import adafruit_gps
-    import adafruit_lsm303_accel
-    import adafruit_lsm303dlh_mag
-except:
-    print("Failed to import board, run on Raspberry Pi")
+
+import board
+import busio
+import adafruit_gps
+# import adafruit_lsm303_accel
+import adafruit_lsm303dlh_mag
+
+print("Failed to import board, run on Raspberry Pi")
 from time import sleep
 from threading import Thread
 import math
@@ -90,7 +90,7 @@ class gps():
         # for a computer, use the pyserial library for uart access
         import serial
         #self.uart = serial.Serial("/dev/ttyACM1", baudrate=9600, timeout=10)
-        self.uart = serial.Serial("/dev/ttyS0", baudrate=9600, timeout=10)
+        self.uart = serial.Serial("/dev/ttyUSB0", baudrate=9600, timeout=10)
         self.gps = adafruit_gps.GPS(self.uart, debug=False)
     
 
@@ -146,7 +146,10 @@ class gps():
         self.gps.update()
         
         if print_info:
-            return
+            if not self.gps.has_fix:
+                print("Waiting for fix")
+                return
+
             print('Fix timestamp: {}/{}/{} {:02}:{:02}:{:02}'.format(
                 self.gps.timestamp_utc.tm_mon,   # Grab parts of the time from the
                 self.gps.timestamp_utc.tm_mday,  # struct_time object that holds
@@ -162,7 +165,7 @@ class gps():
             print('Fix quality: {}'.format(self.gps.fix_quality))
             # Some attributes beyond latitude, longitude and timestamp are optional
             # and might not be present.  Check if they're None before trying to use!
-            if gps.satellites is not None:
+            """if gps.satellites is not None:
                 print('# satellites: {}'.format(self.gps.satellites))
             if gps.altitude_m is not None:
                 print('Altitude: {} meters'.format(self.gps.altitude_m))
@@ -173,13 +176,13 @@ class gps():
             if gps.horizontal_dilution is not None:
                 print('Horizontal dilution: {}'.format(self.gps.horizontal_dilution))
             if gps.height_geoid is not None:
-                print('Height geo ID: {} meters'.format(self.gps.height_geoid))
+                print('Height geo ID: {} meters'.format(self.gps.height_geoid))"""
                 
 class compass():
     def __init__(self):
         i2c = busio.I2C(board.SCL, board.SDA)
         self.mag = adafruit_lsm303dlh_mag.LSM303DLH_Mag(i2c)
-        self.accel = adafruit_lsm303_accel.LSM303_Accel(i2c)
+        #self.accel = adafruit_lsm303_accel.LSM303_Accel(i2c)
         
     
         
@@ -189,9 +192,9 @@ class compass():
         print("Magnetometer (micro-Teslas)): X=%0.3f Y=%0.3f Z=%0.3f"%self.mag.magnetic)        
             
 if __name__ == "__main__":
-    comp = compass()
+    GPS = gps()
     while True:
-        comp.printMag()
+        GPS.updategps()
         sleep(1)
 
     

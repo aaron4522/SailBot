@@ -2,7 +2,8 @@ import constants as c
 import logging
 
 from windvane import windVane
-from GPS import Gps 
+from GPS import Gps
+import Compass
 from drivers import driver
 from transceiver import arduino
 from datetime import date, datetime
