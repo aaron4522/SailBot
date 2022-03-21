@@ -8,14 +8,14 @@ from windvane import windVane
             
 class obj_sail:
             
-    servo_min = c.config['MAIN']['SAIL_SERVO_MIN']
-    servo_max = c.config['MAIN']['SAIL_SERVO_MAX']
+    servo_min = c.config['CONSTANTS']['sail_servo_min']
+    servo_max = c.config['CONSTANTS']['sail_servo_max']
             
-    angle_min = c.config['MAIN']['SAIL_ANGLE_MIN']
-    angle_max = c.config['MAIN']['SAIL_ANGLE_MAX']
+    angle_min = c.config['CONSTANTS']['sail_angle_min']
+    angle_max = c.config['CONSTANTS']['sail_angle_max']
             
     def __init__(self, pca, channel_index, auto):
-        self.channel =  pca.channels[channel_index]
+        #self.channel =  pca.channels[channel_index]
         self.autoAdjust = auto
         self.windvane = windVane()
         pump_thread2 = Thread(target=self.autoAdjustSail)
@@ -46,18 +46,20 @@ class obj_sail:
 class obj_rudder:
     # 200 steps = 360 degrees
     #between -45 and 45 degrees
-    def __init__(self)
+    def __init__(self):
         self.current=0
-        self.step = stepperDriver()
+        self.step = stepper.stepperDriver(17,27)
     
     def set(self, degrees):
         
-        self.steps = 200/360 * degrees
+        self.steps = int(400/360 * (self.current-degrees) )
+        print(self.steps)
         
         if degrees < self.current:
-            self.step.turn(self, False, self.steps, .0001, False, .05)
+            self.step.turn(False, self.steps, .001, True, .05)
         else:
-            self.step.turn(self, True, self.steps, .0001, False, .05)
+            self.step.turn(True, -self.steps, .001, True, .05)
+            
         self.current = degrees
 
     """        
@@ -102,18 +104,19 @@ class obj_rudder:
 class driver:
 
     def __init__(self, sail_channel = 0, rudder_channel = 1, sailAuto = True):
-        
+        """
         self.i2c = busio.I2C(board.SCL, board.SDA)
         self.pca = pcaLib.PCA9685(self.i2c)
         self.pca.frequency = 50
 
         self.sail = obj_sail(self.pca, sail_channel, sailAuto)
-        self.rudder = obj_rudder(self.pca, rudder_channel)
+        """
+        self.rudder = obj_rudder()
         print('n', sailAuto)
 
 if __name__ == "__main__":
     drive = driver(0, 1)
-    drive.sail.autoAdjust = False
+    #drive.sail.autoAdjust = False
 
     
     while True:
@@ -129,7 +132,8 @@ if __name__ == "__main__":
              # to be a little off and setting it to 0 is not good
             val = int(arr[1])
             #val = int(arr[1]) if int(arr[1]) >= 15 else 15
-            drive.sail.set(val)
+            
+            #drive.sail.set(val)
             
         elif arr[0] == "rudder":
               drive.rudder.set(int(arr[1]))

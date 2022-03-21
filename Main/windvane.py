@@ -10,7 +10,7 @@ class windVane():
 
     def __init__(self):
 
-        self.stepsPerRev = 512
+        self.stepsPerRev = 200
 
         self.clk = 17
         self.dt = 18
@@ -53,7 +53,7 @@ class windVane():
     
     @property
     def position(self):
-        return self.encoder.position
+        return int( (self.encoder.position * 1.8)%360 )
     
     def flush_queue(self):
         while True:
