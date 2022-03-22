@@ -74,9 +74,9 @@ class arduino:
         
         #self.ser1 = serial.Serial('COM'+portnum, 9600)
         try:
-            self.ser1 = serial.Serial(str(c.config['MAIN']['ARDU_PORT']), c.config['MAIN']['BAUDRATE'])
+            self.ser1 = serial.Serial(str(c.config['MAIN']['ardu_port']), c.config['MAIN']['baudrate'])
         except:
-            self.ser1 = serial.Serial(str(c.config['MAIN']['ARDU_PORT']), c.config['MAIN']['BAUDRATE'])
+            self.ser1 = serial.Serial(str(c.config['MAIN']['ardu_port']), c.config['MAIN']['baudrate'])
         print(repr(self.ser1))
         
     def send(self, data):

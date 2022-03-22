@@ -1,3 +1,4 @@
+
 #https://learn.adafruit.com/adafruit-ultimate-gps/circuitpython-parsing
 import time
 
@@ -13,7 +14,7 @@ from threading import Thread
 import math
 
 
- 
+
 
 
 
@@ -33,8 +34,8 @@ def distanceInMBetweenEarthCoordinates(lat1, lon1, lat2, lon2):
   lat1 = degreesToRadians(lat1)
   lat2 = degreesToRadians(lat2)
 
-  a = math.sin(dLat/2) * math.sin(dLat/2) + math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2); 
-  c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a)); 
+  a = math.sin(dLat/2) * math.sin(dLat/2) + math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2);
+  c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
   return earthRadiusKm * c * 1000
 
 def computeNewCoordinate(lat, lon, d_lat, d_lon):
@@ -42,40 +43,53 @@ def computeNewCoordinate(lat, lon, d_lat, d_lon):
     finds the gps coordinate that is x meters from given coordinate
     """
     earthRadiusKm = 6371
-    
+
     d_lat /= 1000
     d_lon /= 1000
-    
+
     new_lat = lat + (d_lat / earthRadiusKm) * (180/math.pi)
     new_lon = lon + (d_lon / earthRadiusKm) * (180/math.pi) / math.cos(lat * math.pi/180)
-    
+
     return (new_lat, new_lon)
 
 def angleBetweenCoordinates(lat1, lon1, lat2, lon2):
+    #angle (relative to north?) from lat/long1 to lat/long2
     theta1 = degreesToRadians(lat1)
     theta2 = degreesToRadians(lat2)
     delta1 = degreesToRadians(lat2 - lat1)
     delta2 = degreesToRadians(lon2 - lon1)
-    
+
     y = math.sin(delta2) * math.cos(theta2)
     x = math.cos(theta1) * math.sin(theta2) - math.sin(theta1)*math.cos(theta2)*math.cos(delta2)
     brng = math.atan(y/x)
     brng *= 180/math.pi
-    
+
     brng = (brng + 360) % 360
-    
+
     return brng
 
 def convertDegMinToDecDeg (degMin):
     min = 0.0
     decDeg = 0.0
-    
+
     min = math.fmod(degMin, 100.0)
-    
+
     degMin = int(degMin/100)
     decDeg = degMin + (min/60)
-    
+
     return decDeg
+
+def convertWindAngle (windAngle):
+    # This assumes windAngle is measured from 0 to 360 degrees
+    if (windAngle >= 0 and windAngle <= 180):
+        tempAngle = (180 - windAngle)*-1
+    else:
+        tempAngle = windAngle - 180
+
+    # This also assumes the compass is measured from 0 to 360 degrees
+    compassAngle = boatCompass + tempAngle # we would need to get the boat compass reading from the compass
+
+    return (compassAngle % 360)
 
 class gps():
 
@@ -92,7 +106,7 @@ class gps():
         #self.uart = serial.Serial("/dev/ttyACM1", baudrate=9600, timeout=10)
         self.uart = serial.Serial("/dev/ttyUSB0", baudrate=9600, timeout=10)
         self.gps = adafruit_gps.GPS(self.uart, debug=False)
-    
+
 
         # Turn on the basic GGA and RMC info (what you typically want)
         self.gps.send_command(b'PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0')
@@ -121,30 +135,30 @@ class gps():
         this means that rather than using gps_object.gps.longitude, it is possible to use gps_object.longitude
         """
         try:
-            return self.gps.__getattribute__(name) 
+            return self.gps.__getattribute__(name)
         except:
             return super().__getattribute__(name)
 
     def run(self):
         while True:
             self.updategps()
-            
+
     def readgps(self):
         timestamp = time.monotonic()
         while True:
             data = self.gps.read(64)
-            
+
             if data is not None:
                 data_string = ''.join([chr(b) for b in data])
                 print(data_string, end="")
-                
+
                 if time.monotonic() - timestamp > 5:
                     self.gps.send_command(b'PMTK605')
                     timestamp = time.monotonic()
 
     def updategps(self, print_info = True):
         self.gps.update()
-        
+
         if print_info:
             if not self.gps.has_fix:
                 print("Waiting for fix")
@@ -176,8 +190,8 @@ class gps():
             if gps.horizontal_dilution is not None:
                 print('Horizontal dilution: {}'.format(self.gps.horizontal_dilution))
             if gps.height_geoid is not None:
-                print('Height geo ID: {} meters'.format(self.gps.height_geoid))"""
-                
+                print('Height geo ID: {} meters'.format(self.gps.height_geoid))
+
 class compass():
     def __init__(self):
         i2c = busio.I2C(board.SCL, board.SDA)
@@ -189,13 +203,10 @@ class compass():
     def printAccel(self):
         print("Acceleration (m/s^2)): X=%0.3f Y=%0.3f Z=%0.3f"%self.accel.acceleration)
     def printMag(self):
-        print("Magnetometer (micro-Teslas)): X=%0.3f Y=%0.3f Z=%0.3f"%self.mag.magnetic)        
-            
+        print("Magnetometer (micro-Teslas)): X=%0.3f Y=%0.3f Z=%0.3f"%self.mag.magnetic)
+
 if __name__ == "__main__":
     GPS = gps()
     while True:
         GPS.updategps()
         sleep(1)
-
-    
- 

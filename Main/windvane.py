@@ -55,6 +55,15 @@ class windVane():
     def position(self):
         return int( (self.encoder.position * 1.8)%360 )
     
+
+    @property
+    def noGoMin(self):
+        self.angle - c.noGoAngle/2
+
+    @property
+    def noGoMax(self):
+        self.angle + c.noGoAngle/2
+        
     def flush_queue(self):
         while True:
             self.counter += self.q.get()
