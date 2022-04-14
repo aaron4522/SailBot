@@ -4,6 +4,7 @@ from threading import Thread, Lock
 from queue import Queue
 import board
 from adafruit_seesaw import seesaw, rotaryio, digitalio
+import constants as c
 
 
 class windVane():
@@ -58,11 +59,11 @@ class windVane():
 
     @property
     def noGoMin(self):
-        self.angle - c.noGoAngle/2
+        return 360 - int(c.config['CONSTANTS']['noGoAngle'])/2
 
     @property
     def noGoMax(self):
-        self.angle + c.noGoAngle/2
+        return int(c.config['CONSTANTS']['noGoAngle'])/2
         
     def flush_queue(self):
         while True:

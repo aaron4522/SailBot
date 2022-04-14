@@ -79,34 +79,32 @@ class obj_sail:
 
                 
 class obj_rudder:
-    # 200 steps = 360 degrees
+    # 800 steps = 360 degrees
     #between -45 and 45 degrees
     def __init__(self):
         self.current=0
         self.step = stepper.stepperDriver(17,27)
     
     def set(self, degrees):
-        
         self.steps = int(400/360 * (self.current-degrees) )
-        print(self.steps)
         
         if degrees < self.current:
-            self.step.turn(False, self.steps, .001, True, .05)
+            self.step.turn(False, self.steps)
         else:
-            self.step.turn(True, -self.steps, .001, True, .05)
+            self.step.turn(True, -self.steps)
             
-<<<<<<< HEAD
+
         self.current = degrees
 
     """        
     servo_min = c.config['MAIN']['RUDDER_SERVO_MIN']
     servo_ctr = c.config['MAIN']['RUDDER_SERVO_CTR']
     servo_max = c.config['MAIN']['RUDDER_SERVO_MAX']
-=======
+
     servo_min = float(c.config['CONSTANTS']['rudder_servo_min'])
     servo_ctr = float(c.config['CONSTANTS']['rudder_servo_ctr'])
     servo_max = float(c.config['CONSTANTS']['rudder_servo_max'])
->>>>>>> 02b11201d0834258508f476e1a90bbc9e3bc91de
+
             
     angle_min = float(c.config['CONSTANTS']['rudder_angle_min'])
     angle_max = float(c.config['CONSTANTS']['rudder_angle_max'])
@@ -156,11 +154,8 @@ class driver:
         print('n', sailAuto)
 
 if __name__ == "__main__":
-<<<<<<< HEAD
     drive = driver(0, 1)
-=======
     #drive = driver(0, 1)
->>>>>>> 02b11201d0834258508f476e1a90bbc9e3bc91de
     #drive.sail.autoAdjust = False
 
     

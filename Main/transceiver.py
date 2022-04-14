@@ -33,7 +33,7 @@ class arduino:
 
 
 if __name__ == "__main__":
-    ardu = arduino("__port num__")
+    ardu = arduino("/dev/ttyACM0")
     while True:
         print(ardu.read())
 

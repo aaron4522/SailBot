@@ -103,6 +103,9 @@ class gps():
 
         # for a computer, use the pyserial library for uart access
         import serial
+        self.latitude =  0
+        self.longitude = 0
+        self.track_angle_deg = 0
         #self.uart = serial.Serial("/dev/ttyACM1", baudrate=9600, timeout=10)
         self.uart = serial.Serial("/dev/ttyUSB0", baudrate=9600, timeout=10)
         self.gps = adafruit_gps.GPS(self.uart, debug=False)
@@ -135,9 +138,9 @@ class gps():
         this means that rather than using gps_object.gps.longitude, it is possible to use gps_object.longitude
         """
         try:
-            return self.gps.__getattribute__(name)
-        except:
             return super().__getattribute__(name)
+        except:
+            return self.gps.__getattribute__(name)
 
     def run(self):
         while True:
@@ -157,9 +160,14 @@ class gps():
                     timestamp = time.monotonic()
 
     def updategps(self, print_info = True):
+            
         self.gps.update()
-
+        if(self.gps.has_fix):
+            self.latitude = self.gps.latitude
+            self.longitude = self.gps.longitude
+            self.track_angle_deg = self.gps.track_angle_deg
         if print_info:
+            #print(self.latitude,self.longitude, self.gps.latitude,self.gps.longitude)
             if not self.gps.has_fix:
                 print("Waiting for fix")
                 return
@@ -177,6 +185,8 @@ class gps():
             print('Lat in decDeg:', convertDegMinToDecDeg(self.gps.latitude) )
             print('long in decDeg:', convertDegMinToDecDeg(self.gps.longitude) )
             print('Fix quality: {}'.format(self.gps.fix_quality))
+            self.latitude = self.gps.latitude
+            self.longitude = self.gps.longitude
             # Some attributes beyond latitude, longitude and timestamp are optional
             # and might not be present.  Check if they're None before trying to use!
             """if gps.satellites is not None:
@@ -191,6 +201,7 @@ class gps():
                 print('Horizontal dilution: {}'.format(self.gps.horizontal_dilution))
             if gps.height_geoid is not None:
                 print('Height geo ID: {} meters'.format(self.gps.height_geoid))
+            """
 
 class compass():
     def __init__(self):
