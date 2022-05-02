@@ -16,6 +16,7 @@ class virtualCompass():
 
     def __init__(self, parent):
         self.angleVal=0
+        self.parent = parent
 
     @property
     def angle(self):
@@ -23,7 +24,8 @@ class virtualCompass():
 
     @angle.setter
     def angle(self, value):
-        self.angleVal = value
+        self.parent.windvane.angle = value % 360
+        self.angleVal = value % 360
 
 class virtualGPS():
     def __init__(self):
@@ -37,8 +39,8 @@ class virtualGPS():
 class virtualWindvane():
     def __init__(self):
         self.angle = 0
-        self.noGoMin = 315
-        self.noGoMax = 45
+        self.noGoMin = 330
+        self.noGoMax = 30
 
 class virtualDriver():
     def __init__(self):
@@ -139,22 +141,32 @@ def drawBoat():
     coords = polarToRect(25, (180-BOAT.compass.angle - 15) % 360, (50,50))
     pygame.draw.line(boat, RED, (50, 50), coords)
 
+    #Rudder
     coords = polarToRect(25, (180-BOAT.compass.angle) % 360, (50,50))
     coords2 = polarToRect(10, -BOAT.drivers.rudder.angle + (180-BOAT.compass.angle) % 360, coords)
     pygame.draw.line(boat, WHITE, coords, coords2)
 
-    
+    #Windvane
+    coords = polarToRect(10, 180, (50,50))
+    pygame.draw.line(boat, WHITE, (50,50), coords)
 
     drawX = map(BOAT.gps.latitude, 40.443, 40.444, 25, 375)
     drawY = map(BOAT.gps.longitude, -79.9585, -79.9575, 25, 375)
     screen.blit(boat, (drawX - 50, drawY - 50))
 
+    circle_filled = pygame.Surface((25,25))
+    pygame.draw.circle(circle_filled, WHITE, (10, 10), 10)
+    drawX = map(ghostPoint[0], 40.443, 40.444, 25, 375)
+    drawY = map(ghostPoint[1], -79.9585, -79.9575, 25, 375)
+    screen.blit(circle_filled, (drawX - 10, drawY - 10))
 
     circle_filled = pygame.Surface((25,25))
     pygame.draw.circle(circle_filled, RED, (10, 10), 10)
     drawX = map(targetLat, 40.443, 40.444, 25, 375)
     drawY = map(targetLong, -79.9585, -79.9575, 25, 375)
     screen.blit(circle_filled, (drawX - 10, drawY - 10))
+
+    
 
     pygame.display.update()
 
@@ -188,10 +200,12 @@ if __name__ == '__main__':
     BLACK = pygame.Color(0, 0, 0) 
     BOAT.gps.latitude, BOAT.gps.longitude = (40.44368167, -79.9580000)
     targetLat, targetLong = (40.4433, -79.9580000)
+    ghostPoint = (targetLat, targetLong)
     pygame.key.set_repeat(1,100)
     
-    
-    BOAT.goToGPS(targetLat, targetLong)
+    while True:
+        BOAT.goToGPS(targetLat, targetLong)
+        ghostPoint = (targetLat, targetLong)
 
     
     # while True:
