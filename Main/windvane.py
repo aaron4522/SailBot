@@ -1,8 +1,9 @@
-from RPi import GPIO
+
 from time import sleep
 from threading import Thread, Lock
 from queue import Queue
 import board
+from RPi import GPIO
 from adafruit_seesaw import seesaw, rotaryio, digitalio
 import constants as c
 

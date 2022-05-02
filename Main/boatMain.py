@@ -1,13 +1,19 @@
 
 import constants as c
 import logging
-
-from windvane import windVane
-from GPS import gps
-from compass import compass
-import GPS
-from drivers import driver
-from transceiver import arduino
+import boatMath
+import math
+try:
+    from windvane import windVane
+    from GPS import gps
+    from compass import compass
+    import GPS
+    
+    from drivers import driver
+    from transceiver import arduino
+except Exception as e:
+    print("Failed to import some modules, if this is not a simulation fix this before continuing")
+    print(F"Exception raised: {e}")
 from datetime import date, datetime
 from threading import Thread
 from time import sleep
@@ -162,16 +168,16 @@ class boat:
                 self.gps.updategps()
                 sleep(1)
 
-            angleToTarget = GPS.angleBetweenCoordinates(self.gps.latitude, self.gps.longitude, lat, long) 
+            
             compassAngle = self.compass.angle
-            targetAngle = angleToTarget #angle of target relative to north
+            targetAngle = (compassAngle + boatMath.angleToPoint(compassAngle, self.gps.latitude, self.gps.longitude, lat, long)) % 360
             windAngle = self.windvane.angle
-            if windAngle > self.windvane.noGoMin and windAngle < self.windvane.noGoMax:
+            if True or windAngle > self.windvane.noGoMin and windAngle < self.windvane.noGoMax:
                 #turn to target
-                print("case1", targetAngle)
+                print("case1 Ignore No Go Zone", targetAngle)
                 self.turnToAngle(targetAngle)
             else:
-                print("case2", compassAngle)
+                print("case2", compassAngle, targetAngle)
                 if compassAngle - targetAngle < 0:
                     #turn left
                     self.turnToAngle(self.windvane.noGoMin)
@@ -181,44 +187,25 @@ class boat:
 
     def turnToAngle(self, angle):
         leftPositive = 1 #change to negative one if boat is rotating the wrong way
-        if angle > 180:
-            angle = angle - 360
+        # if angle > 180:
+        #     angle = angle - 360
         logging.info("starting turnToAngle")
-        compassAngleX = self.compass.angle_X
-        compassAngleY = self.compass.angle_Y
-        compassAngleZ = self.compass.angle_Z
-        currentAngle = self.compass.angle
-        while currentAngle - angle > int(c.config['CONSTANTS']['angle_margin_of_error']):
-            compassAngleX = self.compass.angle_X
-            compassAngleY = self.compass.angle_Y
-            compassAngleZ = self.compass.angle_Z
+        compassAngle = self.compass.angle
+        while abs(compassAngle - angle) > int(c.config['CONSTANTS']['angle_margin_of_error']):
             #print(int(compassAngleX), int(compassAngleY), int(compassAngleZ), angle)
-            currentAngle = self.compass.angle
-            print(currentAngle, angle)
-            
-            rudderPos = compassAngleX
-            s = -1*numpy.sign(rudderPos)
-            
-            if( abs(rudderPos) > 180 and abs(rudderPos) < 360):
-                rudderPos += 360*s
-            if( abs(rudderPos) > 360 ):
-                rudderPos -= 360*numpy.sign(rudderPos)
-                
-            self.adjustRudder(int(rudderPos))
-                
-            """
-            if compassAngleX > angle and compassAngleX < angle + 180: #turn right
-                rudderPos = -1*leftPositive*min(-45, (compassAngleX - angle)) #/c.rotationSmoothingConst)
+            compassAngle = self.compass.angle
+
+            if compassAngle >= angle and compassAngle <= angle + 180: #turn right
+                rudderPos = -1*leftPositive*min(-45, abs(compassAngle - angle)) #/c.rotationSmoothingConst)
                 #logging.info(F'turning to angle: {angle} from angle: {compassAngle} by turning rudder to {rudderPos}')
-                    #print("c1:",rudderPos)
+                print("c1:",rudderPos, compassAngle, angle)
                 self.adjustRudder(int(rudderPos))
             else: #turn left
-                rudderPos = leftPositive*min(-45, (compassAngleX - angle)) #/c.rotationSmoothingConst)
+                rudderPos = leftPositive*min(-45, abs(compassAngle - angle)) #/c.rotationSmoothingConst)
                 #logging.info(F'turning to angle: {angle} from angle: {compassAngle} by turning rudder to {rudderPos}')
-                    #print("c2:",rudderPos)
+                print("c2:",rudderPos, compassAngle, angle)
                 self.adjustRudder(int(rudderPos))
-            """
-        print("a")
+
         logging.info("finished turnToAngle")
 
 
