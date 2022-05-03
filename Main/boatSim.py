@@ -11,6 +11,7 @@ class virtualBoat(boatMain.boat):
         self.gps = virtualGPS()
         self.windvane = virtualWindvane()
         self.drivers = virtualDriver()
+        self.vel = 0
 
 class virtualCompass():
 
@@ -89,7 +90,7 @@ def angleBetweenCoordinates(lat1, long1, lat2, long2):
     return radiansToDegrees(math.atan2(dy, dx)) 
 
 def drawBoat():
-    global UPDATE, targetLat, targetLong
+    global UPDATE, targetLat, targetLong, TIME_STEP
 
     for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -97,14 +98,14 @@ def drawBoat():
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
-                    targetLat -= .00001
+                    targetLat -= .0001
                 elif event.key == pygame.K_RIGHT:
-                    targetLat += .00001
+                    targetLat += .0001
                 elif event.key == pygame.K_UP:
-                    targetLong -= .00001
+                    targetLong -= .0001
                     pass
                 elif event.key == pygame.K_DOWN:
-                    targetLong += .00001
+                    targetLong += .0001
                     pass
 
                 elif event.key == pygame.K_a:
@@ -121,6 +122,13 @@ def drawBoat():
                     
                 elif event.key == pygame.K_SPACE:
                     UPDATE = not UPDATE
+
+                elif event.key == pygame.K_MINUS:
+                    TIME_STEP *= 1.1
+
+                elif event.key == pygame.K_PLUS:
+                    TIME_STEP /= 1.1
+
 
     size = (400,400)
     rect_filled = pygame.Surface(size)
@@ -171,8 +179,13 @@ def drawBoat():
     pygame.display.update()
 
     if UPDATE:
-        dx, dy = polarToRect(.05, (180-BOAT.compass.angle) % 360)
+        dx, dy = polarToRect(BOAT.vel, (180-BOAT.compass.angle) % 360)
         nx, ny = computeNewCoordinate(BOAT.gps.latitude, BOAT.gps.longitude, -dx, -dy)
+        if BOAT.windvane.angle < BOAT.windvane.noGoMin and BOAT.windvane.angle > BOAT.windvane.noGoMax:
+            BOAT.vel = min(.05, BOAT.vel + .001)
+        else:
+            BOAT.vel = max(BOAT.vel - .0001, 0)
+
         BOAT.gps.latitude = nx
         BOAT.gps.longitude = ny
 
@@ -185,12 +198,13 @@ def drawBoat():
 
     
 
-    sleep(.01)
+    sleep(TIME_STEP)
 
 
 
 
 if __name__ == '__main__':
+    TIME_STEP = .005
     UPDATE = False
     BOAT = virtualBoat()
     pygame.init()
@@ -198,8 +212,8 @@ if __name__ == '__main__':
     WHITE = pygame.Color(255, 255, 255)
     RED = pygame.Color(255, 0, 0) 
     BLACK = pygame.Color(0, 0, 0) 
-    BOAT.gps.latitude, BOAT.gps.longitude = (40.44368167, -79.9580000)
-    targetLat, targetLong = (40.4433, -79.9580000)
+    BOAT.gps.latitude, BOAT.gps.longitude = (40.4433, -79.9580000)
+    targetLat, targetLong = (40.44368167, -79.9580000)
     ghostPoint = (targetLat, targetLong)
     pygame.key.set_repeat(1,100)
     
