@@ -34,15 +34,18 @@ class boat:
         #self.arduino = arduino(c.config['MAIN']['ardu_port'])
         print("arduino disabled")	
 
+        self.manualControl = False
+        self.cycleTargets = False
         self.currentTarget = None # (longitude, latitude) tuple
         self.targets = [] # holds (longitude, latitude) tuples
 
         noGoZoneDegs = 20
 
         tempTarget = False
-        
-        #pump_thread = Thread(target=self.pumpMessages)
-        #pump_thread.start()
+
+        self.mainLoop()        
+        # pump_thread = Thread(target=self.pumpMessages)
+        # pump_thread.start()
 
     def move(self):
         """
@@ -117,6 +120,18 @@ class boat:
         while True:
             self.readMessages()
 
+    def mainLoop(self):
+        while True:
+            self.readMessages()
+
+            if not manualControl:
+                if not self.currentTarget:
+                    if self.targets != []:
+                        self.currentTarget = self.targets.pop(0)    
+                if self.currentTarget:
+                    self.goToGPS(self.currentTarget[0], self.currentTarget[1])
+            
+
     def readMessages(self):
         msgs = self.arduino.read()
         print(msgs)
@@ -133,6 +148,15 @@ class boat:
                     self.drivers.rudder.set(float(ary[1]))
                     logging.info('Received message to adjust rudder')
                 elif ary[0] == 'mode': print("TODO: add Modes")
+
+                elif ary[0] == "manual":
+                    if ary[1] == '1' or ary[1].lower() == 'true':
+                        self.manualControl = True
+                    else:
+                        self.manualControl = False
+
+                elif ary[0] == 'addTarget':
+                    self.targets.append((self.gps.latitude, self.gps.longitude))
 
     def goBetweenBuoy(self, LeftBuoyPixel, RightBuoyPixel):
         #Both in camera, assuming arguments = none if not in camera
@@ -159,35 +183,35 @@ class boat:
 
 
     def goToGPS(self, lat, long):
-        self.currentTarget = (long, lat)
-        
-        while True:
+
+        self.gps.updategps()
+        while self.gps.latitude == None or self.gps.longitude == None:
+            print("no gps")
             self.gps.updategps()
-            while self.gps.latitude == None or self.gps.longitude == None:
-                print("no gps")
-                self.gps.updategps()
-                sleep(1)
+            sleep(1)
 
-            
-            compassAngle = self.compass.angle
-            deltaAngle = boatMath.angleToPoint(compassAngle, self.gps.latitude, self.gps.longitude, lat, long)
-            targetAngle = (compassAngle + deltaAngle) % 360
-            windAngle = self.windvane.angle
-            if (deltaAngle + windAngle)%360 < self.windvane.noGoMin and (deltaAngle + windAngle)%360 > self.windvane.noGoMax:
-                #turn to target
-                #print("case1", targetAngle, compassAngle, windAngle, deltaAngle)
-                self.turnToAngle(targetAngle)
+        
+        compassAngle = self.compass.angle
+        deltaAngle = boatMath.angleToPoint(compassAngle, self.gps.latitude, self.gps.longitude, lat, long)
+        targetAngle = (compassAngle + deltaAngle) % 360
+        windAngle = self.windvane.angle
+        if (deltaAngle + windAngle)%360 < self.windvane.noGoMin and (deltaAngle + windAngle)%360 > self.windvane.noGoMax:
+            #turn to target
+            #print("case1", targetAngle, compassAngle, windAngle, deltaAngle)
+            self.turnToAngle(targetAngle)
+        else:
+            #print("case2", compassAngle, targetAngle, windAngle, deltaAngle)
+            if (targetAngle - compassAngle) % 360 <= 180:
+                #turn left
+                self.turnToAngle(self.windvane.noGoMin)
             else:
-                #print("case2", compassAngle, targetAngle, windAngle, deltaAngle)
-                if (targetAngle - compassAngle) % 360 <= 180:
-                    #turn left
-                    self.turnToAngle(self.windvane.noGoMin)
-                else:
-                    #turn right
-                    self.turnToAngle(self.windvane.noGoMax)
+                #turn right
+                self.turnToAngle(self.windvane.noGoMax)
 
-            if abs(boatMath.distanceInMBetweenEarthCoordinates(lat, long, self.gps.latitude, self.gps.longitude)) < 5:
-                break
+        if abs(boatMath.distanceInMBetweenEarthCoordinates(lat, long, self.gps.latitude, self.gps.longitude)) < 5:
+            if self.cycleTargets:
+                self.targets.append((lat,long))
+            self.currentTarget = None
             
     def turnToAngle(self, angle):
         leftPositive = -1 #change to negative one if boat is rotating the wrong way
