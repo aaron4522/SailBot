@@ -16,7 +16,7 @@ class stepperDriver(object):
         GPIO.setwarnings(False)
 
     def turn(self, clockwise=False,
-                 steps=800, stepdelay=.001, verbose=False, initdelay=.05):
+                 steps=800, stepdelay=.001, verbose=False, initdelay=0):
         """ motor_go,  moves stepper motor based on 6 inputs
          (1) clockwise, type=bool default=False
          help="Turn stepper counterclockwise"

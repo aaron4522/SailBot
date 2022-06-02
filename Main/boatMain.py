@@ -31,8 +31,7 @@ class boat:
         self.compass = compass()
         self.windvane = windVane()
         self.drivers = driver()
-        #self.arduino = arduino(c.config['MAIN']['ardu_port'])
-        print("arduino disabled")	
+        self.arduino = arduino(c.config['MAIN']['ardu_port'])
 
         self.manualControl = True
         self.cycleTargets = False
@@ -89,7 +88,7 @@ class boat:
             self.adjustRudder()
             
     def adjustSail(self):
-        if self.currentTarget:
+        if self.currentTarget  or self.manualControl == True:
             windDir = self.windvane.angle
             targetAngle = windDir + 35
             self.drivers.sail.set(targetAngle)
@@ -100,7 +99,7 @@ class boat:
             logging.info('Adjusted sail to home position')
             
     def adjustRudder(self, angleTo):
-        if self.currentTarget:
+        if self.currentTarget or self.manualControl == True:
             #adjust rudder for best wind
             #angleTo = gps.angleTo(self.currentTarget)
             
@@ -124,7 +123,7 @@ class boat:
         while True:
             self.readMessages()
 
-            if not manualControl:
+            if not self.manualControl:
                 if not self.currentTarget:
                     if self.targets != []:
                         self.currentTarget = self.targets.pop(0)    
@@ -133,7 +132,7 @@ class boat:
             
 
     def readMessages(self):
-        msgs = self.arduino.read()
+        msgs = self.arduino.read()[:-3].replace('\n','')
         print(msgs)
         
         #for msg in msgs:
@@ -141,22 +140,27 @@ class boat:
             msg = msgs
             ary = msg.split(' ')
             if len(ary) > 1:
-                if ary[0] == 'sail': 
-                    self.drivers.sail.set(float(ary[1]))
-                    logging.info('Received message to adjust sail')
-                elif ary[0] == 'rudder': 
-                    self.drivers.rudder.set(float(ary[1]))
-                    logging.info('Received message to adjust rudder')
+                if ary[0] == 'sail':
+                    logging.info(F'Received message to adjust sail to {float(ary[1])}')
+                    self.adjustSail(float(ary[1]))
+                    
+                elif ary[0] == 'rudder':
+                    logging.info(F'Received message to adjust rudder to {float(ary[1])}')
+                    self.adjustRudder(float(ary[1]))
                 elif ary[0] == 'mode': print("TODO: add Modes")
 
                 elif ary[0] == "manual":
                     if ary[1] == '1' or ary[1].lower() == 'true':
+                        logging.info("set manual mode to True")
                         self.manualControl = True
                     else:
+                        logging.info("set manual mode to False")
                         self.manualControl = False
 
                 elif ary[0] == 'addTarget':
-                    self.targets.append((self.gps.latitude, self.gps.longitude))
+                    target = (self.gps.latitude, self.gps.longitude)
+                    logging.info(F"added Target at {target}")
+                    self.targets.append(target)
 
     def goBetweenBuoy(self, LeftBuoyPixel, RightBuoyPixel):
         #Both in camera, assuming arguments = none if not in camera

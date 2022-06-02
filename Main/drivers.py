@@ -1,6 +1,6 @@
 import board
 import busio
-import adafruit_pca9685 as pcaLib
+#import adafruit_pca9685 as pcaLib
 import constants as c
 import stepper
 from threading import Thread
@@ -10,7 +10,7 @@ from time import sleep
             
 class obj_sail:
             
-    def __init__(auto = False):
+    def __init__(self, auto = False):
         #self.channel =  pca.channels[channel_index]
         self.autoAdjust = auto
         self.windvane = windVane()
