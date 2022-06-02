@@ -7,52 +7,15 @@ from threading import Thread
 from windvane import windVane
 from RPi import GPIO
 from time import sleep
-
-class stepperMotor():
-    def __init__(self):
-        self.motorPin = 5
-        self.dirPin = 6
-        self.sleepTime = .00005
-        self.stepping = False
-
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.motorPin, GPIO.OUT)
-        GPIO.setup(self.dirPin, GPIO.OUT)
-    def step(self, steps):
-        if self.stepping == True:
-            return False
-        
-        stepThread = Thread(target=self.step_Thread, args=[steps])
-        stepThread.start()
-        
-    def step_Thread(self, steps):
-        
-        if steps < 0:
-            GPIO.output(self.dirPin, 0)
-            steps = -steps
-        else:
-            GPIO.output(self.dirPin, 1)
-
-        for i in range(steps):
-            GPIO.output(self.motorPin, 1)
-            sleep(self.sleepTime)
-            GPIO.output(self.motorPin, 0)
-            sleep(self.sleepTime)
-
-        self.stepping = False
             
 class obj_sail:
             
-    servo_min = float(c.config['CONSTANTS']['sail_servo_min'])
-    servo_max = float(c.config['CONSTANTS']['sail_servo_max'])
-            
-    angle_min = float(c.config['CONSTANTS']['sail_angle_min'])
-    angle_max = float(c.config['CONSTANTS']['sail_angle_max'])
-            
-    def __init__(self, pca, channel_index, auto):
+    def __init__(auto = False):
         #self.channel =  pca.channels[channel_index]
         self.autoAdjust = auto
         self.windvane = windVane()
+        self.current = 0
+        self.step = stepper.stepperDriver(17,4)
         pump_thread2 = Thread(target=self.autoAdjustSail)
         pump_thread2.start()
 
@@ -62,11 +25,18 @@ class obj_sail:
 
     def set(self, degrees):
             
-        val = self.map(degrees, self.angle_min, self.angle_max,
-                  self.servo_min, self.servo_max)
+        maxAngle = 90
+        if degrees > maxAngle:
+            degrees = maxAngle
 
-        self.channel.duty_cycle = int(val)
-        return
+        self.steps = int(400/360 * (self.current-degrees) ) * 10
+        
+        if degrees < self.current:
+            self.step.turn(False, self.steps)
+        else:
+            self.step.turn(True, -self.steps)
+            
+        self.current = degrees
     
     def autoAdjustSail(self):
         while True:
@@ -82,11 +52,16 @@ class obj_rudder:
     # 800 steps = 360 degrees
     #between -45 and 45 degrees
     def __init__(self):
-        self.current=0
-        self.step = stepper.stepperDriver(17,27)
+        self.current = 0
+        self.step = stepper.stepperDriver(22,27)
     
     def set(self, degrees):
-        self.steps = int(400/360 * (self.current-degrees) )
+        maxAngle = 30
+        if degrees > maxAngle:
+            degrees = maxAngle
+        elif degrees < -maxAngle:
+            degrees = -maxAngle
+        self.steps = int(400/360 * (self.current-degrees) ) * 100
         
         if degrees < self.current:
             self.step.turn(False, self.steps)
@@ -96,69 +71,15 @@ class obj_rudder:
 
         self.current = degrees
 
-    """        
-    servo_min = c.config['MAIN']['RUDDER_SERVO_MIN']
-    servo_ctr = c.config['MAIN']['RUDDER_SERVO_CTR']
-    servo_max = c.config['MAIN']['RUDDER_SERVO_MAX']
-
-    servo_min = float(c.config['CONSTANTS']['rudder_servo_min'])
-    servo_ctr = float(c.config['CONSTANTS']['rudder_servo_ctr'])
-    servo_max = float(c.config['CONSTANTS']['rudder_servo_max'])
-
-            
-    angle_min = float(c.config['CONSTANTS']['rudder_angle_min'])
-    angle_max = float(c.config['CONSTANTS']['rudder_angle_max'])
-    angle_ctr = angle_min + (angle_max - angle_min) / 2
-            
-    def __init__(self, pca, channel_index):
-        self.channel =  pca.channels[channel_index]
-
-    def map(self, x, min1, max1, min2, max2):
-        x = min(max(x, min1), max1)
-        return min2 + (max2-min2)*((x-min1)/(max1-min1))
-
-    def set(self, degrees):
-        
-        steps = 200/360 * degrees
-        
-        if degrees < self.current:
-            step.turn(self, False,
-                 steps, .0001, False, .05)
-            
-            val = self.map(degrees, self.angle_min, self.angle_ctr,
-                  self.servo_min, self.servo_ctr)
-        else:
-            step.turn(self, True,
-                 steps, .0001, False, .05)
-            
-            val = self.map(degrees, self.angle_ctr, self.angle_max,
-                  self.servo_ctr, self.servo_max)
-        
-        
-        
-        self.current = degrees
-        self.channel.duty_cycle = int(val)
-        return
-"""
 class driver:
 
-    def __init__(self, sail_channel = 0, rudder_channel = 1, sailAuto = True):
-        """
-        self.i2c = busio.I2C(board.SCL, board.SDA)
-        self.pca = pcaLib.PCA9685(self.i2c)
-        self.pca.frequency = 50
-
-        self.sail = obj_sail(self.pca, sail_channel, sailAuto)
-        """
+    def __init__(self):
+        self.sail = obj_sail()
         self.rudder = obj_rudder()
-        print('n', sailAuto)
 
 if __name__ == "__main__":
-    drive = driver(0, 1)
-    #drive = driver(0, 1)
-    #drive.sail.autoAdjust = False
+    drive = driver()
 
-    
     while True:
         string = input("  > Enter Input:")
         

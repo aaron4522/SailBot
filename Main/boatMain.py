@@ -30,11 +30,11 @@ class boat:
         self.gps = GPS.gps()
         self.compass = compass()
         self.windvane = windVane()
-        self.drivers = driver(sailAuto = False)
+        self.drivers = driver()
         #self.arduino = arduino(c.config['MAIN']['ardu_port'])
         print("arduino disabled")	
 
-        self.manualControl = False
+        self.manualControl = True
         self.cycleTargets = False
         self.currentTarget = None # (longitude, latitude) tuple
         self.targets = [] # holds (longitude, latitude) tuples
