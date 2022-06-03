@@ -16,7 +16,7 @@ class stepperDriver(object):
         GPIO.setwarnings(False)
 
     def turn(self, clockwise=False,
-                 steps=800, stepdelay=.001, verbose=False, initdelay=0):
+                 steps=800, stepdelay=.001, verbose=False, initdelay=.00, rampTo = .0005):
         """ motor_go,  moves stepper motor based on 6 inputs
          (1) clockwise, type=bool default=False
          help="Turn stepper counterclockwise"
@@ -39,10 +39,15 @@ class stepperDriver(object):
             time.sleep(initdelay)
 
             for i in range(steps):
+                #print(F'loop {i}')
                 GPIO.output(self.step_pin, True)
                 time.sleep(stepdelay)
                 GPIO.output(self.step_pin, False)
                 time.sleep(stepdelay)
+
+                if stepdelay > rampTo:
+                    stepdelay -= (stepdelay - rampTo) / 500
+
                 if verbose:
                     print("Steps count {}".format(i))
 

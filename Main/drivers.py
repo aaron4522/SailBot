@@ -8,16 +8,22 @@ from windvane import windVane
 from RPi import GPIO
 from time import sleep
             
+
+SAIL_DIR_PIN = 17 #22
+SAIL_PUL_PIN = 4 #27
+RUDDER_DIR_PIN = 22 #17
+RUDDER_PUL_PIN = 27 #4
+
 class obj_sail:
             
     def __init__(self, auto = False):
         #self.channel =  pca.channels[channel_index]
         self.autoAdjust = auto
-        self.windvane = windVane()
+        #self.windvane = windVane()
         self.current = 0
-        self.step = stepper.stepperDriver(17,4)
-        pump_thread2 = Thread(target=self.autoAdjustSail)
-        pump_thread2.start()
+        self.step = stepper.stepperDriver(SAIL_DIR_PIN, SAIL_PUL_PIN)
+        #pump_thread2 = Thread(target=self.autoAdjustSail)
+        #pump_thread2.start()
 
     def map(self, x, min1, max1, min2, max2):
         x = min(max(x, min1), max1)
@@ -53,15 +59,16 @@ class obj_rudder:
     #between -45 and 45 degrees
     def __init__(self):
         self.current = 0
-        self.step = stepper.stepperDriver(22,27)
+        self.step = stepper.stepperDriver(RUDDER_DIR_PIN, RUDDER_PUL_PIN)
     
     def set(self, degrees):
+        
         maxAngle = 30
         if degrees > maxAngle:
             degrees = maxAngle
         elif degrees < -maxAngle:
             degrees = -maxAngle
-        self.steps = int(400/360 * (self.current-degrees) ) * 100
+        self.steps = int(400/360 * (self.current-degrees) ) * 50
         
         if degrees < self.current:
             self.step.turn(False, self.steps)
@@ -89,12 +96,8 @@ if __name__ == "__main__":
         arr = string.split(" ")
         
         if arr[0] == "sail":
-             # dont set this below 15 for now, the exact min/max seems
-             # to be a little off and setting it to 0 is not good
             val = int(arr[1])
-            #val = int(arr[1]) if int(arr[1]) >= 15 else 15
-            
-            #drive.sail.set(val)
+            drive.sail.set(val)
             
         elif arr[0] == "rudder":
               drive.rudder.set(int(arr[1]))
