@@ -14,9 +14,9 @@ def find_side(img, x):
     mid = img.get(cv2.CAP_PROP_FRAME_WIDTH)/2
 
     if   mid > x:
-        return "RIGHT"
-    elif mid < x:
         return "LEFT"
+    elif mid < x:
+        return "RIGHT"
     else:
         return "CENTER"
 
@@ -100,9 +100,9 @@ while (True):
         xystr = "xy:" + str(x) + ", " + str(y)
         whstr = "wh:" + str(w) + ", " + str(h)
         arstr = "max area: " + str(cv2.contourArea(max_cnt))
-        ctstr = "contour cnt: " + str(cnt_count)
+        ctstr = "object cnt: " + str(cnt_count)
 
-        if find_side(vid_feed, x + (w / 2)) == "LEFT":
+        if find_side(vid_feed, x + (w / 2)) == "RIGHT":
             cv2.putText(frame, xystr, (x-50  ,y-7 ), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0)        , 2)   #xy
             cv2.putText(frame, whstr, (x-50  ,y-24), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255)  , 2)   #wh
         else:
