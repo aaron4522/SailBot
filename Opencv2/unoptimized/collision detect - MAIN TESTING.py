@@ -29,18 +29,21 @@ SIZE = 900
 #////////color mask values////////
 #BLUE / GREEN / RED
 
-SELECT = 2
+SELECT = 1
 #1: limited orange
 #2: big range orange
 #3: blue
 
 if SELECT == 1:
     LOWER = np.array([  5, 110, 150])
-    UPPER = np.array([ 15, 255, 255])
+    UPPER = np.array([ 50, 255, 255])
 elif SELECT == 2:
     LOWER = np.array([  0, 110, 150])
     UPPER = np.array([ 30, 255, 255])
 elif SELECT == 3:
+    LOWER = np.array([0, 90, 150])
+    UPPER = np.array([110, 255, 255])
+elif SELECT == 4:
     LOWER = np.array([101, 50, 38])
     UPPER = np.array([110, 255, 255])
 else:
