@@ -75,6 +75,15 @@ while (True):
     #make list of contours on screen
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+
+    #TO DO WORK:
+    """
+    - detect contours inside box of other contours and grouping them together
+    - have a one use setup func at start of prog and when there hasnt been a new spotting in a while
+      to change the color mask based of object recognition and taking its color values
+    """
+
+
     #go through each contour
     for cnt in contours:
         # calc area and remove small elements
