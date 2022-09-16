@@ -2,15 +2,12 @@
 import cv2
 import numpy as np
 import time
+
+
 # included time if want to slow down to inspect output
 
-
-#/////// what do ///////
 # finds the largest DENSITY contour and only labels that one
 # code is basically the same as dominant_track but change of "perc"
-
-# Density = (Area of contour)/(width * height of the contour's bounding box)
-
 
 # clearity and seperating/combining these groups is the main issue to fix
 

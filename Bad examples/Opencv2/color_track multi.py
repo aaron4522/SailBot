@@ -7,7 +7,7 @@ def clr_iso(img):
 
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     # BLUE / GREEN / RED
-    lower = np.array([0, 100, 120])
+    lower = np.array([5, 110, 150])
     upper = np.array([15, 255, 255])
 
     #lower = np.array([101, 50, 38])
@@ -24,7 +24,7 @@ def clr_iso(img):
 
 
 # define a video capture object
-vid = cv2.VideoCapture(0)
+vid_feed = cv2.VideoCapture(0)
 
 
 #////////////////////////////////////////
@@ -36,12 +36,13 @@ while (True):
 
     # Capture the video frame by frame
 
-    ret, frame = vid.read()
+    _, frame = vid_feed.read()
 
-    #obj detection
+#####obj detection
+    #mask = clr_iso(frame)
+    #_, mask = cv2.threshold(mask, 254,255, cv2.THRESH_BINARY)
+
     mask = clr_iso(frame)
-    _, mask = cv2.threshold(mask, 254,255, cv2.THRESH_BINARY)
-
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 
@@ -51,7 +52,7 @@ while (True):
         area = cv2.contourArea(cnt)
 
         #CHANGE THIS VALUE IF FAR/CLOSE
-        if area > 1000:
+        if area > 200:
             cv2.drawContours(frame, [cnt], -1, (255,165,0), 2)
             x, y, w, h = cv2.boundingRect(cnt)
             cv2.rectangle(frame, (x, y), (x+w,y+h),(255,0,0), 3)

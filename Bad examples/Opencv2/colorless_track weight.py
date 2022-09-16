@@ -9,7 +9,6 @@ import time
 # finds the largest AREA contour and only labels that one
 # code is basically the same as dense_track but change of "perc"
 
-
 # clearity and seperating/combining these groups is the main issue to fix
 
 
