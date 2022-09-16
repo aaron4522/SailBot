@@ -72,7 +72,7 @@ class compass:
     
     @property
     def angleToNorth(self):
-        return (math.atan2(self.angle_Y, self.angle_X) * 180 / math.pi)
+        return (math.atan2(-self.angle_Y, -self.angle_X) * 180 / math.pi)
     
     @property
     def angle(self):

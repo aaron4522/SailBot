@@ -31,8 +31,8 @@ class gps():
 
         # for a computer, use the pyserial library for uart access
         import serial
-        self.latitude =  0
-        self.longitude = 0
+        self.latitude =  None
+        self.longitude = None
         self.track_angle_deg = 0
         #self.uart = serial.Serial("/dev/ttyACM1", baudrate=9600, timeout=10)
         self.uart = serial.Serial("/dev/ttyUSB0", baudrate=9600, timeout=10)

@@ -44,15 +44,15 @@ class windVane():
         x = min(max(x, min1), max1)
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
 
-    """@property
+    @property
     def angle(self):
-        counter = self.counter
+        counter = self.position
         while (counter < 0):
             counter += self.stepsPerRev
 
         counter = counter % self.stepsPerRev
         return self.map(counter, 0, self.stepsPerRev-1, 0, 359)
-    """
+  
     @property
     def position(self):
         self.lock.acquire()

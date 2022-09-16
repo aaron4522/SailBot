@@ -8,11 +8,16 @@ from windvane import windVane
 from RPi import GPIO
 from time import sleep
             
-
-SAIL_DIR_PIN = 17 #22
-SAIL_PUL_PIN = 4 #27
-RUDDER_DIR_PIN = 22 #17
-RUDDER_PUL_PIN = 27 #4
+if False:
+    SAIL_DIR_PIN = 17 #22
+    SAIL_PUL_PIN = 4 #27
+    RUDDER_DIR_PIN = 22 #17
+    RUDDER_PUL_PIN = 27 #4
+else:
+    SAIL_DIR_PIN = 22
+    SAIL_PUL_PIN = 27
+    RUDDER_DIR_PIN = 17
+    RUDDER_PUL_PIN = 4
 
 class obj_sail:
             
@@ -31,11 +36,11 @@ class obj_sail:
 
     def set(self, degrees):
             
-        maxAngle = 90
+        maxAngle = 900
         if degrees > maxAngle:
             degrees = maxAngle
 
-        self.steps = int(400/360 * (self.current-degrees) ) * 10
+        self.steps = int(400/360 * (self.current-degrees) ) * 15
         
         if degrees < self.current:
             self.step.turn(False, self.steps)
@@ -71,9 +76,9 @@ class obj_rudder:
         self.steps = int(400/360 * (self.current-degrees) ) * 50
         
         if degrees < self.current:
-            self.step.turn(False, self.steps)
+            self.step.turn(True, self.steps)
         else:
-            self.step.turn(True, -self.steps)
+            self.step.turn(False, -self.steps)
             
 
         self.current = degrees
@@ -99,9 +104,9 @@ if __name__ == "__main__":
             val = int(arr[1])
             drive.sail.set(val)
             
-        elif arr[0] == "rudder":
+        elif arr[0] == "rudder" or arr[0] == 'r':
               drive.rudder.set(int(arr[1]))
               
-        elif arr[0] == "stepper":
+        elif arr[0] == "stepper" or arr[0] == 's':
             stepper = stepperMotor()
             stepper.step(int(arr[1]))
