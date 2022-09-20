@@ -49,12 +49,12 @@ class boat:
 
         tempTarget = False
 
-        #self.override = False   #whether to automatically switch to RC when inputting manual commands or prevent the commands
+        self.override = False   #whether to automatically switch to RC when inputting manual commands or prevent the commands
         #self.MODE_SETTING = c.config['MODES']['MOD_RC']
-
+        pump_thread = Thread(target=self.pumpMessages)
+        pump_thread.start()
         self.mainLoop()
-        # pump_thread = Thread(target=self.pumpMessages)
-        # pump_thread.start()
+        
 
     def move(self):
         """
@@ -141,8 +141,8 @@ class boat:
         sailStep = 10
         rudderStep = 2
         while True:
-            self.readMessages()
-
+            #self.readMessages()
+            print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
                 #include in automation code's main loop:
                     #self.readmessages to see if it switches modes or RC commands, returning if another mode is true
                     #self.pumpMessages to export data
@@ -150,21 +150,31 @@ class boat:
             if self.manualControl:
                 #adjust sail and rudder to set targets
                 if self.currentSail - sailStep > self.targetSail:
-                    self.adjustSail(self.targetSail + sailStep)
+                    self.adjustSail(self.currentSail - sailStep)
                 elif self.currentSail + sailStep < self.targetSail:
-                    self.adjustSail(self.targetSail - sailStep)
+                    self.adjustSail(self.currentSail + sailStep)
                 else:
                     self.adjustSail(self.targetSail)
 
-                if self.currentRudder - rudderStep > self.targetRudder:
-                    self.adjustRudder(self.targetRudder + rudderStep)
-                elif self.currentRudder + sailRudder < self.targetRudder:
-                    self.adjustRudder(self.targetRudder - rudderStep)
+                
+                if abs(self.currentRudder) - rudderStep > abs(self.targetRudder):
+                    self.adjustRudder(self.currentRudder - rudderStep)
+                elif abs(self.currentRudder) + rudderStep < abs(self.targetRudder):
+                    self.adjustRudder(self.currentRudder + rudderStep)
                 else:
                     self.adjustRudder(self.targetRudder)
-
-                self.arduino.send(F"R{self.currentRudder}")
-                self.arduino.send(F"S{self.currentSail}")
+                    
+                    
+                    
+                #print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
+                if abs(self.currentRudder) >= 10:
+                    self.arduino.send(F"R{self.currentRudder}")
+                else: #format so number is 2 digits
+                    self.arduino.send(F"R0{self.currentRudder}")
+                if abs(self.currentSail) >= 10:
+                    self.arduino.send(F"S{self.currentSail}")
+                else: #format so number is 2 digits
+                    self.arduino.send(F"S0{self.currentSail}")
 
             if not self.manualControl:  #automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
@@ -229,7 +239,7 @@ class boat:
 
                     if self.manualControl:  #faster
                         logging.info(F'Received message to adjust rudder to {float(ary[1])}')
-                        self.adjustRudder(float(ary[1]))
+                        #self.adjustRudder(float(ary[1]))
                         self.targetRudder = float(ary[1])
                         processed = True
                     else:
