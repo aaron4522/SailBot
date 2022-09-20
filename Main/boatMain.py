@@ -40,6 +40,11 @@ class boat:
         self.currentTarget = None  # (longitude, latitude) tuple
         self.targets = []  # holds (longitude, latitude) tuples
 
+        self.targetSail = 0
+        self.currentSail = 0
+        self.targetRudder = 0
+        self.currentRudder = 0
+
         noGoZoneDegs = 20
 
         tempTarget = False
@@ -100,11 +105,13 @@ class boat:
             windDir = self.windvane.angle
             targetAngle = windDir + 35
             self.drivers.sail.set(targetAngle)
+            self.currentSail = targetAngle
             logging.info('Adjusted sail to: %d', targetAngle)
 
         else:
             # move sail to home position
             self.drivers.sail.set(0)
+            self.currentSail = 0
             logging.info('Adjusted sail to home position')
 
     def adjustRudder(self, angleTo):
@@ -117,11 +124,13 @@ class boat:
             if d_angle > 180: d_angle -= 180
 
             self.drivers.rudder.set(d_angle)
+            self.currentRudder = d_angle
             logging.info('Adjusted rudder to: %d', d_angle)
 
         else:
             # move sail to home position
             self.drivers.rudder.set(0)
+            self.currentRudder = 0
             logging.info('Adjusted rudder to home position')
 
     def pumpMessages(self):
@@ -129,12 +138,33 @@ class boat:
             self.readMessages()
 
     def mainLoop(self):
+        sailStep = 10
+        rudderStep = 2
         while True:
             self.readMessages()
 
                 #include in automation code's main loop:
                     #self.readmessages to see if it switches modes or RC commands, returning if another mode is true
                     #self.pumpMessages to export data
+
+            if self.manualControl:
+                #adjust sail and rudder to set targets
+                if self.currentSail - sailStep > self.targetSail:
+                    self.adjustSail(self.targetSail + sailStep)
+                elif self.currentSail + sailStep < self.targetSail:
+                    self.adjustSail(self.targetSail - sailStep)
+                else:
+                    self.adjustSail(self.targetSail)
+
+                if self.currentRudder - rudderStep > self.targetRudder:
+                    self.adjustRudder(self.targetRudder + rudderStep)
+                elif self.currentRudder + sailRudder < self.targetRudder:
+                    self.adjustRudder(self.targetRudder - rudderStep)
+                else:
+                    self.adjustRudder(self.targetRudder)
+
+                self.arduino.send(F"R{self.currentRudder}")
+                self.arduino.send(F"S{self.currentSail}")
 
             if not self.manualControl:  #automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
@@ -184,7 +214,8 @@ class boat:
 
                     if self.manualControl:  #faster
                         logging.info(F'Received message to adjust sail to {float(ary[1])}')
-                        self.adjustSail(float(ary[1]))
+                        #self.adjustSail(float(ary[1]))
+                        self.targetSail = float(ary[1])
                         processed = True
                     else:
                         logging.info("Refuse to change sail, not in RC Mode")
@@ -199,6 +230,7 @@ class boat:
                     if self.manualControl:  #faster
                         logging.info(F'Received message to adjust rudder to {float(ary[1])}')
                         self.adjustRudder(float(ary[1]))
+                        self.targetRudder = float(ary[1])
                         processed = True
                     else:
                         logging.info("Refuse to change sail, not in RC Mode")
@@ -251,7 +283,8 @@ class boat:
                 elif ary[0] != '':
                     print(f'unknown command {ary[0]}')
             if processed:
-                    self.arduino.send("boat probably processed message")
+                    pass
+                    #self.arduino.send("boat probably processed message")
 
         except Exception as e:
             logging.info(f"failed to read command {msgs}")

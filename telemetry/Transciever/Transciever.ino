@@ -8,6 +8,7 @@
  
 #include <SPI.h>
 #include <RH_RF95.h>
+#include <LiquidCrystal_I2C.h>
  
 // for feather32u4 
 #define RFM95_CS 8
@@ -69,6 +70,12 @@
  
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
+
+LiquidCrystal_I2C lcd(0x27,16,2);
+int rudder_val = 0;
+int read_rudder_val = 999;
+int sail_val = 0;
+char buf[16];
  
 void setup() 
 {
@@ -110,6 +117,14 @@ void setup()
   // If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then 
   // you can set transmitter powers from 5 to 23 dBm:
   rf95.setTxPower(23, false);
+
+  
+  lcd.init();
+  lcd.backlight();
+
+  sprintf(buf, "Rudder %d", rudder_val);
+  lcd_message(buf, 0); 
+  
 }
  
 int16_t packetnum = 0;  // packet counter, we increment per xmission
@@ -117,7 +132,15 @@ int16_t packetnum = 0;  // packet counter, we increment per xmission
 void loop()
 {
   delay(10); // Wait 1 second between transmits, could also 'sleep' here!
-  //Serial.println("Transmitting..."); // Send a message to rf95_server
+  //Serial.println("Transmitting..."); // Send a message to rf95_server  
+  if (map(analogRead(A0), 0, 1023, -45, 45) != rudder_val){
+    reset_display();
+    rudder_val = map(analogRead(A0), 0, 1023, -45, 45);
+    sprintf(buf, "Rudder %d", rudder_val);
+    lcd_message(buf, 0);     
+  }
+  
+       
   
   char radiopacket[20] = "";
   bool msg = false;  
@@ -154,8 +177,11 @@ void loop()
    {
       //Serial.print("Got reply: ");
       Serial.println((char*)buf);
-      //Serial.print("RSSI: ");
-      //Serial.println(rf95.lastRssi(), DEC);    
+      if (buf[0] == 'R'){
+        Serial.println("rudder cmd");
+      }
+      Serial.print("RSSI: ");
+      Serial.println(rf95.lastRssi(), DEC);    
     }
   else
     {
@@ -168,3 +194,34 @@ void loop()
   }*/
  
 }
+
+void lcd_message(String message, int row){
+  
+  int start = 0;
+  if (message.length() < 16){
+    start = (16 - message.length())/2;
+  }
+  lcd.setCursor(start,row);
+  
+  for (int i = 0; i < message.length() && i <= 16; i++){
+    lcd.print(message[i]);
+  }
+  Serial.println("lcd message:" + message);
+}
+
+void reset_display(){
+  lcd_message("                ", 0);
+  lcd_message("                ", 1);
+}
+
+int map(int x, int min1, int max1, int min2, int max2){
+  x = min(max(x, min1), max1);
+  float fx = x;
+  float fmin1 = min1;
+  float fmin2 = min2;
+  float fmax1 = max1;
+  float fmax2 = max2;
+  float val = fmin2 + (fmax2-fmin2)*((fx-fmin1)/(fmax1-fmin1));
+  return int(val);
+}
+  
