@@ -49,8 +49,8 @@ class boat:
 
         tempTarget = False
 
-        self.override = False   #whether to automatically switch to RC when inputting manual commands or prevent the commands
-        self.MODE_SETTING = c.config['MODES']['MOD_RC']
+        #self.override = False   #whether to automatically switch to RC when inputting manual commands or prevent the commands
+        #self.MODE_SETTING = c.config['MODES']['MOD_RC']
 
         self.mainLoop()
         # pump_thread = Thread(target=self.pumpMessages)

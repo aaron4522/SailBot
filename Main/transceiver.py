@@ -10,6 +10,7 @@ class arduino:
 
 
     def send(self, data):
+        print(data)
         self.ser1.write(str(data).encode())
 
     def read(self):
