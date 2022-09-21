@@ -8,6 +8,9 @@
  
 #include <SPI.h>
 #include <RH_RF95.h>
+#include <Wire.h>
+
+# define I2C_SLAVE_ADDRESS 11
  
 // for feather32u4 
 #define RFM95_CS 8
@@ -69,6 +72,8 @@
  
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
+
+int I2C_read_val = 0
  
 void setup() 
 {
@@ -79,6 +84,10 @@ void setup()
   while (!Serial) {
     delay(1);
   }
+
+  Wire.begin(I2C_SLAVE_ADDRESS);
+  Wire.onRequest(requestEvents);
+  Wire.onReceive(receiveEvents);
  
   delay(100);
  
@@ -174,4 +183,22 @@ void loop()
     Serial.println("No reply, is there a listener around?");
   }*/
  
+}
+
+void requestEvents()
+{
+  Serial.println(F("---> recieved request"));
+  Serial.print(F("sending value : "));
+  Serial.println(I2C_read_val);
+  Wire.write(I2C_read_val);
+}
+
+void receiveEvents(int numBytes)
+{  
+  Serial.println(F("---> recieved events"));
+  I2C_read_val = Wire.read();
+  Serial.print(numBytes);
+  Serial.println(F("bytes recieved"));
+  Serial.print(F("recieved value : "));
+  Serial.println(I2C_read_val);
 }
