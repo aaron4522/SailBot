@@ -6,7 +6,7 @@ import sys
 import smbus2 as smbus#,smbus2
 import time
 
-I2C_SLAVE_ADDRESS = 11 #0x0b ou 11
+I2C_SLAVE_ADDRESS = 0x10
 
 def ConvertStringsToBytes(src):
   converted = []
@@ -21,50 +21,36 @@ class arduino:
         self.I2Cbus = smbus.SMBus(1)
 
     def send(self, data):
-        print(data)
+        #print(data)
         self.ser1.write(str(data).encode())
 
-    def readSailPos(self):
-        pass
-
-    def readRudderPos(self):
-        BytesToSend = ConvertStringsToBytes('R')
-        print("Sent " + str(I2C_SLAVE_ADDRESS) + " the " + str(cmd) + " command.")
-        print(BytesToSend )
-        self.I2Cbus.write_i2c_block_data(I2C_SLAVE_ADDRESS, 0x00, BytesToSend)
-
-        while True:
-            try:
-                data=self.I2Cbus.read_i2c_block_data(I2C_SLAVE_ADDRESS,0x00,16)
-                print(F"recieve from slave: {data}")
-                return data
-            except:
-                print("remote i/o error")
-                time.sleep(0.5)
+    def readData(self):
+        self.send("?")
+        msgs = []
+        msg = self.read()
+        while msg != None and msg != "'":
+            msgs.append(msg)
+            msg = self.read()
+        return msgs
+    
+                
+        
 
     def read(self):
         message = str(self.ser1.readline()).replace("\r\n'", "").replace("b'", "").replace("\\r\\n'", "")
         
         return str(message)
 
-        pbm = BaseToBoat.parseFromString(message)
-
-        case = pbm.WhichOneOf('command')
-        if case == 'rudder' :
-            result = ["rudder " + pbm.RudderCommand.position]
-        elif case == 'sail' :
-            result = ["sail " + pbm.SailCommand.position]
-        elif case == 'skipper' :
-            result = ["sail " + pbm.SkipperCommand.sailPosition, "rudder " + pbm._SkipperCommand.rudderPosition]
-        elif case == 'mode' :
-            result = ["mode " + pbm.Mode.mode]
-
-        return result
-
 
 if __name__ == "__main__":
-    ardu = arduino(c.config['MAIN']['ardu_port'])
+    print("start")
+    try:
+        ardu = arduino(c.config['MAIN']['ardu_port'])
+    except:
+        ardu = arduino(c.config['MAIN']['ardu_port2'])
+    time.sleep(1)
+    print("start2")
     while True:
-        #print(ardu.read())
-        print("read: ", ardu.readRudderPos())
+        print(ardu.readRudderPos())
+        time.sleep(1)
 

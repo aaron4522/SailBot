@@ -33,7 +33,10 @@ class boat:
         self.compass = compass()
         self.windvane = windVane()
         self.drivers = driver()
-        self.arduino = arduino(c.config['MAIN']['ardu_port'])
+        try:
+            self.arduino = arduino(c.config['MAIN']['ardu_port'])
+        except:
+            self.arduino = arduino(c.config['MAIN']['ardu_port2'])
 
         self.manualControl = True   # check RC Mode to change manualControl, and manualControl checks for everything else (faster on memory)
         self.cycleTargets = False
@@ -51,8 +54,8 @@ class boat:
 
         self.override = False   #whether to automatically switch to RC when inputting manual commands or prevent the commands
         #self.MODE_SETTING = c.config['MODES']['MOD_RC']
-        pump_thread = Thread(target=self.pumpMessages)
-        pump_thread.start()
+        #pump_thread = Thread(target=self.pumpMessages)
+        #pump_thread.start()
         self.mainLoop()
         
 
@@ -141,7 +144,7 @@ class boat:
         sailStep = 10
         rudderStep = 2
         while True:
-            #self.readMessages()
+            self.readMessages()
             print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
                 #include in automation code's main loop:
                     #self.readmessages to see if it switches modes or RC commands, returning if another mode is true
@@ -156,11 +159,11 @@ class boat:
                 else:
                     self.adjustSail(self.targetSail)
 
-                
+                sign = 1 if self.targetRudder == 0 else self.targetRudder / abs(self.targetRudder)
                 if abs(self.currentRudder) - rudderStep > abs(self.targetRudder):
-                    self.adjustRudder(self.currentRudder - rudderStep)
+                    self.adjustRudder(self.currentRudder - rudderStep*sign)
                 elif abs(self.currentRudder) + rudderStep < abs(self.targetRudder):
-                    self.adjustRudder(self.currentRudder + rudderStep)
+                    self.adjustRudder(self.currentRudder + rudderStep*sign)
                 else:
                     self.adjustRudder(self.targetRudder)
                     
@@ -203,98 +206,98 @@ class boat:
 
 
     def readMessages(self):
-        msgs = self.arduino.read()[:-3].replace('\n', '')
+        #msgs = self.arduino.read()[:-3].replace('\n', '')
+        msgs = self.arduino.readData()
         print(msgs)
 
         # for msg in msgs:
         try:
-            msg = msgs
-            ary = msg.split(' ')
-            processed = False
+            for msg in msgs:
+                processed = False
+                ary = msg.split(" ")
+                #make it so you cant do manual commands unless in RC mode to avoid automation undoing work done
+                #override is in place to switch to RC if given RC commands if potential accidents may happen
+                if len(ary) > 0:
+                        # manual adjust sail
+                    if ary[0] == 'sail' or ary[0] == "S":
+                        if self.override:
+                            logging.info("OVERRIDE: Switching to RC")
+                            self.MODE_SETTING = c.config['MODES']['MOD_RC']
+                            self.manualControl = True
 
-            #make it so you cant do manual commands unless in RC mode to avoid automation undoing work done
-            #override is in place to switch to RC if given RC commands if potential accidents may happen
-            if len(ary) > 0:
-                    # manual adjust sail
-                if ary[0] == 'sail':
-                    if self.override:
-                        logging.info("OVERRIDE: Switching to RC")
-                        self.MODE_SETTING = c.config['MODES']['MOD_RC']
-                        self.manualControl = True
-
-                    if self.manualControl:  #faster
-                        logging.info(F'Received message to adjust sail to {float(ary[1])}')
-                        #self.adjustSail(float(ary[1]))
-                        self.targetSail = float(ary[1])
-                        processed = True
-                    else:
-                        logging.info("Refuse to change sail, not in RC Mode")
-
-                    #manual adjust rudder
-                elif ary[0] == 'rudder':
-                    if self.override:
-                        logging.info("OVERRIDE: Switching to RC")
-                        self.MODE_SETTING = c.config['MODES']['MOD_RC']
-                        self.manualControl = True
-
-                    if self.manualControl:  #faster
-                        logging.info(F'Received message to adjust rudder to {float(ary[1])}')
-                        #self.adjustRudder(float(ary[1]))
-                        self.targetRudder = float(ary[1])
-                        processed = True
-                    else:
-                        logging.info("Refuse to change sail, not in RC Mode")
-
-
-                elif ary[0] == 'override':
-                    self.override = not self.override
-                    processed = True
-
-
-                elif ary[0] == 'mode':
-                    try:
-                        if int(ary[1]) < 0 or int(ary[1]) > 5:
-                            logging.info("Outside mode range")
-                        else:
-                            self.MODE_SETTING = int(ary[1])
-                            logging.info(F'Setting mode to {int(ary[1])}')
+                        if self.manualControl:  #faster
+                            logging.info(F'Received message to adjust sail to {float(ary[1])}')
+                            #self.adjustSail(float(ary[1]))
+                            self.targetSail = float(ary[1])
                             processed = True
-                    except Exception as e:
-                        print(F"Error changing mode: {e}")
-                        logging.info(F"Error changing mode: {e}")
+                        else:
+                            logging.info("Refuse to change sail, not in RC Mode")
 
-                    if self.MODE_SETTING == c.config['MODES']['MOD_RC']:
-                        logging.info("Setting manual mode to True")
-                        self.manualControl = True
-                    else:
-                        logging.info("Setting manual mode to False")
-                        self.manualControl = False
+                        #manual adjust rudder
+                    elif ary[0] == 'rudder' or ary[0] == "R":
+                        if self.override:
+                            logging.info("OVERRIDE: Switching to RC")
+                            self.MODE_SETTING = c.config['MODES']['MOD_RC']
+                            self.manualControl = True
 
-                    #redundent if RC is changing it
-                #elif ary[0] == "manual":
-                #    if ary[1] == '1' or ary[1].lower() == 'true':
-                #        logging.info("set manual mode to True")
-                #        self.manualControl = True
-                #    else:
-                #        logging.info("set manual mode to False")
-                #        self.manualControl = False
+                        if self.manualControl:  #faster
+                            logging.info(F'Received message to adjust rudder to {float(ary[1])}')
+                            #self.adjustRudder(float(ary[1]))
+                            self.targetRudder = float(ary[1])
+                            processed = True
+                        else:
+                            logging.info("Refuse to change sail, not in RC Mode")
 
-                elif ary[0] == 'addTarget':
-                    # print('adding target')
-                    while self.gps.latitude == None or self.gps.longitude == None:
-                        print("no gps")
-                        self.gps.updategps()
-                        sleep(.1)
-                    target = (self.gps.latitude, self.gps.longitude)
-                    logging.info(F"added Target at {target}")
-                    self.targets.append(target)
-                    print(f"added target, current target list is {self.targets}")
-                    processed = True
-                elif ary[0] != '':
-                    print(f'unknown command {ary[0]}')
-            if processed:
-                    pass
-                    #self.arduino.send("boat probably processed message")
+
+                    elif ary[0] == 'override':
+                        self.override = not self.override
+                        processed = True
+
+
+                    elif ary[0] == 'mode':
+                        try:
+                            if int(ary[1]) < 0 or int(ary[1]) > 5:
+                                logging.info("Outside mode range")
+                            else:
+                                self.MODE_SETTING = int(ary[1])
+                                logging.info(F'Setting mode to {int(ary[1])}')
+                                processed = True
+                        except Exception as e:
+                            print(F"Error changing mode: {e}")
+                            logging.info(F"Error changing mode: {e}")
+
+                        if self.MODE_SETTING == c.config['MODES']['MOD_RC']:
+                            logging.info("Setting manual mode to True")
+                            self.manualControl = True
+                        else:
+                            logging.info("Setting manual mode to False")
+                            self.manualControl = False
+
+                        #redundent if RC is changing it
+                    #elif ary[0] == "manual":
+                    #    if ary[1] == '1' or ary[1].lower() == 'true':
+                    #        logging.info("set manual mode to True")
+                    #        self.manualControl = True
+                    #    else:
+                    #        logging.info("set manual mode to False")
+                    #        self.manualControl = False
+
+                    elif ary[0] == 'addTarget':
+                        # print('adding target')
+                        while self.gps.latitude == None or self.gps.longitude == None:
+                            print("no gps")
+                            self.gps.updategps()
+                            sleep(.1)
+                        target = (self.gps.latitude, self.gps.longitude)
+                        logging.info(F"added Target at {target}")
+                        self.targets.append(target)
+                        print(f"added target, current target list is {self.targets}")
+                        processed = True
+                    elif ary[0] != '':
+                        print(f'unknown command {ary[0]}')
+                if processed:
+                        pass
+                        #self.arduino.send("boat probably processed message")
 
         except Exception as e:
             logging.info(f"failed to read command {msgs}")
