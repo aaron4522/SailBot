@@ -1,8 +1,10 @@
 import sys
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import pyqtSlot, QTimer, Qt
+from PyQt5 import QtCore
+
+from PyQt5.QtCore import * #pyqtSlot, QTimer, Qt,
 import PyQt5.QtGui as QtGui
-from PyQt5.QtGui import QPainter, QColor, QPen
+from PyQt5.QtGui import QPainter, QColor, QPen, QKeySequence
 import keyboard
 
 import PodSixNet
@@ -20,20 +22,20 @@ import math
 import serial
 
 def degreesToRadians(degrees):
-  return degrees * math.pi / 180;
+	return degrees * math.pi / 180;
 
 def distanceInMBetweenEarthCoordinates(lat1, lon1, lat2, lon2):
-  earthRadiusKm = 6371;
+	earthRadiusKm = 6371;
 
-  dLat = degreesToRadians(lat2-lat1);
-  dLon = degreesToRadians(lon2-lon1);
+	dLat = degreesToRadians(lat2-lat1);
+	dLon = degreesToRadians(lon2-lon1);
 
-  lat1 = degreesToRadians(lat1);
-  lat2 = degreesToRadians(lat2);
+	lat1 = degreesToRadians(lat1);
+	lat2 = degreesToRadians(lat2);
 
-  a = math.sin(dLat/2) * math.sin(dLat/2) + math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2); 
-  c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a)); 
-  return earthRadiusKm * c * 1000;
+	a = math.sin(dLat/2) * math.sin(dLat/2) + math.sin(dLon/2) * math.sin(dLon/2) * math.cos(lat1) * math.cos(lat2);
+	c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
+	return earthRadiusKm * c * 1000;
 
 def computeNewCoordinate(lat, lon, d_lat, d_lon):
     """
@@ -88,7 +90,6 @@ class MyServer(Server):
 	channelClass = ClientChannel
 	#Set channelClass to the channel class created above.
 
-
 	def __init__(self, *args, **kwargs):
 		Server.__init__(self, *args, **kwargs)
 		self.channels = [] # clients (boats) connected to the server
@@ -115,7 +116,6 @@ def server_update():
 	global RUN_THREAD, DATA_REFRESH, BOAT_DATA, ARDUINO #global boolean var to stop the tread from anywhere
 	while RUN_THREAD: # repeatedly pumps the server
 
-		
 		if ARDUINO:
 			message = str(ARDUINO.read())[2:-5]
 			if message.split(' ', 1)[0] == 'cfg':
@@ -147,7 +147,6 @@ class boat_data:
 		self.boat_orient = None
 		self.wind_speed = None
 		self.wind_dir = None
-		
 
 		self.message = None
 
@@ -178,16 +177,26 @@ class tabWidget(QWidget):
 		# Initialize tab screen
 		self.tabs = QTabWidget()
 
+
+		# consoles
+		self.consolelast = ["", ""]	#console, console2
+		self.KeyCmd = QShortcut(QKeySequence('up'), self).activated.connect(lambda: self.ConsoleFancy())
+
+
 		# init tabs
-		self.tab1()
-		self.tab2()
-		self.tab3()
-		self.tab4()
+		self.tab1()		#main
+		#self.tab2()    #previous mode selection
+		self.tab3()		#manual
+		self.tab4()		#config
+
 
 		#used for animation of wind
 		self.paint_counter = 0
 		self.scale = 6000
-		
+
+		#consoles
+		#self.consolelast = ["",""]
+
 
 		# Add tabs to widget
 		self.layout.addWidget(self.tabs)
@@ -199,6 +208,25 @@ class tabWidget(QWidget):
 
 		self.tab1.layout = QGridLayout(self)
 
+
+		# Mode viewer - TT  ==================================
+
+		#self.ttGroupBox = QGroupBox()
+		#self.ttGroupBox.layout = QHBoxLayout()
+
+		self.ttlabel = QLabel("Curr Mode: Manual")
+		self.ttlabel.setFrameStyle(QFrame.Panel)
+		#self.ttlabel.setStyleSheet("border: 1px solid blue;")
+		self.ttlabel.setMaximumHeight(40)
+		#self.ttlabel.setMaximumWidth(175)
+
+		self.tab1.layout.addWidget(self.ttlabel, 0, 0, 1, 2)
+
+
+		# Console Box - TL  ===================================
+		self.topLeftGroupBox = QGroupBox("Data")
+		self.topLeftGroupBox.layout = QVBoxLayout()
+
 		self.gps_lbl = QLabel()
 		self.rudder_pos_lbl = QLabel()
 		self.sail_pos_lbl = QLabel()
@@ -206,24 +234,57 @@ class tabWidget(QWidget):
 		self.wind_speed_lbl = QLabel()
 		self.wind_dir_lbl = QLabel()
 
-		#img and img_lbl is for the picture of the boat and wind
-		self.img = QtGui.QPixmap(300, 300) # drawing surface
-		self.img_lbl = QLabel() # label to hold the drawing surface
+		self.topLeftGroupBox.layout.addWidget(self.gps_lbl)
+		self.topLeftGroupBox.layout.addWidget(self.rudder_pos_lbl)
+		self.topLeftGroupBox.layout.addWidget(self.sail_pos_lbl)
+		self.topLeftGroupBox.layout.addWidget(self.boat_orient_lbl)
+		self.topLeftGroupBox.layout.addWidget(self.wind_speed_lbl)
+		self.topLeftGroupBox.layout.addWidget(self.wind_dir_lbl)
+
+		self.topLeftGroupBox.layout.addStretch(1)
+		self.topLeftGroupBox.setLayout(self.topLeftGroupBox.layout)
+		self.tab1.layout.addWidget(self.topLeftGroupBox, 1,0,1,2)
+
+
+		#Console Box - TR  ===================================
+		self.topRightGroupBox = QGroupBox("Map")
+		self.topRightGroupBox.layout = QGridLayout()
+
+
+		# img and img_lbl is for the picture of the boat and wind
+		self.img = QtGui.QPixmap(300, 300)  # drawing surface
+		self.img_lbl = QLabel()  # label to hold the drawing surface
 		self.img_lbl.setPixmap(self.img)
-		#self.img_lbl.setFixedSize(400, 300)
+		# self.img_lbl.setFixedSize(400, 300)
 
 		self.incBtn = QPushButton('+')
-		self.incBtn.setMaximumWidth(145)
+		self.incBtn.setMaximumWidth(125)
 		self.incBtn.clicked.connect(self.increase_scale)
 
 		self.decBtn = QPushButton('-')
-		self.decBtn.setMaximumWidth(145)
+		self.decBtn.setMaximumWidth(125)
 		self.decBtn.clicked.connect(self.decrease_scale)
 
-		self.message_box = QTextEdit() # stores all recived data
 
-		self.message_box .setReadOnly(True)
-		self.message_box .setLineWrapMode(QTextEdit.NoWrap)
+		self.topRightGroupBox.layout.addWidget(self.img_lbl, 0, 0, 1, 2)
+		self.topRightGroupBox.layout.addWidget(self.incBtn, 1, 0)
+		self.topRightGroupBox.layout.addWidget(self.decBtn, 1, 1)
+
+		self.topRightGroupBox.layout.setColumnStretch(0, 0)
+		self.topRightGroupBox.setLayout(self.topRightGroupBox.layout)
+		self.tab1.layout.addWidget(self.topRightGroupBox, 1, 2, 1, 2)
+
+
+
+		#Console Box - BL  ===================================
+		self.botLeftGroupBox = QGroupBox("Console")
+		self.botLeftGroupBox.layout = QVBoxLayout()
+
+
+		self.message_box = QTextEdit()  # stores all recived data
+
+		self.message_box.setReadOnly(True)
+		self.message_box.setLineWrapMode(QTextEdit.NoWrap)
 		#self.message_box.setEnabled(False)
 
 		self.console = QLineEdit() # entry box for sending messages to boat
@@ -233,40 +294,98 @@ class tabWidget(QWidget):
 		DATA_REFRESH = self.data_refresh
 		self.data_refresh()
 
-		self.tab1.layout.addWidget(self.gps_lbl, 0, 0)
-		self.tab1.layout.addWidget(self.rudder_pos_lbl, 1, 0)
-		self.tab1.layout.addWidget(self.sail_pos_lbl, 2, 0)
-		self.tab1.layout.addWidget(self.boat_orient_lbl, 3, 0)
-		self.tab1.layout.addWidget(self.wind_speed_lbl, 4, 0)
-		self.tab1.layout.addWidget(self.wind_dir_lbl, 5, 0)
+		self.botLeftGroupBox.layout.addWidget(self.message_box)
+		self.botLeftGroupBox.layout.addWidget(self.console)
 
-		self.tab1.layout.addWidget(self.img_lbl, 0, 1, 5, 2)
-		self.tab1.layout.addWidget(self.incBtn, 5, 1, 1, 1)
-		self.tab1.layout.addWidget(self.decBtn, 5, 2, 1, 1)
+		self.botLeftGroupBox.layout.addStretch(1)
+		self.botLeftGroupBox.setLayout(self.botLeftGroupBox.layout)
+		self.tab1.layout.addWidget(self.botLeftGroupBox, 6, 0, 1, 3)
 
-		self.tab1.layout.addWidget(self.message_box, 6, 0, 1, 3)
-		self.tab1.layout.addWidget(self.console, 7, 0, 1, 3)
+		self.Act_test = QAction()
 
 
+
+		#Mode Box - BR  ===================================
+		self.botRightGroupBox = QGroupBox("Mode")
+		self.botRightGroupBox.layout = QVBoxLayout()
+
+			# previous for method had issue with Btn objects always having the info of the last
+		self.Btn0 = QPushButton('Manual Only')
+		self.Btn0.clicked.connect(lambda: self.ModeButton(0,'Manual'))
+		self.botRightGroupBox.layout.addWidget(self.Btn0)
+
+		self.Btn1 = QPushButton('Collision Avoidance')
+		self.Btn1.clicked.connect(lambda: self.ModeButton(1,'Collision Avoidance'))
+		self.botRightGroupBox.layout.addWidget(self.Btn1)
+
+		self.Btn2 = QPushButton('Precision Navigation')
+		self.Btn2.clicked.connect(lambda: self.ModeButton(2,'Precision Navigation'))
+		self.botRightGroupBox.layout.addWidget(self.Btn2)
+
+		self.Btn3 = QPushButton('Endurance')
+		self.Btn3.clicked.connect(lambda: self.ModeButton(3,'Endurance'))
+		self.botRightGroupBox.layout.addWidget(self.Btn3)
+
+		self.Btn4 = QPushButton('Station Keeping')
+		self.Btn4.clicked.connect(lambda: self.ModeButton(4,'Station Keeping'))
+		self.botRightGroupBox.layout.addWidget(self.Btn4)
+
+		self.Btn5 = QPushButton('Search')
+		self.Btn5.clicked.connect(lambda: self.ModeButton(5,'Search'))
+		self.botRightGroupBox.layout.addWidget(self.Btn5)
+
+
+		self.botRightGroupBox.layout.addStretch(1)
+		self.botRightGroupBox.setLayout(self.botRightGroupBox.layout)
+		self.tab1.layout.addWidget(self.botRightGroupBox, 6, 3, 1, 1)
+
+
+
+			#dont need on main tab
+		'''#Mode Box - BR2  ===================================
+		self.botRight2GroupBox = QGroupBox("Config")
+		self.botRight2GroupBox.layout = QVBoxLayout()
+
+		self.fetch = QPushButton('Fetch Config')
+		self.fetch.setMaximumWidth(175)
+		self.fetch.clicked.connect(self.fetchConfig)
+
+		self.refresh = QPushButton('Refresh Config')
+		self.refresh.setMaximumWidth(175)
+		self.refresh.clicked.connect(self.refreshConfig)
+
+		self.publish = QPushButton('Publish Config')
+		self.publish.setMaximumWidth(175)
+		self.publish.clicked.connect(self.publishConfig)
+
+		self.botRight2GroupBox.layout.addWidget(self.refresh)
+		self.botRight2GroupBox.layout.addWidget(self.fetch)
+		self.botRight2GroupBox.layout.addWidget(self.publish)
+
+		self.botRight2GroupBox.layout.addStretch(1)
+		self.botRight2GroupBox.setLayout(self.botRight2GroupBox.layout)
+		self.tab1.layout.addWidget(self.botRight2GroupBox, 6, 3, 1, 1)
+		'''
+
+
+			#fin
 		self.tab1.setLayout(self.tab1.layout)
 
 	def tab2(self):
 		self.tab2 = QWidget()
-		self.tabs.addTab(self.tab2,"Set Mode")
+		self.tabs.addTab(self.tab2, "Set Mode")
 		self.tab2.layout = QGridLayout(self)
 
 		self.buttons = []
 
-		btnNames = ['Precision Navigation', 'Endurance', 'Collision Avoidance', 'Station Keeping', 'Manual Only']
+		btnNames = ['Manual Only', 'Collision Avoidance', 'Precision Navigation', 'Endurance', 'Station Keeping', 'Search']
 		# generates buttons with names from btnNames array
-		for i in range(5):
-			newBtn = QPushButton('Mode ' + str(i+1) + ": " + btnNames[i])
-			#buttons send command: setMode [button number] to clients
-			newBtn.clicked.connect(lambda:SERVER.send_data({"action": 'setMode', 'value' : btnNames[i]}))
+		for i in range(6):
+			newBtn = QPushButton('Mode ' + str(i + 1) + ": " + btnNames[i])
+			# buttons send command: setMode [button number] to clients
+			newBtn.clicked.connect(lambda: SERVER.send_data({"action": 'setMode', 'value': btnNames[i]}))
 			self.tab2.layout.addWidget(newBtn)
 			self.buttons.append(newBtn)
-
-		
 
 		self.tab2.setLayout(self.tab2.layout)
 
@@ -276,15 +395,14 @@ class tabWidget(QWidget):
 		"""
 
 		self.tab3 = QWidget()
-		self.tabs.addTab(self.tab3,"Manual Control")
+		self.tabs.addTab(self.tab3, "Manual Control")
 		self.tab3.layout = QGridLayout(self)
 
 		self.console2 = QLineEdit()
-		self.console2.editingFinished.connect(lambda : self.commit_message(self.console2))
+		self.console2.editingFinished.connect(lambda: self.commit_message(self.console2))
 
 		self.img_lbl2 = QLabel()
 		self.img_lbl2.setPixmap(self.img)
-
 
 		self.cam_img = QtGui.QPixmap(300, 300)
 		self.cam_lbl = QLabel()
@@ -301,7 +419,7 @@ class tabWidget(QWidget):
 
 		self.tab3.layout.addWidget(self.tooltip, 2, 0, 1, 2)
 
-		#self.tab3.layout.addWidget(self.console2, 20, 0, 1, 2)
+		self.tab3.layout.addWidget(self.console2, 20, 0, 1, 2)
 
 		self.tab3.setLayout(self.tab3.layout)
 
@@ -364,7 +482,6 @@ class tabWidget(QWidget):
 					if dataBox.text() != val:
 						ARDUINO.send(F'{text} : {dataBox.text()}')
 					break
-				
 
 	def addConfigLine(self, text):
 		name, val = text.split(' : ', 1)
@@ -389,9 +506,17 @@ class tabWidget(QWidget):
 		if the message is one word and not a keyword then it is ignored
 		"""
 		text = textBox.text()
+		if text != "":
+			self.consolelast[self.tabs.currentIndex()] = text
+
+		#print("last:\t", self.consolelast[0], ", ", self.consolelast[1])
+
 		if ARDUINO:
 			ARDUINO.send(text)
+
+			textBox.setText('')
 			return
+
 		arry = text.split(' ')
 		if len(arry) > 1 and SERVER:
 			data = {"action": arry[0], 'value' : str(arry[1])}
@@ -435,14 +560,13 @@ class tabWidget(QWidget):
 		self.img_lbl2.setPixmap(self.img)
 
 	def draw_points(self, event, qp):
-		
+
 		center = 150
 		qp.setPen(QPen(QColor(255, 255, 255), 10))
-		
-		for lat, lon in BOAT_DATA.gps_points:
 
-			#dist = distanceInMBetweenEarthCoordinates(BOAT_DATA.gps[0], BOAT_DATA.gps[1], lat, lon)
-			#angle = angleBetweenCoordinates(BOAT_DATA.gps[0], BOAT_DATA.gps[1], lat, lon)
+		for lat, lon in BOAT_DATA.gps_points:
+			# dist = distanceInMBetweenEarthCoordinates(BOAT_DATA.gps[0], BOAT_DATA.gps[1], lat, lon)
+			# angle = angleBetweenCoordinates(BOAT_DATA.gps[0], BOAT_DATA.gps[1], lat, lon)
 
 			dx = BOAT_DATA.gps[0] - lat
 			dy = BOAT_DATA.gps[1] - lon
@@ -470,8 +594,8 @@ class tabWidget(QWidget):
 		qp.drawLine(center, center, center + x1, center + y1)
 		qp.drawLine(center, center, center + x2, center + y2)
 
-		# DRAW SAIL 
-		angle = float(BOAT_DATA.boat_orient) if BOAT_DATA.boat_orient else 0 
+		# DRAW SAIL
+		angle = float(BOAT_DATA.boat_orient) if BOAT_DATA.boat_orient else 0
 		angle += float(BOAT_DATA.sail_pos) if BOAT_DATA.sail_pos else 0
 
 		x2 = math.cos(math.radians(angle)) * L
@@ -480,7 +604,6 @@ class tabWidget(QWidget):
 		qp.setPen(QPen(QColor(255, 255, 255), 4))
 
 		qp.drawLine(center, center, center + x2, center + y2)
-
 
 	def draw_wind(self, event, qp):
 		qp.setPen(QPen(QColor(0, 0, 255), 2))
@@ -501,10 +624,7 @@ class tabWidget(QWidget):
 			x2 = (math.cos(math.radians(-theta+180))*max_L + (c1 + i))
 			y2 = (math.sin(math.radians(-theta+180))*max_L + (c2 + i))
 
-			
-
 			qp.drawLine(x1, y1, x2, y2)
-
 
 	def toggleManual(self):
 		global MANUAL
@@ -515,11 +635,40 @@ class tabWidget(QWidget):
 		else:
 			self.toggleBtn.setText('Toggle Manual Control : Disabled')
 			MANUAL = False
-		
+
+	def ModeButton(self, data, name):
+		global MANUAL
+		self.ttlabel.setText("Curr Mode: " + name)
+		if data == 0:
+			self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
+			self.toggleBtn.setText('Toggle Manual Control : Enabled')	#prevent abuse when switching between other buttons
+			MANUAL = True
+		else:
+			self.toggleBtn.setText('Toggle Manual Control : Disabled')
+			MANUAL = False
+
+			#comment out when not connected to prevent crash
+		SERVER.send_data({"action": 'setMode', 'value': data})
+
+	def ConsoleFancy(self):
+		num = self.tabs.currentIndex()
+
+		if num == 0:
+			temp = self.console.text()
+			self.console.setText(self.consolelast[num])
+			self.consolelast[num] = temp
+		else:
+			temp = self.console2.text()
+			self.console2.setText(self.consolelast[num])
+			self.consolelast[num] = temp
+
+
+
+
 
 	def data_refresh(self):
 		"""
-		refreshes lbels with new data from BOAT_DATA object
+		refreshes labels with new data from BOAT_DATA object
 		"""
 		self.gps_lbl.setText("GPS: " + str(BOAT_DATA.gps))
 		self.rudder_pos_lbl.setText("Rudder Position: " + str(BOAT_DATA.rudder_pos))
@@ -539,9 +688,6 @@ class tabWidget(QWidget):
 		if hasattr(self, 'R_pos_lbl'):
 			self.R_pos_lbl.setText("Rudder Position: " + str(BOAT_DATA.rudder_pos))
 			self.S_pos_lbl.setText("Sail Position: " + str(BOAT_DATA.sail_pos))
-
-		
-
 
 	@pyqtSlot()
 	def on_click(self):
@@ -564,7 +710,6 @@ class arduino:
 		except:
 			print("Error Connecting to COM"+port_num)
 
-
 	def send(self, data):
 		print(data)
 		self.ser1.write(str(data).encode())
@@ -576,15 +721,14 @@ class arduino:
 		return message
 
 
-
 def close_app():
 	app.quit()
 	sys.exit()
 
-	#attempts to close app, if  causes the app to crash,
-	#this is important because if you just close the window the app keeps running in the console
-	#to truly close it you have to press control-break or similar in the console
-	#and the break key is like wayyy at the top of the keayboard and hard to press
+	# attempts to close app, if  causes the app to crash,
+	# this is important because if you just close the window the app keeps running in the console
+	# to truly close it you have to press control-break or similar in the console
+	# and the break key is like wayyy at the top of the keayboard and hard to press
 	end_program()
 
 def map(value,  istart,  istop,  ostart,  ostop):
@@ -592,12 +736,11 @@ def map(value,  istart,  istop,  ostart,  ostop):
   
 
 def handle_input():
-
 	while RUN_THREAD:
-		
+
 		if MANUAL:
 
-			try: 
+			try:
 				events = get_gamepad()
 			except:
 				global FOUND_GAMEPAD
@@ -610,7 +753,7 @@ def handle_input():
 				# 	print(event.ev_type, event.code, event.state)
 
 				if 'ABS_HAT0X' in str(event.code):
-					val = 5*event.state
+					val = 5 * event.state
 					if val != 0:
 						SERVER.send_data(F"sail {val}")
 
@@ -630,7 +773,7 @@ def handle_input():
 				val = min((BOAT_DATA.sail_pos + 5), 90) if BOAT_DATA.sail_pos else 5
 				SERVER.send_data("sail 5")
 				sleep(.25)
-				
+
 
 			elif keyboard.is_pressed('s') and SERVER:
 				val = max((BOAT_DATA.sail_pos - 5), -90) if BOAT_DATA.sail_pos else -5
@@ -641,18 +784,16 @@ def handle_input():
 				val = min((BOAT_DATA.sail_pos + 5), 90) if BOAT_DATA.sail_pos else 5
 				SERVER.send_data("rudder 5")
 				sleep(.25)
-				
+
 
 			elif keyboard.is_pressed('d') and SERVER:
 				val = max((BOAT_DATA.sail_pos - 5), -90) if BOAT_DATA.sail_pos else -5
 				SERVER.send_data("rudder -5")
-				
+
 				sleep(.25)
 
 
-
 def make_arduino(com_port):
-
 	global RUN_THREAD, ARDUINO
 
 	ARDUINO = arduino(com_port)
@@ -680,8 +821,6 @@ if __name__ == "__main__":
 
 	SERVER = MyServer(localaddr=('0.0.0.0', 1338)) # creates a server object accepting connections from any IP on port 1337
 	BOAT_DATA = boat_data() # creates BOAT_DATA object and sets it as a global variable
-
-	
 
 	app = QApplication(sys.argv)
 	w = mainWindow()
