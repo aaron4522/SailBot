@@ -8,9 +8,6 @@
  
 #include <SPI.h>
 #include <RH_RF95.h>
-#include <Wire.h>
-
-# define I2C_SLAVE_ADDRESS 11
  
 // for feather32u4 
 #define RFM95_CS 8
@@ -73,7 +70,8 @@
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
-int I2C_read_val = 0
+int rudderVal = 0;
+int sailVal = 0;
  
 void setup() 
 {
@@ -84,10 +82,6 @@ void setup()
   while (!Serial) {
     delay(1);
   }
-
-  Wire.begin(I2C_SLAVE_ADDRESS);
-  Wire.onRequest(requestEvents);
-  Wire.onReceive(receiveEvents);
  
   delay(100);
  
@@ -130,8 +124,6 @@ void loop()
   delay(10); // Wait 1 second between transmits, could also 'sleep' here!
   //Serial.println("Transmitting..."); // Send a message to rf95_server  
   
-       
-  
   char radiopacket[20] = "";
   bool msg = false;  
   int availableBytes = Serial.available();
@@ -141,12 +133,18 @@ void loop()
      msg = true;
   }
   if (msg){
+    if (radiopacket[0] == '?'){
+      returnData();
+    }
     //Serial.print("Sending "); Serial.println(radiopacket);
     //radiopacket[19] = 0;
     
     //Serial.println("Sending...");
-    delay(10);
-    rf95.send((uint8_t *)radiopacket, 20);
+    else{
+      delay(10);
+      rf95.send((uint8_t *)radiopacket, 20);
+    }
+    
   }
   //itoa(packetnum++, radiopacket+13, 10);
   
@@ -166,7 +164,21 @@ void loop()
   if (rf95.recv(buf, &len))
    {
       //Serial.print("Got reply: ");
-      Serial.println((char*)buf);
+      if (buf[0] == 'R'){
+        if (buf[2] == 10){
+          rudderVal = (buf[1] - 48) - 45;          
+        }
+        else{
+          rudderVal = (buf[1] - 48) * 10 + (buf[2] - 48) - 45;
+        }
+      }
+      else if (buf[0] == 'S'){
+        sailVal = (buf[1] - 48) * 10 + (buf[2] - 48);
+      }
+      else{
+        Serial.println((char*)buf);
+      }
+      
       //if (buf[0] == 'R'){
         //Serial.println("rudder cmd");
       //}
@@ -185,20 +197,8 @@ void loop()
  
 }
 
-void requestEvents()
-{
-  Serial.println(F("---> recieved request"));
-  Serial.print(F("sending value : "));
-  Serial.println(I2C_read_val);
-  Wire.write(I2C_read_val);
-}
-
-void receiveEvents(int numBytes)
-{  
-  Serial.println(F("---> recieved events"));
-  I2C_read_val = Wire.read();
-  Serial.print(numBytes);
-  Serial.println(F("bytes recieved"));
-  Serial.print(F("recieved value : "));
-  Serial.println(I2C_read_val);
+void returnData(){
+  Serial.print("R "); Serial.println(rudderVal);
+  Serial.print("S "); Serial.println(sailVal);
+  
 }

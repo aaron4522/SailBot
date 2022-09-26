@@ -9,6 +9,9 @@
 #include <SPI.h>
 #include <RH_RF95.h>
 #include <LiquidCrystal_I2C.h>
+
+#define RUDDER_PIN 0
+#define SAIL_PIN 1
  
 // for feather32u4 
 #define RFM95_CS 8
@@ -75,6 +78,9 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 int rudder_val = 0;
 int read_rudder_val = 999;
 int sail_val = 0;
+int read_sail_val = 999;
+int loopsSinceSent = 0;
+const int loopsBetweenSends = 20;
 char buf[16];
  
 void setup() 
@@ -132,12 +138,36 @@ int16_t packetnum = 0;  // packet counter, we increment per xmission
 void loop()
 {
   delay(10); // Wait 1 second between transmits, could also 'sleep' here!
+  loopsSinceSent++;
   //Serial.println("Transmitting..."); // Send a message to rf95_server  
-  if (map(analogRead(A0), 0, 1023, -45, 45) != rudder_val){
-    rudder_val = map(analogRead(A0), 0, 1023, -45, 45);
-    update_lcd();
-  }
   
+  
+  if (loopsBetweenSends <= loopsSinceSent){
+    int readRudderVal = map(analogRead(A0), 0, 1023, 0, 90);
+    int readSailVal = map(analogRead(A0), 0, 1023, 0, 90);
+    if (readRudderVal != rudder_val && analogRead(A0) != 0){
+      rudder_val = readRudderVal;
+      update_lcd();
+    }
+    else if (readSailVal != sail_val && analogRead(A1) != 0){
+      sail_val = readSailVal;
+      update_lcd();
+      
+    }
+    
+    loopsSinceSent = 0;
+    char radiopacket[20] = "";
+    radiopacket[0] = 'R';
+    if (rudder_val < 10){
+      radiopacket[1] = 48; // ascii 0
+    }
+    else{
+      radiopacket[1] = (rudder_val / 10) + 48;
+    }
+    radiopacket[2] = (rudder_val % 10) + 48;
+    Serial.print("Sending "); Serial.println(radiopacket);
+    rf95.send((uint8_t *)radiopacket, 20);
+  }  
        
   
   char radiopacket[20] = "";
@@ -179,6 +209,10 @@ void loop()
         read_rudder_val = (buf[1] - 48)*10 + (buf[2] - 48);
         update_lcd();
       }
+      else if (buf[0] == 'S'){  
+        read_sail_val = (buf[1] - 48)*10 + (buf[2] - 48);
+        update_lcd();
+      }
       //Serial.print("RSSI: ");
       //Serial.println(rf95.lastRssi(), DEC);    
     }
@@ -196,7 +230,7 @@ void loop()
 
 void update_lcd(){
   reset_display();
-  sprintf(buf, "Rudder %d (%d)", rudder_val, read_rudder_val);
+  sprintf(buf, "Rudder %d (%d)", rudder_val - 45, read_rudder_val);
   lcd_message(buf, 0);
   
 }

@@ -45,8 +45,6 @@ class boat:
         self.targetRudder = 0
         self.currentRudder = 0
 
-        noGoZoneDegs = 20
-
         tempTarget = False
 
         self.override = False   #whether to automatically switch to RC when inputting manual commands or prevent the commands
