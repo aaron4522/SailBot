@@ -45,6 +45,7 @@ class obj_sail:
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
 
     def set(self, degrees):
+        degrees = float(degrees)
             
         maxAngle = 900
         if degrees > maxAngle:
@@ -85,6 +86,8 @@ class obj_rudder:
             self.odriveAxis = DRV.axis1
     
     def set(self, degrees):
+
+        degrees = float(degrees)
         
         maxAngle = 30
 
