@@ -168,7 +168,7 @@ class Odrive():
         #this will change torque!!!
         #self.torque = (8.27 * value / self.KVRAting)
         #print(F"Warning: Changing the current limit will affect the torque")
-        if int(value) > 65:
+        if float(value) > 65:
             raise Exception("Motor current limit should not be raised this high without verifying the motor can handle it")
         self.mo0.config.current_lim = value
 
@@ -211,7 +211,7 @@ class Odrive():
         #this will change torque!!!
         #self.torque = (8.27 * value / self.KVRAting)
         #print(F"Warning: Changing the current limit will affect the torque")
-        if int(value) > 65:
+        if float(value) > 65:
             raise Exception("Motor current limit should not be raised this high without verifying the motor can handle it")
         self.mo1.config.current_lim = value
 
