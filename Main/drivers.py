@@ -61,7 +61,7 @@ class obj_sail:
 
         if USE_ODRIVE:
             val = self.map(degrees, 0, 90, 0, float(c.config['ODRIVE']['odriveSailRotations']))
-            DRV.pos(self.odriveAxis, val)
+            DRV.posSet(self.odriveAxis, val)
             
         self.current = degrees
     
@@ -105,7 +105,7 @@ class obj_rudder:
 
         if USE_ODRIVE:
             val = self.map(degrees, -maxAngle, maxAngle, -float(c.config['ODRIVE']['odriveRudderRotations'])/2, float(c.config['ODRIVE']['odriveRudderRotations'])/2)
-            DRV.pos(self.odriveAxis, val)
+            DRV.posSet(self.odriveAxis, val)
             
 
         self.current = degrees
