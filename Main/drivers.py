@@ -84,6 +84,10 @@ class obj_rudder:
             self.step = stepper.stepperDriver(RUDDER_DIR_PIN, RUDDER_PUL_PIN)
         if USE_ODRIVE:
             self.odriveAxis = DRV.axis1
+
+    def map(self, x, min1, max1, min2, max2):
+        x = min(max(x, min1), max1)
+        return min2 + (max2-min2)*((x-min1)/(max1-min1))
     
     def set(self, degrees):
 
