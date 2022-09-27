@@ -224,6 +224,7 @@ def printCurrent(drv):
 if __name__ == '__main__':
     #print(c.config.keys())
     #print(sys.argv)
+    print("Run as sudo if on rasp pi, will othewise get error")
     if len(sys.argv) < 2 or sys.argv[1] != '0':
         try:
             #odrive.find_any().reboot()
