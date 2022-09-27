@@ -79,6 +79,8 @@ class Odrive():
         self.axis0.controller.config.vel_gain = c.config['ODRIVE']['velGain']
         self.axis0.controller.config.vel_integrator_gain = c.config['ODRIVE']['velIntegratorGain']
         self.current0 = c.config['ODRIVE']['currentLimit']
+        
+        self.axis1 = None
 
     @property
     def pos(self):
