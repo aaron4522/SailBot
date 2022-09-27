@@ -9,10 +9,13 @@ from RPi import GPIO
 from time import sleep
 from Odrive import Odrive
 
-USE_ODRIVE = True
-USE_STEPPER = False
+USE_ODRIVE_SAIL = True
+USE_STEPPER_SAIL = False
 
-if USE_ODRIVE:
+USE_ODRIVE_RUDDER = False
+USE_STEPPER_RUDDER = False
+
+if USE_ODRIVE_SAIL or USE_ODRIVE_RUDDER:
     DRV = Odrive(calibrate=True)
             
 if False:
@@ -33,9 +36,9 @@ class obj_sail:
         self.autoAdjust = auto
         #self.windvane = windVane()
         self.current = 0
-        if USE_STEPPER:
+        if USE_STEPPER_SAIL:
             self.step = stepper.stepperDriver(SAIL_DIR_PIN, SAIL_PUL_PIN)
-        if USE_ODRIVE:
+        if USE_ODRIVE_SAIL:
             self.odriveAxis = DRV.axis0
         #pump_thread2 = Thread(target=self.autoAdjustSail)
         #pump_thread2.start()
@@ -51,7 +54,7 @@ class obj_sail:
         if degrees > maxAngle:
             degrees = maxAngle
 
-        if USE_STEPPER:
+        if USE_STEPPER_SAIL:
             self.steps = int(400/360 * (self.current-degrees) ) * 15
             
             if degrees < self.current:
@@ -59,7 +62,7 @@ class obj_sail:
             else:
                 self.step.turn(True, -self.steps)
 
-        if USE_ODRIVE:
+        if USE_ODRIVE_SAIL:
             val = self.map(degrees, 0, 90, 0, float(c.config['ODRIVE']['odriveSailRotations']))
             DRV.posSet(self.odriveAxis, val)
             
@@ -80,9 +83,9 @@ class obj_rudder:
     #between -45 and 45 degrees
     def __init__(self):
         self.current = 0
-        if USE_STEPPER:
+        if USE_STEPPER_RUDDER:
             self.step = stepper.stepperDriver(RUDDER_DIR_PIN, RUDDER_PUL_PIN)
-        if USE_ODRIVE:
+        if USE_ODRIVE_RUDDER:
             self.odriveAxis = DRV.axis1
 
     def map(self, x, min1, max1, min2, max2):
@@ -95,7 +98,7 @@ class obj_rudder:
         
         maxAngle = 30
 
-        if USE_STEPPER:
+        if USE_STEPPER_RUDDER:
             if degrees > maxAngle:
                 degrees = maxAngle
             elif degrees < -maxAngle:
@@ -107,7 +110,7 @@ class obj_rudder:
             else:
                 self.step.turn(False, -self.steps)
 
-        if USE_ODRIVE:
+        if USE_ODRIVE_RUDDER:
             val = self.map(degrees, -maxAngle, maxAngle, -float(c.config['ODRIVE']['odriveRudderRotations'])/2, float(c.config['ODRIVE']['odriveRudderRotations'])/2)
             DRV.posSet(self.odriveAxis, val)
             
