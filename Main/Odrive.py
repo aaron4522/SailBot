@@ -85,18 +85,22 @@ class Odrive():
         return (self.pos0, self.pos1)
 
     @pos.setter
-    def pos(self, value):
-        self.axis0.controller.input_pos = value
-        self.axis1.controller.input_pos = value
+    def pos(self, axis, value):
+        if axis == self.axis0:
+            self.axis0.controller.input_pos = value
+        elif axis == self.axis1:
+            self.axis1.controller.input_pos = value
 
     @property
     def vel(self):
         return (self.vel0, self.vel1)
 
     @vel.setter
-    def vel(self, value):
-        self.vel0 = value
-        self.vel1 = value
+    def vel(self, axis, value):
+        if axis == self.axis0:
+            self.vel0 = value
+        elif axis == self.axis1:
+            self.vel1 = value
 
     @property
     def torque(self):
@@ -104,21 +108,25 @@ class Odrive():
         return 8.27 * getDrawnCurrent / self.KVRating
 
     @torque.setter
-    def torque(self, value):
-        self.torque0 = value
-        self.torque1 = value
+    def torque(self, axis, value):
+        if axis == self.axis0:
+            self.torque0 = value
+        elif axis == self.axis1:
+            self.torque1 = value
 
     @property
     def current(self):
         return (self.current0, self.current1)
 
     @current.setter
-    def current(self, value):
+    def current(self, axis, value):
         #this will change torque!!!
         #self.torque = (8.27 * value / self.KVRAting)
         #print(F"Warning: Changing the current limit will affect the torque")
-        self.current0 = value
-        self.current1 = value
+        if axis == self.axis0:
+            self.current0 = value
+        elif axis == self.axis1:
+            self.current1 = value
 
     def getDemandedCurrent(self):
         return (self.getDemandedCurrent0(), self.getDemandedCurrent1())
