@@ -86,8 +86,7 @@ class Odrive():
     def pos(self):
         return (self.pos0, self.pos1)
 
-    @pos.setter
-    def pos(self, axis, value):
+    def posSet(self, axis, value):
         if axis == self.axis0:
             self.axis0.controller.input_pos = value
         elif axis == self.axis1:
@@ -97,8 +96,7 @@ class Odrive():
     def vel(self):
         return (self.vel0, self.vel1)
 
-    @vel.setter
-    def vel(self, axis, value):
+    def velSet(self, axis, value):
         if axis == self.axis0:
             self.vel0 = value
         elif axis == self.axis1:
@@ -109,8 +107,7 @@ class Odrive():
         #this will change current drawn
         return 8.27 * getDrawnCurrent / self.KVRating
 
-    @torque.setter
-    def torque(self, axis, value):
+    def torqueSet(self, axis, value):
         if axis == self.axis0:
             self.torque0 = value
         elif axis == self.axis1:
@@ -120,8 +117,7 @@ class Odrive():
     def current(self):
         return (self.current0, self.current1)
 
-    @current.setter
-    def current(self, axis, value):
+    def currentSet(self, axis, value):
         #this will change torque!!!
         #self.torque = (8.27 * value / self.KVRAting)
         #print(F"Warning: Changing the current limit will affect the torque")
