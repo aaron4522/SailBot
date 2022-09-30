@@ -9,10 +9,10 @@ from RPi import GPIO
 from time import sleep
 from Odrive import Odrive
 
-USE_ODRIVE_SAIL = True
+USE_ODRIVE_SAIL = False
 USE_STEPPER_SAIL = False
 
-USE_ODRIVE_RUDDER = False
+USE_ODRIVE_RUDDER = True
 USE_STEPPER_RUDDER = False
 
 if USE_ODRIVE_SAIL or USE_ODRIVE_RUDDER:
