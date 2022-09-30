@@ -1,3 +1,4 @@
+from re import A
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
@@ -35,8 +36,7 @@ def distanceInMBetweenEarthCoordinates(lat1, lon1, lat2, lon2):
     lat1 = degreesToRadians(lat1);
     lat2 = degreesToRadians(lat2);
 
-    a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.sin(dLon / 2) * math.sin(dLon / 2) * math.cos(lat1) * math.cos(
-        lat2);
+    a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.sin(dLon / 2) * math.sin(dLon / 2) * math.cos(lat1) * math.cos(lat2);
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return earthRadiusKm * c * 1000;
 
@@ -133,6 +133,24 @@ def server_update():
                 BOAT_DATA.configChanged = True
                 if DATA_REFRESH:
                     DATA_REFRESH()
+            
+            elif message.split(' ', 1)[0] == 'DATA:':
+                datalist = message.split(' ', 1)[1].split(', ')
+                for i in range(8):
+                    if datalist[i] == "N/a":
+                        datalist[i] = None
+
+                BOAT_DATA.gps = ( int(datalist[0]), int(datalist[1]) )  #should this be a float?
+                BOAT_DATA.rudder_pos = datalist[2]
+                BOAT_DATA.sail_pos = datalist[3]
+                BOAT_DATA.boat_orient = datalist[4]
+                BOAT_DATA.wind_speed = datalist[5]
+                BOAT_DATA.wind_dir = datalist[6]
+                BOAT_DATA.battery = datalist[7]
+
+                if DATA_REFRESH:
+                    DATA_REFRESH()
+
             elif message:
                 print(message.split(' ', 1)[0])
                 BOAT_DATA.message = message
@@ -152,7 +170,7 @@ class boat_data:
 	"""
 
     def __init__(self):
-        self.gps = (0, 0)
+        self.gps = (0, 0)   #should this be a float?
         self.gps_points = [(.01, .01), (0, -.01)]
         self.rudder_pos = None
         self.sail_pos = None

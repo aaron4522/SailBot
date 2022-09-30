@@ -146,7 +146,7 @@ class boat:
             print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
                 #include in automation code's main loop:
                     #self.readmessages to see if it switches modes or RC commands, returning if another mode is true
-                    #self.pumpMessages to export data
+                    #self.sendData() to export data
 
             if self.manualControl:
                 #adjust sail and rudder to set targets
@@ -166,7 +166,7 @@ class boat:
                     self.adjustRudder(self.targetRudder)
                     
                     
-                    
+                '''
                 #print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
                 if abs(self.currentRudder) >= 10:
                     self.arduino.send(F"R{self.currentRudder}")
@@ -176,6 +176,10 @@ class boat:
                     self.arduino.send(F"S{self.currentSail}")
                 else: #format so number is 2 digits
                     self.arduino.send(F"S0{self.currentSail}")
+                '''
+
+                #GPS x/y, RudderPos, SailPos, BoatOrientation, Windspd, WindDir, Batt
+                self.sendData()
 
             if not self.manualControl:  #automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
@@ -201,6 +205,65 @@ class boat:
                         print('no targets')
                 if self.currentTarget:
                     self.goToGPS(self.currentTarget[0], self.currentTarget[1])
+
+
+    def sendData(self):
+        #GPS:x/y, RudderPos, SailPos, BoatOrientation, Windspd, WindDir, Batt
+        #1/2,3,4,5,6,7,8
+        #{'action': 'setMode', 'value': 0}
+        #self.arduino.send(F"R{self.currentRudder}")
+        totstr = ""
+        arr = ["N/a"] * 8
+
+        try:
+            arr[0] = F"{self.gps.longitude}"
+            arr[1] = F"{self.gps.latitude}"
+        except Exception as e:
+            logging.info(f"failed to find data: gps, {e}")
+            print(f"data error: {e}")
+
+        try:
+            if abs(self.currentRudder) >= 10:
+                arr[2] = F"{self.currentRudder}"
+            else: #format so number is 2 digits
+                arr[2] = F"0{self.currentRudder}"
+        except Exception as e:
+            logging.info(f"failed to find data: rudder, {e}")
+            print(f"data error: {e}")
+
+        try:
+            if abs(self.currentSail) >= 10:
+                arr[3] = F"{self.currentSail}"
+            else: #format so number is 2 digits
+                arr[3] = F"0{self.currentSail}"
+        except Exception as e:
+            logging.info(f"failed to find data: sail, {e}")
+            print(f"data error: {e}")
+        
+        try:
+            arr[4] = F"{self.compass.angle}"
+        except Exception as e:
+            logging.info(f"failed to find data: compass, {e}")
+            print(f"data error: {e}")
+
+        try:
+            #arr[5] = #dont have
+            arr[6] = F"{self.windvane.angle}"
+        except Exception as e:
+            logging.info(f"failed to find data: windvane, {e}")
+            print(f"data error: {e}")
+
+        #arr[7] = #dont have
+
+        for i in range(8):
+            totstr += arr[i]
+            if i<7:
+                totstr += ","
+        
+        self.arduino.send("DATA: " + totstr)
+
+
+
 
 
     def readMessages(self):
