@@ -39,7 +39,7 @@ class obj_sail:
         if USE_STEPPER_SAIL:
             self.step = stepper.stepperDriver(SAIL_DIR_PIN, SAIL_PUL_PIN)
         if USE_ODRIVE_SAIL:
-            self.odriveAxis = DRV.axis0
+            self.odriveAxis = DRV.axis1
         #pump_thread2 = Thread(target=self.autoAdjustSail)
         #pump_thread2.start()
 
@@ -86,7 +86,7 @@ class obj_rudder:
         if USE_STEPPER_RUDDER:
             self.step = stepper.stepperDriver(RUDDER_DIR_PIN, RUDDER_PUL_PIN)
         if USE_ODRIVE_RUDDER:
-            self.odriveAxis = DRV.axis1
+            self.odriveAxis = DRV.axis0
 
     def map(self, x, min1, max1, min2, max2):
         x = min(max(x, min1), max1)

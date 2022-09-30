@@ -139,8 +139,8 @@ class boat:
             self.readMessages()
 
     def mainLoop(self):
-        sailStep = 10
-        rudderStep = 2
+        sailStep = 90
+        rudderStep = 90
         while True:
             self.readMessages()
             print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
