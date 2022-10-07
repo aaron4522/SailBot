@@ -10,6 +10,8 @@ class camera():
 
     def __init__(self):
         self.vid_feed = cv2.VideoCapture(0)
+        self.camera_width  = float( self.vid_feed.get(cv2.CAP_PROP_FRAME_WIDTH) )
+        self.camera_height = float( self.vid_feed.get(cv2.CAP_PROP_FRAME_HEIGHT) )
 
 
     def clr_iso(self, img, lower, upper):
@@ -132,7 +134,7 @@ class camera():
             area = cv2.contourArea(cnt)
 
             # CHANGE THIS VALUE IF FAR/CLOSE
-            if area > float(c.config['CONSTANTS']['camera_width']):  #scale with camera
+            if area > self.camera_width:  #scale with camera
                 cnt_count += 1
                 if first:
                     max_cnt = cnt
