@@ -38,7 +38,10 @@ class events():
         elif inp == "SK":
             self.Station_Keeping()
         elif inp == "S":
-            self.Search()
+            buoy_lat = input("buoy_lat: ") # Taking input from user
+            buoy_long = input("buoy_long: ") # Taking input from user
+            radius = input("radius: ") # Taking input from user
+            self.Search(buoy_lat, buoy_long, radius)
         else:
             print("nah")
 
@@ -63,8 +66,31 @@ class events():
         print("Station_Keeping moment")
 
 
-    def Search(self):
-        print("Search moment")
+    def Search(self, buoy_lat, buoy_long, radius):
+        #going to have to request buoylat, buoylong somehow
+
+        self.search_pattern(gps_lat, gps_long, buoy_lat, buoy_long, radius)
+        
+    
+    def search_pattern(self, gps_lat, gps_long, buoy_lat, buoy_long, radius):
+        #find five coords via search pattern
+        #in realtion to current pos and buoy rad center pos
+
+        a = gps_lat - buoy_lat
+        b = gps_long - buoy_long
+        ang = math.atan(b/a)
+        ang *= 180/math.pi
+
+        if(a<0):    ang += 180
+
+        tar_angs = [ang,ang+72,ang-72,ang-(72*3),ang-(72*2)]
+        tarx = [0] * 5
+        tary = [0] * 5
+
+        for i in range(0,5):
+            tarx[i] =  buoy_lat  + radius*math.cos( tar_angs[i] * (math.pi/180) )
+            tary[i] =  buoy_long + radius*math.sin( tar_angs[i] * (math.pi/180) )
+
         
 
 if __name__ == "__main__":
