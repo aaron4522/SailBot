@@ -9,6 +9,8 @@ try:
     from GPS import gps
     from compass import compass
     import GPS
+    from camera import camera
+    from events import events
 
     from drivers import driver
     from transceiver import arduino
@@ -184,19 +186,19 @@ class boat:
             if not self.manualControl:  #automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
                     logging.info("Received message to Automate: COLLISION_AVOIDANCE")
-                    #collision_avoidance()
+                    events.Collision_Avoidance()
                 elif self.MODE_SETTING == c.config['MODES']['MOD_PRECISION_NAVIGATE']:
                     logging.info("Received message to Automate: PRECISION_NAVIGATE")
-                    #precision_navigate()
+                    events.Percision_Navigation()
                 elif self.MODE_SETTING == c.config['MODES']['MOD_ENDURANCE']:
                     logging.info("Received message to Automate: ENDURANCE")
-                    #endurance()
+                    events.Endurance()
                 elif self.MODE_SETTING == c.config['MODES']['MOD_STATION_KEEPING']:
                     logging.info("Received message to Automate: STATION_KEEPING")
-                    #station_keeping()
+                    events.Station_Keeping()
                 elif self.MODE_SETTING == c.config['MODES']['MOD_SEARCH']:
                     logging.info("Received message to Automate: SEARCH")
-                    #search()
+                    events.Search()
 
                 if not self.currentTarget:
                     if self.targets != []:
@@ -210,8 +212,6 @@ class boat:
     def sendData(self):
         #GPS:x/y, RudderPos, SailPos, BoatOrientation, Windspd, WindDir, Batt
         #1/2,3,4,5,6,7,8
-        #{'action': 'setMode', 'value': 0}
-        #self.arduino.send(F"R{self.currentRudder}")
         totstr = ""
         arr = ["N/a"] * 8
 
@@ -261,9 +261,6 @@ class boat:
                 totstr += ","
         
         self.arduino.send("DATA: " + totstr)
-
-
-
 
 
     def readMessages(self):
