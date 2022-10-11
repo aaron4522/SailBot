@@ -22,6 +22,9 @@ import math
 
 import serial
 
+#TODO:
+#add mode section along with fields for needed inputted variables (ex buoy coords for search)
+#add subsections
 
 def degreesToRadians(degrees):
     return degrees * math.pi / 180;

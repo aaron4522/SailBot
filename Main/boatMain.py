@@ -53,7 +53,7 @@ class boat:
         tempTarget = False
 
         self.override = False   #whether to automatically switch to RC when inputting manual commands or prevent the commands
-        #self.MODE_SETTING = c.config['MODES']['MOD_RC']
+        self.MODE_SETTING = c.config['MODES']['MOD_RC']
         #pump_thread = Thread(target=self.pumpMessages)
         #pump_thread.start()
         self.mainLoop()
@@ -263,9 +263,12 @@ class boat:
         self.arduino.send("DATA: " + totstr)
 
 
-    def readMessages(self):
-        #msgs = self.arduino.read()[:-3].replace('\n', '')
-        msgs = self.arduino.readData()
+    def readMessages(self, msgOR=None):
+        if msgOR != None:
+            msgs = msgOR
+        else:
+            #msgs = self.arduino.read()[:-3].replace('\n', '')
+            msgs = self.arduino.readData()
         print(msgs)
 
         # for msg in msgs:
