@@ -1,6 +1,5 @@
 import constants as c
 import logging
-import boatMath
 import math
 
 try:
@@ -21,8 +20,6 @@ from datetime import date, datetime
 from threading import Thread
 from time import sleep
 
-import numpy
-
 
 
 class events(boat):
@@ -32,7 +29,7 @@ class events(boat):
         print("init")
 
 
-    def event_NP(self):
+    def event_NL(self):
         # Nice loop to put in event functions
         #   - sends data about boat
         #   - reads messages and returns bool
@@ -90,37 +87,42 @@ class events(boat):
         #self.readmessages to see if it switches modes or RC commands, returning/break if another mode is true
         #self.sendData() to export data
 
-    def Collision_Avoidance(self):
+    #inputs: B1,B2,B3,B4 long/lat
+    #arr: [B1x,B1y, etc]
+    def Collision_Avoidance(self,arr):
         print("Collision_Avoidance moment")
 
-        if self.event_NP(): return
+        if self.event_NL(): return
 
-
-    def Percision_Navigation(self):
+    #inputs: B1,B2,B3,B4 long/lat
+    #arr: [B1x,B1y, etc]
+    def Percision_Navigation(self,arr):
         print("Percision_Navigation moment")
 
-        if self.event_NP(): return
+        if self.event_NL(): return
 
-    
-    def Endurance(self):
+    #inputs: B1,B2,B3,B4 long/lat
+    #arr: [B1x,B1y, etc]
+    def Endurance(self,arr):
         print("Endurance moment")
 
-        if self.event_NP(): return
+        if self.event_NL(): return
 
-
-    def Station_Keeping(self):
+    #inputs: B1,B2 long/lat
+    #arr: [B1x,B1y, etc]
+    def Station_Keeping(self,arr):
         print("Station_Keeping moment")
 
-        if self.event_NP(): return
+        if self.event_NL(): return
 
-
+    #inputs: B1 long/lat, Radius
     def Search(self, buoy_lat, buoy_long, radius):
         #make in boatMain along with mode switch, attach buoy coords and radius in ary
         #will need to redo GUI then ://////
+        while(True):
+            self.search_pattern(boat.gps.latitude, boat.gps.longitude, buoy_lat, buoy_long, radius)
 
-        self.search_pattern(boat.gps.latitude, boat.gps.longitude, buoy_lat, buoy_long, radius)
-
-        if self.event_NP(): return
+            if self.event_NL(): return
         
     
     def search_pattern(self, gps_lat, gps_long, buoy_lat, buoy_long, radius):
@@ -141,6 +143,9 @@ class events(boat):
         for i in range(0,5):
             tarx[i] =  buoy_lat  + radius*math.cos( tar_angs[i] * (math.pi/180) )
             tary[i] =  buoy_long + radius*math.sin( tar_angs[i] * (math.pi/180) )
+        
+        arr = [tarx,tary]
+        return arr
 
         
 
