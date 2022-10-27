@@ -790,13 +790,13 @@ class tabWidget(QWidget):
     def ModeButton(self, data, name):
         global MANUAL
         self.ttlabel.setText("Curr Mode: " + name)
-        temp_str = "{'action': 'setMode', 'value': "+str(data)+" : "
+        temp_str = "mode "+str(data)
 
         if data == 0:
             self.tabs.setCurrentIndex(2)
             self.toggleBtn.setText('Toggle Manual Control : Enabled')  # prevent abuse when switching between other buttons
             MANUAL = True
-            SERVER.send_data({"action": 'setMode', 'value': data})
+            SERVER.send_data("mode "+str(data))
             return
         else:
             self.tabs.setCurrentIndex(1)
@@ -818,15 +818,18 @@ class tabWidget(QWidget):
             else:
                 print("ERR: Selecting arr")
                 return
-
-            for i in range(len(temp_arr)):
-                text = temp_arr[i].text()
-                if text == "":
-                    print("ERR: Field not filled out:",i)
-                    return
-                else:
-                    temp_str += str(text) + ", "
-            temp_str = temp_str[:-1] +"}"
+            try:
+                for i in range(len(temp_arr)):
+                    text = temp_arr[i].text()
+                    if text == "":
+                        print("ERR: Field not filled out:",i)
+                        return
+                    else:
+                        temp_str += " "+str(float(text))
+                #temp_str = temp_str[:-1]
+            except:
+                print("mode str val error")
+                return
 
         #print(temp_str)
         SERVER.send_data(temp_str)

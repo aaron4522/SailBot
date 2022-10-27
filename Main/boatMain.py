@@ -40,6 +40,7 @@ class boat:
         except:
             self.arduino = arduino(c.config['MAIN']['ardu_port2'])
 
+        self.event_arr = []
         self.manualControl = True   # check RC Mode to change manualControl, and manualControl checks for everything else (faster on memory)
         self.cycleTargets = False
         self.currentTarget = None  # (longitude, latitude) tuple
@@ -186,19 +187,23 @@ class boat:
             if not self.manualControl:  #automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
                     logging.info("Received message to Automate: COLLISION_AVOIDANCE")
-                    events.Collision_Avoidance()
+                    events.Collision_Avoidance(self.event_arr)
+
                 elif self.MODE_SETTING == c.config['MODES']['MOD_PRECISION_NAVIGATE']:
                     logging.info("Received message to Automate: PRECISION_NAVIGATE")
-                    events.Percision_Navigation()
+                    events.Percision_Navigation(self.event_arr)
+
                 elif self.MODE_SETTING == c.config['MODES']['MOD_ENDURANCE']:
                     logging.info("Received message to Automate: ENDURANCE")
-                    events.Endurance()
+                    events.Endurance(self.event_arr)
+
                 elif self.MODE_SETTING == c.config['MODES']['MOD_STATION_KEEPING']:
                     logging.info("Received message to Automate: STATION_KEEPING")
-                    events.Station_Keeping()
+                    events.Station_Keeping(self.event_arr)
+
                 elif self.MODE_SETTING == c.config['MODES']['MOD_SEARCH']:
                     logging.info("Received message to Automate: SEARCH")
-                    events.Search()
+                    events.Search(self.event_arr)
 
                 if not self.currentTarget:
                     if self.targets != []:
@@ -320,8 +325,14 @@ class boat:
                             if int(ary[1]) < 0 or int(ary[1]) > 5:
                                 logging.info("Outside mode range")
                             else:
-                                self.MODE_SETTING = int(ary[1])
                                 logging.info(F'Setting mode to {int(ary[1])}')
+                                self.MODE_SETTING = int(ary[1])
+
+                                logging.info(F'Setting event array')
+                                self.event_arr = []
+                                for i in range(len(ary)-2):
+                                    self.event_arr.append(ary[i+2])
+
                                 processed = True
                         except Exception as e:
                             print(F"Error changing mode: {e}")

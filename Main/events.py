@@ -50,7 +50,7 @@ class events(boat):
                     elif ary[0] == 'rudder' or ary[0] == "R":
                         ret = True
 
-                    elif ary[0] == 'mode' and boat.MODE_SETTING != ary[1]:
+                    elif ary[0] == 'mode' and ary[1] == 0:
                         ret = True
         except Exception as e:
             logging.info(f"failed to read command {self.MESSAGE}")
@@ -65,20 +65,18 @@ class events(boat):
 
 
     def testloop(self, inp):
+        t_inp = input("inputs: ")
+        t_arr = t_inp.split(" ")
         if inp == "CA":
-            self.Collision_Avoidance()
+            self.Collision_Avoidance(t_arr)
         elif inp == "PN":
-            self.Percision_Navigation()
+            self.Percision_Navigation(t_arr)
         elif inp == "E":
-            self.Endurance()
+            self.Endurance(t_arr)
         elif inp == "SK":
-            self.Station_Keeping()
+            self.Station_Keeping(t_arr)
         elif inp == "S":
-                # very temp inputs
-            buoy_lat = input("buoy_lat: ") # Taking input from user
-            buoy_long = input("buoy_long: ") # Taking input from user
-            radius = input("radius: ") # Taking input from user
-            self.Search(buoy_lat, buoy_long, radius)
+            self.Search(t_arr)
         else:
             print("nah")
 
@@ -116,11 +114,11 @@ class events(boat):
         if self.event_NL(): return
 
     #inputs: B1 long/lat, Radius
-    def Search(self, buoy_lat, buoy_long, radius):
+    def Search(self,arr):
         #make in boatMain along with mode switch, attach buoy coords and radius in ary
         #will need to redo GUI then ://////
         while(True):
-            self.search_pattern(boat.gps.latitude, boat.gps.longitude, buoy_lat, buoy_long, radius)
+            self.search_pattern(boat.gps.latitude, boat.gps.longitude, arr[0], arr[1], arr[2])
 
             if self.event_NL(): return
         
