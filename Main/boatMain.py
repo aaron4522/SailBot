@@ -9,8 +9,8 @@ try:
     from GPS import gps
     from compass import compass
     import GPS
-    from camera import camera
-    from events import events
+    #from camera import camera
+    #from events import events
 
     from drivers import driver
     from transceiver import arduino
@@ -32,8 +32,8 @@ class boat:
                             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
         self.gps = GPS.gps()
-        self.compass = compass()
-        self.windvane = windVane()
+        #self.compass = compass()
+        #self.windvane = windVane()
         self.drivers = driver(calibrateOdrive = calibrateOdrive)
         try:
             self.arduino = arduino(c.config['MAIN']['ardu_port'])
@@ -189,7 +189,7 @@ class boat:
                 '''
 
                 #GPS x/y, RudderPos, SailPos, BoatOrientation, Windspd, WindDir, Batt
-                self.sendData()
+                #self.sendData()
 
             if not self.manualControl:  #automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
