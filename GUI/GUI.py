@@ -1,3 +1,4 @@
+from re import A
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
@@ -21,6 +22,9 @@ import math
 
 import serial
 
+#TODO:
+#add mode section along with fields for needed inputted variables (ex buoy coords for search)
+#add subsections
 
 def degreesToRadians(degrees):
     return degrees * math.pi / 180;
@@ -35,8 +39,7 @@ def distanceInMBetweenEarthCoordinates(lat1, lon1, lat2, lon2):
     lat1 = degreesToRadians(lat1);
     lat2 = degreesToRadians(lat2);
 
-    a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.sin(dLon / 2) * math.sin(dLon / 2) * math.cos(lat1) * math.cos(
-        lat2);
+    a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.sin(dLon / 2) * math.sin(dLon / 2) * math.cos(lat1) * math.cos(lat2);
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return earthRadiusKm * c * 1000;
 
@@ -133,6 +136,24 @@ def server_update():
                 BOAT_DATA.configChanged = True
                 if DATA_REFRESH:
                     DATA_REFRESH()
+            
+            elif message.split(' ', 1)[0] == 'DATA:':
+                datalist = message.split(' ', 1)[1].split(', ')
+                for i in range(8):
+                    if datalist[i] == "N/a":
+                        datalist[i] = None
+
+                BOAT_DATA.gps = ( int(datalist[0]), int(datalist[1]) )  #should this be a float?
+                BOAT_DATA.rudder_pos = datalist[2]
+                BOAT_DATA.sail_pos = datalist[3]
+                BOAT_DATA.boat_orient = datalist[4]
+                BOAT_DATA.wind_speed = datalist[5]
+                BOAT_DATA.wind_dir = datalist[6]
+                BOAT_DATA.battery = datalist[7]
+
+                if DATA_REFRESH:
+                    DATA_REFRESH()
+
             elif message:
                 print(message.split(' ', 1)[0])
                 BOAT_DATA.message = message
@@ -146,13 +167,34 @@ def server_update():
         sleep(.1)  # saves resources by waiting a fraction of a second between pumps
 
 
+def ArrLineEdit(obj, r, names):
+    arr = []
+    for y in range(math.ceil(r/2)):
+        for x in range(2):
+            if y*2+x >= r: continue
+
+            #print("names:", y*2+x)
+            consl_temp = QLineEdit()
+
+            label_temp = QLabel(names[y*2+x])
+            label_temp.setFrameStyle(QFrame.Panel)
+            label_temp.setMaximumHeight(40)
+
+            obj.layout.addWidget(label_temp, y,x*2)
+            obj.layout.addWidget(consl_temp, y,x*2+1)
+            #print("label:", y,x*2)
+            #print("consl:", y,x*2+1)
+            arr.append(consl_temp)
+    return arr
+
+
 class boat_data:
     """
 	Stores all of the boat information in one object
 	"""
 
     def __init__(self):
-        self.gps = (0, 0)
+        self.gps = (0, 0)   #should this be a float?
         self.gps_points = [(.01, .01), (0, -.01)]
         self.rudder_pos = None
         self.sail_pos = None
@@ -200,7 +242,7 @@ class tabWidget(QWidget):
 
         # init tabs
         self.tab1()  # main
-        # self.tab2()    #previous mode selection
+        self.tab2()  #previous mode selection
         self.tab3()  # manual
         self.tab4()  # config
 
@@ -292,6 +334,7 @@ class tabWidget(QWidget):
 
         self.message_box.setReadOnly(True)
         self.message_box.setLineWrapMode(QTextEdit.NoWrap)
+        self.message_box.setMinimumHeight(145)
         # self.message_box.setEnabled(False)
 
         self.console = QLineEdit()  # entry box for sending messages to boat
@@ -306,7 +349,7 @@ class tabWidget(QWidget):
 
         self.botLeftGroupBox.layout.addStretch(1)
         self.botLeftGroupBox.setLayout(self.botLeftGroupBox.layout)
-        self.tab1.layout.addWidget(self.botLeftGroupBox, 6, 0, 1, 3)
+        self.tab1.layout.addWidget(self.botLeftGroupBox, 6, 0, 3, 3)
 
         self.Act_test = QAction()
 
@@ -315,10 +358,10 @@ class tabWidget(QWidget):
         self.botRightGroupBox.layout = QVBoxLayout()
 
         # previous for method had issue with Btn objects always having the info of the last
-        self.Btn0 = QPushButton('Manual Only')
-        self.Btn0.clicked.connect(lambda: self.ModeButton(0, 'Manual'))
-        self.botRightGroupBox.layout.addWidget(self.Btn0)
-
+        self.Btn = QPushButton('\n\nEMERGENCY\nMANUAL\nCONTROL\n\n')
+        self.Btn.clicked.connect(lambda: self.ModeButton(0, 'Manual'))
+        #self.botRightGroupBox.layout.addWidget(self.Btn0)
+        '''
         self.Btn1 = QPushButton('Collision Avoidance')
         self.Btn1.clicked.connect(lambda: self.ModeButton(1, 'Collision Avoidance'))
         self.botRightGroupBox.layout.addWidget(self.Btn1)
@@ -338,10 +381,12 @@ class tabWidget(QWidget):
         self.Btn5 = QPushButton('Search')
         self.Btn5.clicked.connect(lambda: self.ModeButton(5, 'Search'))
         self.botRightGroupBox.layout.addWidget(self.Btn5)
+        '''
 
-        self.botRightGroupBox.layout.addStretch(1)
-        self.botRightGroupBox.setLayout(self.botRightGroupBox.layout)
-        self.tab1.layout.addWidget(self.botRightGroupBox, 6, 3, 1, 1)
+        #self.botRightGroupBox.layout.addStretch(1)
+        #self.botRightGroupBox.setLayout(self.botRightGroupBox.layout)
+        #self.tab1.layout.addWidget(self.botRightGroupBox, 6, 3, 3, 1)
+        self.tab1.layout.addWidget(self.Btn, 6, 3, 3, 1)
 
         # dont need on main tab
         '''#Mode Box - BR2  ===================================
@@ -372,22 +417,61 @@ class tabWidget(QWidget):
         # fin
         self.tab1.setLayout(self.tab1.layout)
 
+
     def tab2(self):
         self.tab2 = QWidget()
         self.tabs.addTab(self.tab2, "Set Mode")
         self.tab2.layout = QGridLayout(self)
 
-        self.buttons = []
+        self.tab_EVENTS = QTabWidget()
 
-        btnNames = ['Manual Only', 'Collision Avoidance', 'Precision Navigation', 'Endurance', 'Station Keeping',
-                    'Search']
-        # generates buttons with names from btnNames array
-        for i in range(6):
-            newBtn = QPushButton('Mode ' + str(i + 1) + ": " + btnNames[i])
-            # buttons send command: setMode [button number] to clients
-            newBtn.clicked.connect(lambda: SERVER.send_data({"action": 'setMode', 'value': btnNames[i]}))
-            self.tab2.layout.addWidget(newBtn)
-            self.buttons.append(newBtn)
+        self.tab_CA()
+        self.tab_PN()
+        self.tab_EN()
+        self.tab_SK()
+        self.tab_SR()
+
+
+        #ModeBox1
+        self.ModeBox1 = QGroupBox("")
+        self.ModeBox1.layout = QVBoxLayout()
+
+        #ModeBox2
+        self.ModeBox2 = QGroupBox("")
+        self.ModeBox2.layout = QVBoxLayout()
+
+        # previous for method had issue with Btn objects always having the info of the last
+        self.Btn0 = QPushButton('Manual Only')
+        self.Btn0.clicked.connect(lambda: self.ModeButton(0, 'Manual'))
+        self.ModeBox1.layout.addWidget(self.Btn0)
+
+        self.Btn1 = QPushButton('Collision Avoidance')
+        self.Btn1.clicked.connect(lambda: self.ModeButton(1, 'Collision Avoidance'))
+        self.ModeBox1.layout.addWidget(self.Btn1)
+
+        self.Btn2 = QPushButton('Precision Navigation')
+        self.Btn2.clicked.connect(lambda: self.ModeButton(2, 'Precision Navigation'))
+        self.ModeBox1.layout.addWidget(self.Btn2)
+
+        self.Btn3 = QPushButton('Endurance')
+        self.Btn3.clicked.connect(lambda: self.ModeButton(3, 'Endurance'))
+        self.ModeBox2.layout.addWidget(self.Btn3)
+
+        self.Btn4 = QPushButton('Station Keeping')
+        self.Btn4.clicked.connect(lambda: self.ModeButton(4, 'Station Keeping'))
+        self.ModeBox2.layout.addWidget(self.Btn4)
+
+        self.Btn5 = QPushButton('Search')
+        self.Btn5.clicked.connect(lambda: self.ModeButton(5, 'Search'))
+        self.ModeBox2.layout.addWidget(self.Btn5)
+
+        self.ModeBox1.setLayout(self.ModeBox1.layout)
+        self.tab2.layout.addWidget(self.ModeBox1, 0, 0)
+        self.ModeBox2.setLayout(self.ModeBox2.layout)
+        self.tab2.layout.addWidget(self.ModeBox2, 0, 1)
+
+        self.tab2.layout.addWidget(self.tab_EVENTS, 1,0,2,2)
+
 
         self.tab2.setLayout(self.tab2.layout)
 
@@ -454,6 +538,63 @@ class tabWidget(QWidget):
 
         self.tab4.setLayout(self.tab4.layout)
 
+
+    def tab_CA(self):
+        self.tab_CA = QWidget()
+        self.tab_EVENTS.addTab(self.tab_CA, "Collis Avoid")
+        self.tab_CA.layout = QGridLayout(self)
+
+        names = ['Buoy x1', 'Buoy y1', 'Buoy x2', 'Buoy y2', 'Buoy x3', 'Buoy y3', 'Buoy x4', 'Buoy y4']
+        self.CA_BX = []
+        self.CA_BX = ArrLineEdit(self.tab_CA,8,names)
+        #ArrName(self.tab_CA,8,names)
+
+        self.tab_CA.setLayout(self.tab_CA.layout)
+
+    def tab_PN(self):
+        self.tab_PN = QWidget()
+        self.tab_EVENTS.addTab(self.tab_PN, "Prec Nav")
+        self.tab_PN.layout = QGridLayout(self)
+
+        names = ['Buoy x1', 'Buoy y1', 'Buoy x2', 'Buoy y2', 'Buoy x3', 'Buoy y3', 'Buoy x4', 'Buoy y4']
+        self.PN_BX = ArrLineEdit(self.tab_PN,8,names)
+
+        self.tab_PN.setLayout(self.tab_PN.layout)
+
+    def tab_EN(self):
+        self.tab_EN = QWidget()
+        self.tab_EVENTS.addTab(self.tab_EN, "Endur")
+        self.tab_EN.layout = QGridLayout(self)
+
+        names = ['Buoy x1', 'Buoy y1', 'Buoy x2', 'Buoy y2', 'Buoy x3', 'Buoy y3', 'Buoy x4', 'Buoy y4']
+        self.EN_BX = ArrLineEdit(self.tab_EN,8,names)
+
+
+        self.tab_EN.setLayout(self.tab_EN.layout)
+
+    def tab_SK(self):
+        self.tab_SK = QWidget()
+        self.tab_EVENTS.addTab(self.tab_SK, "Stat Keep")
+        self.tab_SK.layout = QGridLayout(self)
+
+        names = ['Buoy x1', 'Buoy y1', 'Buoy x2', 'Buoy y2']
+        self.SK_BX = ArrLineEdit(self.tab_SK,4,names)
+
+
+        self.tab_SK.setLayout(self.tab_SK.layout)
+
+    def tab_SR(self):
+        self.tab_SR = QWidget()
+        self.tab_EVENTS.addTab(self.tab_SR, "Search")
+        self.tab_SR.layout = QGridLayout(self)
+
+        names = ['Buoy x', 'Buoy y', 'radius']
+        self.SR_BX = ArrLineEdit(self.tab_SR,3,names)
+
+
+        self.tab_SR.setLayout(self.tab_SR.layout)
+
+
     def fetchConfig(self):
         ARDUINO.send("get config")
         BOAT_DATA.config = []
@@ -512,11 +653,12 @@ class tabWidget(QWidget):
         if num == 0:
             textBox = self.console
         else:
+            num = 1
             textBox = self.console2
 
         text = textBox.text()
         if text != "":
-            self.consolelast[self.tabs.currentIndex()] = text
+            self.consolelast[num] = text
 
         # print("last:\t", self.consolelast[0], ", ", self.consolelast[1])
 
@@ -648,17 +790,49 @@ class tabWidget(QWidget):
     def ModeButton(self, data, name):
         global MANUAL
         self.ttlabel.setText("Curr Mode: " + name)
+        temp_str = "mode "+str(data)
+
         if data == 0:
-            self.tabs.setCurrentIndex(self.tabs.currentIndex() + 1)
-            self.toggleBtn.setText(
-                'Toggle Manual Control : Enabled')  # prevent abuse when switching between other buttons
+            self.tabs.setCurrentIndex(2)
+            self.toggleBtn.setText('Toggle Manual Control : Enabled')  # prevent abuse when switching between other buttons
             MANUAL = True
+            SERVER.send_data("mode "+str(data))
+            return
         else:
+            self.tabs.setCurrentIndex(1)
+            self.tab_EVENTS.setCurrentIndex(data-1)
             self.toggleBtn.setText('Toggle Manual Control : Disabled')
             MANUAL = False
 
-        # comment out when not connected to prevent crash
-        SERVER.send_data({"action": 'setMode', 'value': data})
+            temp_arr = []
+            if data == 1:
+                temp_arr = self.CA_BX
+            elif data == 2:
+                temp_arr = self.PN_BX
+            elif data == 3:
+                temp_arr = self.EN_BX
+            elif data == 4:
+                temp_arr = self.SK_BX
+            elif data == 5:
+                temp_arr = self.SR_BX
+            else:
+                print("ERR: Selecting arr")
+                return
+            try:
+                for i in range(len(temp_arr)):
+                    text = temp_arr[i].text()
+                    if text == "":
+                        print("ERR: Field not filled out:",i)
+                        return
+                    else:
+                        temp_str += " "+str(float(text))
+                #temp_str = temp_str[:-1]
+            except:
+                print("mode str val error")
+                return
+
+        #print(temp_str)
+        SERVER.send_data(temp_str)
 
     def ConsoleFancy(self):
         num = self.tabs.currentIndex()
@@ -668,6 +842,7 @@ class tabWidget(QWidget):
             self.console.setText(self.consolelast[num])
             self.consolelast[num] = temp
         else:
+            num = 1
             temp = self.console2.text()
             self.console2.setText(self.consolelast[num])
             self.consolelast[num] = temp
@@ -714,14 +889,14 @@ class arduino:
 
     def __init__(self, port_num):
         try:
-            self.ser1 = serial.Serial('COM' + port_num, 115200)
+            self.ser1 = serial.Serial(port= 'COM' + port_num, baudrate = 115200, timeout=.1)
         except:
             print("Error Connecting to COM" + port_num)
 
     def send(self, data):
         print(data)
         self.ser1.write(str(data).encode())
-        print('done')
+        #print('done')
 
     def read(self):
         message = self.ser1.readline()
@@ -811,7 +986,7 @@ def make_arduino(com_port):
     pump_thread = Thread(target=server_update)  # creates a Thread running an infinite loop pumping server
     pump_thread.start()
 
-    pump_thread2 = Thread(target=handle_input)  # creates a Thread running an infinite loop chekcing input
+    pump_thread2 = Thread(target=handle_input)  # creates a Thread running an infinite loop checking input
     pump_thread2.start()
 
 
@@ -820,8 +995,11 @@ if __name__ == "__main__":
     MANUAL = False
     FOUND_GAMEPAD = True
 
+    #print(sys.argv.pop())
+
     try:
         make_arduino(sys.argv.pop())
+        #make_arduino(4)
     except:
         ARDUINO = None
         print("Could not create ARDUINO object, did you include a COM port is args?")

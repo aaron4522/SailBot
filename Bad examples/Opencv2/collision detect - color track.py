@@ -29,25 +29,31 @@ SIZE = 900
 #////////color mask values////////
 #BLUE / GREEN / RED
 
-SELECT = 1
+SELECT = 3
 #1: limited orange
 #2: big range orange
 #3: blue
 
 if SELECT == 1:
-    LOWER = np.array([  5, 110, 150])
-    UPPER = np.array([ 50, 255, 255])
+    low = [  5, 110, 150]
+    up  = [ 50, 255, 255]
 elif SELECT == 2:
-    LOWER = np.array([  0, 110, 150])
-    UPPER = np.array([ 30, 255, 255])
+    low = [  0, 110, 150]
+    up  = [ 30, 255, 255]
 elif SELECT == 3:
-    LOWER = np.array([0, 90, 150])
-    UPPER = np.array([110, 255, 255])
+    low = [0, 90, 150]
+    up  = [110, 255, 255]
 elif SELECT == 4:
-    LOWER = np.array([101, 50, 38])
-    UPPER = np.array([110, 255, 255])
+    low = [101, 50, 38]
+    up  = [110, 255, 255]
+elif SELECT == 5:
+    low = [1, 80, 150]
+    up  = [100, 255, 255]
 else:
     exit("WRONG SELECT CONSTANT")
+
+LOWER = np.array(low)
+UPPER = np.array( up)
 
 #//////////////////////////////////START//////////////////////////////////
 
@@ -75,6 +81,13 @@ while (True):
     #make list of contours on screen
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+    #cool boarder
+    cv2.rectangle(frame, (5, 5), (210, 75), [50, 150, 255], -1)
+    cv2.rectangle(frame, (5, 5), (210, 75), [0, 0, 0], 2)
+
+    #sample rec
+    cv2.rectangle(frame, (5, 80), (30, 105), low, -1)
+    cv2.rectangle(frame, (35, 80), (60, 105), up, -1)
 
     #TO DO WORK:
     """

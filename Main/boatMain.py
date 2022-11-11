@@ -9,6 +9,8 @@ try:
     from GPS import gps
     from compass import compass
     import GPS
+    from camera import camera
+    from events import events
 
     from drivers import driver
     from transceiver import arduino
@@ -44,6 +46,7 @@ class boat:
             if self.arduino.readData() == "'":
                 raise Exception("Could not read arduino")
 
+        self.event_arr = []
         self.manualControl = True   # check RC Mode to change manualControl, and manualControl checks for everything else (faster on memory)
         self.cycleTargets = False
         self.currentTarget = None  # (longitude, latitude) tuple
@@ -57,7 +60,7 @@ class boat:
         tempTarget = False
 
         self.override = False   #whether to automatically switch to RC when inputting manual commands or prevent the commands
-        #self.MODE_SETTING = c.config['MODES']['MOD_RC']
+        self.MODE_SETTING = c.config['MODES']['MOD_RC']
         #pump_thread = Thread(target=self.pumpMessages)
         #pump_thread.start()
         self.mainLoop()
@@ -152,7 +155,7 @@ class boat:
             #print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
                 #include in automation code's main loop:
                     #self.readmessages to see if it switches modes or RC commands, returning if another mode is true
-                    #self.pumpMessages to export data
+                    #self.sendData() to export data
 
             if self.manualControl:
                 #adjust sail and rudder to set targets
@@ -172,7 +175,7 @@ class boat:
                     self.adjustRudder(self.targetRudder)
                     
                     
-                    
+                '''
                 #print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
                 """if abs(self.currentRudder) >= 10:
                     self.arduino.send(F"R{self.currentRudder}")
@@ -182,23 +185,32 @@ class boat:
                     self.arduino.send(F"S{self.currentSail}")
                 else: #format so number is 2 digits
                     self.arduino.send(F"S0{self.currentSail}")"""
+                    self.arduino.send(F"S0{self.currentSail}")
+                '''
+
+                #GPS x/y, RudderPos, SailPos, BoatOrientation, Windspd, WindDir, Batt
+                self.sendData()
 
             if not self.manualControl:  #automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
                     logging.info("Received message to Automate: COLLISION_AVOIDANCE")
-                    #collision_avoidance()
+                    events.Collision_Avoidance(self.event_arr)
+
                 elif self.MODE_SETTING == c.config['MODES']['MOD_PRECISION_NAVIGATE']:
                     logging.info("Received message to Automate: PRECISION_NAVIGATE")
-                    #precision_navigate()
+                    events.Percision_Navigation(self.event_arr)
+
                 elif self.MODE_SETTING == c.config['MODES']['MOD_ENDURANCE']:
                     logging.info("Received message to Automate: ENDURANCE")
-                    #endurance()
+                    events.Endurance(self.event_arr)
+
                 elif self.MODE_SETTING == c.config['MODES']['MOD_STATION_KEEPING']:
                     logging.info("Received message to Automate: STATION_KEEPING")
-                    #station_keeping()
+                    events.Station_Keeping(self.event_arr)
+
                 elif self.MODE_SETTING == c.config['MODES']['MOD_SEARCH']:
                     logging.info("Received message to Automate: SEARCH")
-                    #search()
+                    events.Search(self.event_arr)
 
                 if not self.currentTarget:
                     if self.targets != []:
@@ -209,10 +221,68 @@ class boat:
                     self.goToGPS(self.currentTarget[0], self.currentTarget[1])
 
 
-    def readMessages(self):
-        #msgs = self.arduino.read()[:-3].replace('\n', '')
-        msgs = self.arduino.readData()
-        #print("msgs read:", msgs)
+
+    def sendData(self):
+        #GPS:x/y, RudderPos, SailPos, BoatOrientation, Windspd, WindDir, Batt
+        #1/2,3,4,5,6,7,8
+        totstr = ""
+        arr = ["N/a"] * 8
+
+        try:
+            arr[0] = F"{self.gps.longitude}"
+            arr[1] = F"{self.gps.latitude}"
+        except Exception as e:
+            logging.info(f"failed to find data: gps, {e}")
+            print(f"data error: {e}")
+
+        try:
+            if abs(self.currentRudder) >= 10:
+                arr[2] = F"{self.currentRudder}"
+            else: #format so number is 2 digits
+                arr[2] = F"0{self.currentRudder}"
+        except Exception as e:
+            logging.info(f"failed to find data: rudder, {e}")
+            print(f"data error: {e}")
+
+        try:
+            if abs(self.currentSail) >= 10:
+                arr[3] = F"{self.currentSail}"
+            else: #format so number is 2 digits
+                arr[3] = F"0{self.currentSail}"
+        except Exception as e:
+            logging.info(f"failed to find data: sail, {e}")
+            print(f"data error: {e}")
+        
+        try:
+            arr[4] = F"{self.compass.angle}"
+        except Exception as e:
+            logging.info(f"failed to find data: compass, {e}")
+            print(f"data error: {e}")
+
+        try:
+            #arr[5] = #dont have
+            arr[6] = F"{self.windvane.angle}"
+        except Exception as e:
+            logging.info(f"failed to find data: windvane, {e}")
+            print(f"data error: {e}")
+
+        #arr[7] = #dont have
+
+        for i in range(8):
+            totstr += arr[i]
+            if i<7:
+                totstr += ","
+        
+        self.arduino.send("DATA: " + totstr)
+
+
+    def readMessages(self, msgOR=None):
+        if msgOR != None:
+            msgs = msgOR
+        else:
+            #msgs = self.arduino.read()[:-3].replace('\n', '')
+            msgs = self.arduino.readData()
+        print(msgs)
 
         # for msg in msgs:
         try:
@@ -268,8 +338,14 @@ class boat:
                             if int(ary[1]) < 0 or int(ary[1]) > 5:
                                 logging.info("Outside mode range")
                             else:
-                                self.MODE_SETTING = int(ary[1])
                                 logging.info(F'Setting mode to {int(ary[1])}')
+                                self.MODE_SETTING = int(ary[1])
+
+                                logging.info(F'Setting event array')
+                                self.event_arr = []
+                                for i in range(len(ary)-2):
+                                    self.event_arr.append(ary[i+2])
+
                                 processed = True
                         except Exception as e:
                             print(F"Error changing mode: {e}")
@@ -310,9 +386,9 @@ class boat:
 
         except Exception as e:
             logging.info(f"failed to read command {msgs}")
-            print(f"message error: {e}")
+            #print(f"message error: {e}")
             x = [letter for letter in msgs]
-            print(ary, msgs, x)
+            #print(ary, msgs, x)
             
 
 
