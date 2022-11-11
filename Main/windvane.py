@@ -12,7 +12,7 @@ class windVane():
 
     def __init__(self):
 
-        self.stepsPerRev = 200
+        self.stepsPerRev = 256
 
         self.clk = 17
         self.dt = 18
@@ -57,7 +57,7 @@ class windVane():
     def position(self):
         self.lock.acquire()
         self.checkHef()
-        val =  int( ((self.encoder.position * 1.8) - self.offset)%360 )
+        val =  int( ((self.encoder.position * (360/self.stepsPerRev)) - self.offset)%360 )
         self.lock.release()
         return val
 

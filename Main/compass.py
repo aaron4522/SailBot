@@ -84,7 +84,8 @@ class compass:
         print("Acceleration (m/s^2)): X=%0.3f Y=%0.3f Z=%0.3f"%self.accel.acceleration)
     def printMag(self):
         print("Magnetometer (micro-Teslas)): X=%0.3f Y=%0.3f Z=%0.3f"%self.mag.magnetic)
-        print(F"angle to north: {self.angleToNorth}")
+        print(F"Angle {self.angle}")
+        #print(F"angle to north: {self.angleToNorth}")
             
 if __name__ == "__main__":
     comp = compass()

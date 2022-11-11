@@ -9,14 +9,13 @@ from RPi import GPIO
 from time import sleep
 from Odrive import Odrive
 
-USE_ODRIVE_SAIL = False
+USE_ODRIVE_SAIL = True
 USE_STEPPER_SAIL = False
 
 USE_ODRIVE_RUDDER = True
 USE_STEPPER_RUDDER = False
 
-if USE_ODRIVE_SAIL or USE_ODRIVE_RUDDER:
-    DRV = Odrive(calibrate=True)
+
             
 if False:
     SAIL_DIR_PIN = 17 #22
@@ -88,8 +87,10 @@ class obj_rudder:
         if USE_ODRIVE_RUDDER:
             self.odriveAxis = DRV.axis0
 
-    def map(self, x, min1, max1, min2, max2):
-        x = min(max(x, min1), max1)
+    def map(self, x, min1, max1, min2, max2, enforce_limits = True):
+        if enforce_limits:
+            x = min(max(x, min1), max1)
+        #print("mapping: ", x, min1, min2, max1, max2)
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
     
     def set(self, degrees):
@@ -111,15 +112,19 @@ class obj_rudder:
                 self.step.turn(False, -self.steps)
 
         if USE_ODRIVE_RUDDER:
-            val = self.map(degrees, -maxAngle, maxAngle, -float(c.config['ODRIVE']['odriveRudderRotations'])/2, float(c.config['ODRIVE']['odriveRudderRotations'])/2)
+            val = self.map(degrees, float(c.config['CONSTANTS']['rudder_angle_min']), float(c.config['CONSTANTS']['rudder_angle_max']), -float(c.config['ODRIVE']['odriveRudderRotations'])/2, float(c.config['ODRIVE']['odriveRudderRotations'])/2)
             DRV.posSet(self.odriveAxis, val)
-            
+            #print(F"set rudder to {val} {degrees}")
 
         self.current = degrees
 
 class driver:
 
-    def __init__(self):
+    def __init__(self, calibrateOdrive = True):
+        global DRV
+        if USE_ODRIVE_SAIL or USE_ODRIVE_RUDDER:
+            DRV = Odrive(calibrate=calibrateOdrive)
+            pass
         self.sail = obj_sail()
         self.rudder = obj_rudder()
 

@@ -1,4 +1,4 @@
-
+import sys
 import constants as c
 import logging
 import boatMath
@@ -23,7 +23,7 @@ import numpy
 
 class boat:
 
-    def __init__(self):
+    def __init__(self, calibrateOdrive = True):
         with open('boatMainLog.log', 'a') as logfile:
             logfile.write('\n\n---------------------------------\n')
         logging.basicConfig(level=logging.INFO, filename='boatMainLog.log', filemode='a',
@@ -32,11 +32,17 @@ class boat:
         self.gps = GPS.gps()
         self.compass = compass()
         self.windvane = windVane()
-        self.drivers = driver()
+        self.drivers = driver(calibrateOdrive = calibrateOdrive)
         try:
             self.arduino = arduino(c.config['MAIN']['ardu_port'])
+            if self.arduino.readData() == "'":
+                raise Exception("Could not read arduino")
+            else:
+                print(self.arduino.readData())
         except:
             self.arduino = arduino(c.config['MAIN']['ardu_port2'])
+            if self.arduino.readData() == "'":
+                raise Exception("Could not read arduino")
 
         self.manualControl = True   # check RC Mode to change manualControl, and manualControl checks for everything else (faster on memory)
         self.cycleTargets = False
@@ -143,7 +149,7 @@ class boat:
         rudderStep = 90
         while True:
             self.readMessages()
-            print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
+            #print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
                 #include in automation code's main loop:
                     #self.readmessages to see if it switches modes or RC commands, returning if another mode is true
                     #self.pumpMessages to export data
@@ -168,14 +174,14 @@ class boat:
                     
                     
                 #print(self.currentRudder, self.currentSail, self.targetRudder, self.targetSail)
-                if abs(self.currentRudder) >= 10:
+                """if abs(self.currentRudder) >= 10:
                     self.arduino.send(F"R{self.currentRudder}")
                 else: #format so number is 2 digits
                     self.arduino.send(F"R0{self.currentRudder}")
                 if abs(self.currentSail) >= 10:
                     self.arduino.send(F"S{self.currentSail}")
                 else: #format so number is 2 digits
-                    self.arduino.send(F"S0{self.currentSail}")
+                    self.arduino.send(F"S0{self.currentSail}")"""
 
             if not self.manualControl:  #automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
@@ -206,7 +212,7 @@ class boat:
     def readMessages(self):
         #msgs = self.arduino.read()[:-3].replace('\n', '')
         msgs = self.arduino.readData()
-        print(msgs)
+        #print("msgs read:", msgs)
 
         # for msg in msgs:
         try:
@@ -239,9 +245,14 @@ class boat:
                             self.manualControl = True
 
                         if self.manualControl:  #faster
+                            rudderMidPoint = (float(c.config['CONSTANTS']["rudder_angle_max"]) - float(c.config['CONSTANTS']['rudder_angle_min']))/2
+                            halfDeadZone  = float(c.config['CONSTANTS']['ControllerRudderDeadZoneDegs']) / 2
+                            if float(ary[1]) < rudderMidPoint + halfDeadZone and float(ary[1]) > rudderMidPoint - halfDeadZone:
+                                self.targetRudder = float(rudderMidPoint) - 45 #values read in range from 0:90 insead of -45:45
+                            else:
+                                self.targetRudder = float(ary[1]) - 45 #values read in range from 0:90 insead of -45:45
                             logging.info(F'Received message to adjust rudder to {float(ary[1])}')
                             #self.adjustRudder(float(ary[1]))
-                            self.targetRudder = float(ary[1])
                             processed = True
                         else:
                             logging.info("Refuse to change sail, not in RC Mode")
@@ -300,6 +311,9 @@ class boat:
         except Exception as e:
             logging.info(f"failed to read command {msgs}")
             print(f"message error: {e}")
+            x = [letter for letter in msgs]
+            print(ary, msgs, x)
+            
 
 
 
@@ -387,7 +401,11 @@ class boat:
 
 
 if __name__ == "__main__":
-    b = boat()
+    calibrateOdrive = True
+    for arg in sys.argv:
+        if arg == "noCal":
+            calibrateOdrive = False
+    b = boat(calibrateOdrive = calibrateOdrive)
     try:
         b.mainLoop()
         # b.turnToAngle(90)
