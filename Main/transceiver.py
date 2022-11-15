@@ -28,10 +28,14 @@ class arduino:
         self.send("?")
         msgs = []
         msg = self.read()
-        while msg != None and msg != "'":
-            msgs.append(msg)
+        if msg == None or msg == "'":
+            time.sleep(.1)
             msg = self.read()
-        return msgs
+            if msg == None or msg == "'":
+                self.send("?")
+                msg = self.read()
+        splits = msg.split(" ")
+        return [F"{splits[0]} {splits[1]}", F"{splits[2]} {splits[3]}"]
     
                 
         
@@ -46,11 +50,17 @@ if __name__ == "__main__":
     print("start")
     try:
         ardu = arduino(c.config['MAIN']['ardu_port'])
+        if ardu.readData() == "'":
+            #print("error:", ardu.readData())
+            raise Exception("could not read arduino data")
     except:
         ardu = arduino(c.config['MAIN']['ardu_port2'])
+        if ardu.readData() == "'":
+            #print("error:", ardu.readData())
+            raise Exception("could not read arduino data")
+    
     time.sleep(1)
     print("start2")
     while True:
-        print(ardu.readRudderPos())
-        time.sleep(1)
+        print(ardu.readData())
 
