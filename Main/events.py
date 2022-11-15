@@ -27,6 +27,9 @@ class events(boat):
     def __init__(self):
         self.MESSAGE = None
         print("init")
+        totalError = 0.0
+        oldError = 0.0
+        oldTime = time.time()
 
 
     def event_NL(self):
@@ -60,6 +63,23 @@ class events(boat):
 
         # SEND MESSAGE SECTION =========
         boat.sendData()
+
+        # New PID stuff
+        if (time.time() - oldTime < 100):  # Only runs every tenth of a second #new
+            # Finds the angle the boat should take
+            error = boat.targetAngle - boat.compass.angle  # Finds how far off the boat is from its goal
+            totalError += error  # Gets the total error to be used for the integral gain
+            derivativeError = (error - oldError) / (
+                        time.time() - oldtime)  # Gets the change in error for the derivative portion
+            deltaAngle = P * error + I * totalError + D * derivativeError  # Finds the angle the boat should be going
+
+            # Translates the angle into lat and log so goToGPS won't ignore it
+            boat.currentAngle = getCoordinateADistanceAlongAngle(1000, deltaAngle + boat.compass.angle)
+
+            # Resets the variable
+            oldTime = time.time()
+            oldError = error
+
 
         return ret
 
