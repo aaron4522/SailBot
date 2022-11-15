@@ -8,6 +8,10 @@
  
 #include <SPI.h>
 #include <RH_RF95.h>
+#include <LiquidCrystal_I2C.h>
+
+#define RUDDER_PIN 0
+#define SAIL_PIN 1
  
 // for feather32u4 
 #define RFM95_CS 8
@@ -70,18 +74,31 @@
 // Singleton instance of the radio driver
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
-int rudderVal = 0;
-int sailVal = 0;
+LiquidCrystal_I2C lcd(0x27,16,2);
+int rudder_val = 0;
+int read_rudder_val = 999;
+int sail_val = 0;
+int read_sail_val = 999;
+int loopsSinceSent = 0;
+const int loopsBetweenSends = 10;
+char buf[16];
+
+byte PWM_PIN_1 = 6;
+byte PWM_PIN_2 = 9;
+ 
+int pwm_value1, pwm_value2;
  
 void setup() 
 {
   pinMode(RFM95_RST, OUTPUT);
+  pinMode(PWM_PIN_1, INPUT);
+  pinMode(PWM_PIN_2, INPUT);
   digitalWrite(RFM95_RST, HIGH);
  
   Serial.begin(115200);
-  while (!Serial) {
-    delay(1);
-  }
+  //while (!Serial) {
+    //delay(1);
+  //}
  
   delay(100);
  
@@ -98,7 +115,7 @@ void setup()
     Serial.println("Uncomment '#define SERIAL_DEBUG' in RH_RF95.cpp for detailed debug info");
     while (1);
   }
-  //Serial.println("LoRa radio init OK!");
+  Serial.println("LoRa radio init OK!");
  
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
   if (!rf95.setFrequency(RF95_FREQ)) {
@@ -113,7 +130,13 @@ void setup()
   // If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then 
   // you can set transmitter powers from 5 to 23 dBm:
   rf95.setTxPower(23, false);
- 
+
+  
+  lcd.init();
+  lcd.backlight();
+
+  sprintf(buf, "Rudder %d", rudder_val);
+  lcd_message(buf, 0); 
   
 }
  
@@ -121,8 +144,37 @@ int16_t packetnum = 0;  // packet counter, we increment per xmission
  
 void loop()
 {
-  delay(10); // Wait 1 second between transmits, could also 'sleep' here!
+  delay(5); // Wait 1 second between transmits, could also 'sleep' here!
+  loopsSinceSent++;
   //Serial.println("Transmitting..."); // Send a message to rf95_server  
+  
+  
+  if (loopsBetweenSends <= loopsSinceSent){
+    int readRudderVal = map(pulseIn(PWM_PIN_1, HIGH), 990, 1965, 0, 90);
+    int readSailVal = map(pulseIn(PWM_PIN_2, HIGH), 980, 1910, 0, 90);     
+    if (abs(readRudderVal - rudder_val) > 1){
+      rudder_val = readRudderVal;  
+      update_lcd_rudder();
+    }
+    if (abs(readSailVal - sail_val) > 1){
+      sail_val = readSailVal;
+      update_lcd_sail();
+      
+    }
+    loopsSinceSent = 0;
+    char radiopacket[20] = "";
+    radiopacket[0] = 'R';    
+    if (rudder_val < 10){
+      radiopacket[1] = 48; // ascii 0
+    }
+    else{
+      radiopacket[1] = (rudder_val / 10) + 48;
+    }
+    radiopacket[2] = (rudder_val % 10) + 48;
+    //Serial.print("Sending "); Serial.println(radiopacket);
+    //rf95.send((uint8_t *)radiopacket, 20);
+  }  
+       
   
   char radiopacket[20] = "";
   bool msg = false;  
@@ -136,11 +188,11 @@ void loop()
     if (radiopacket[0] == '?'){
       returnData();
     }
-    //Serial.print("Sending "); Serial.println(radiopacket);
-    //radiopacket[19] = 0;
-    
-    //Serial.println("Sending...");
     else{
+      Serial.print("Sending "); Serial.println(radiopacket);
+      //radiopacket[19] = 0;
+      
+      //Serial.println("Sending...");
       delay(10);
       rf95.send((uint8_t *)radiopacket, 20);
     }
@@ -163,25 +215,16 @@ void loop()
      
   if (rf95.recv(buf, &len))
    {
-      //Serial.print("Got reply: ");
-      if (buf[0] == 'R'){
-        if (buf[2] == 10){
-          rudderVal = (buf[1] - 48) - 45;          
-        }
-        else{
-          rudderVal = (buf[1] - 48) * 10 + (buf[2] - 48) - 45;
-        }
+      Serial.print("Got reply: ");
+      Serial.println((char*)buf);
+      if (buf[0] == 'R'){  
+        read_rudder_val = (buf[1] - 48)*10 + (buf[2] - 48);
+        update_lcd_rudder();
       }
-      else if (buf[0] == 'S'){
-        sailVal = (buf[1] - 48) * 10 + (buf[2] - 48);
+      else if (buf[0] == 'S'){  
+        read_sail_val = (buf[1] - 48)*10 + (buf[2] - 48);
+        update_lcd_sail();
       }
-      else{
-        Serial.println((char*)buf);
-      }
-      
-      //if (buf[0] == 'R'){
-        //Serial.println("rudder cmd");
-      //}
       //Serial.print("RSSI: ");
       //Serial.println(rf95.lastRssi(), DEC);    
     }
@@ -197,9 +240,55 @@ void loop()
  
 }
 
+void update_lcd_rudder(){
+  char buffer[16];
+  int val = rudder_val;
+  val = val - 45;
+  sprintf(buffer, " Rudder %d (%d) ", val, read_rudder_val);
+  lcd_message(buffer, 0);
+}
+
+void update_lcd_sail(){
+  char buffer[16];
+  int val = sail_val;
+  val = val;
+  sprintf(buffer, " Sail %d (%d) ", val, read_sail_val);
+  lcd_message(buffer, 1);
+}
+
+void lcd_message(String message, int row){
+  
+  int start = 0;
+  if (message.length() < 16){
+    start = (16 - message.length())/2;
+  }
+  lcd.setCursor(start,row);
+  
+  for (int i = 0; i < message.length() && i <= 16; i++){
+    lcd.print(message[i]);
+  }
+  //Serial.println("lcd message:" + message);
+}
+
+void reset_display(){
+  lcd_message("                ", 0);
+  lcd_message("                ", 1);
+}
+
+int map(int x, int min1, int max1, int min2, int max2){
+  x = min(max(x, min1), max1);
+  float fx = x;
+  float fmin1 = min1;
+  float fmin2 = min2;
+  float fmax1 = max1;
+  float fmax2 = max2;
+  float val = fmin2 + (fmax2-fmin2)*((fx-fmin1)/(fmax1-fmin1));
+  return int(val);
+}
+  
 void returnData(){
-  Serial.print("R "); Serial.print(rudderVal);
-  Serial.print(" S "); Serial.println(sailVal);
+  Serial.print("R "); Serial.print(rudder_val);
+  Serial.print(" S "); Serial.println(sail_val);
   Serial.flush();
   
 }

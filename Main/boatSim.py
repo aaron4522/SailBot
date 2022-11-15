@@ -7,6 +7,9 @@ from random import randint
 
 class virtualBoat(boatMain.boat):
     def __init__(self):
+        self.currentTarget = None
+        self.manualControl = True
+        self.cycleTargets = False
         self.compass = virtualCompass(self)
         self.gps = virtualGPS()
         self.windvane = virtualWindvane()
@@ -46,6 +49,14 @@ class virtualWindvane():
 class virtualDriver():
     def __init__(self):
         self.rudder = virtualRudder()
+        self.sail = virtualSail()
+
+class virtualSail():
+    def __init__(self):
+        self.angle = 0
+
+    def set(self, angle):
+        self.angle = angle
 
 class virtualRudder():
     def __init__(self):
@@ -109,10 +120,10 @@ def drawBoat():
                     pass
 
                 elif event.key == pygame.K_a:
-                    BOAT.compass.angle += 2
+                    BOAT.drivers.sail.angle = min(BOAT.drivers.sail.angle+5, 90)
 
                 elif event.key == pygame.K_d:
-                    BOAT.compass.angle -= 2
+                    BOAT.drivers.sail.angle = max(BOAT.drivers.sail.angle-5, 0)
 
                 elif event.key == pygame.K_q:
                     BOAT.drivers.rudder.angle = max(-45, BOAT.drivers.rudder.angle-5)
@@ -154,8 +165,9 @@ def drawBoat():
     coords2 = polarToRect(10, -BOAT.drivers.rudder.angle + (180-BOAT.compass.angle) % 360, coords)
     pygame.draw.line(boat, WHITE, coords, coords2)
 
-    #Windvane
-    coords = polarToRect(10, 180, (50,50))
+    #Sail
+    sailAngle = (180-BOAT.compass.angle) + BOAT.drivers.sail.angle if BOAT.compass.angle < 180 else (180-BOAT.compass.angle) - BOAT.drivers.sail.angle
+    coords = polarToRect(10, sailAngle, (50,50))
     pygame.draw.line(boat, WHITE, (50,50), coords)
 
     drawX = map(BOAT.gps.latitude, 40.443, 40.444, 25, 375)
@@ -174,17 +186,31 @@ def drawBoat():
     drawY = map(targetLong, -79.9585, -79.9575, 25, 375)
     screen.blit(circle_filled, (drawX - 10, drawY - 10))
 
-    
+    font = pygame.font.Font('freesansbold.ttf', 16)
+    white = (255, 255, 255)
+    text = font.render(F'{"Paused " if not UPDATE else ""} Sail: {BOAT.drivers.sail.angle}, Rudder: {BOAT.drivers.rudder.angle}', True, white)
+    textRect = text.get_rect()
+    textRect.center = (200, 350)
+    screen.blit(text, textRect)
+
 
     pygame.display.update()
 
     if UPDATE:
         dx, dy = polarToRect(BOAT.vel, (180-BOAT.compass.angle) % 360)
         nx, ny = computeNewCoordinate(BOAT.gps.latitude, BOAT.gps.longitude, -dx, -dy)
+
+        windDir = BOAT.windvane.angle
+        if windDir > 180:
+            windDir = 180 - (windDir - 180)
+        optAngle = max(min(windDir / 2, 90), 3)
+        #BOAT.drivers.sail.set(optAngle)
+
         if BOAT.windvane.angle < BOAT.windvane.noGoMin and BOAT.windvane.angle > BOAT.windvane.noGoMax:
-            BOAT.vel = min(.05, BOAT.vel + .001)
+
+            BOAT.vel = min(.05, BOAT.vel + .001) * max((1 -  abs(BOAT.drivers.sail.angle - optAngle)/30), 0)
         else:
-            BOAT.vel = max(BOAT.vel - .0001, 0)
+            BOAT.vel = max(BOAT.vel - .0001, 0) * max((1 -  abs(BOAT.drivers.sail.angle - optAngle)/30), 0)
 
         BOAT.gps.latitude = nx
         BOAT.gps.longitude = ny
@@ -215,11 +241,19 @@ if __name__ == '__main__':
     BOAT.gps.latitude, BOAT.gps.longitude = (40.4433, -79.9580000)
     targetLat, targetLong = (40.44368167, -79.9580000)
     ghostPoint = (targetLat, targetLong)
-    pygame.key.set_repeat(1,100)
+    pygame.key.set_repeat(500,200)
+    BOAT.currentTarget = (targetLat, targetLong)
     
     while True:
-        BOAT.goToGPS(targetLat, targetLong)
-        ghostPoint = (targetLat, targetLong)
+        if not BOAT.manualControl:
+            if BOAT.currentTarget == None:
+                BOAT.currentTarget = ghostPoint
+
+            BOAT.goToGPS(BOAT.currentTarget[0], BOAT.currentTarget[1])
+            ghostPoint = (targetLat, targetLong)
+
+        else:
+            drawBoat()
 
     
     # while True:

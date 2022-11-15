@@ -80,18 +80,25 @@ int read_rudder_val = 999;
 int sail_val = 0;
 int read_sail_val = 999;
 int loopsSinceSent = 0;
-const int loopsBetweenSends = 20;
+const int loopsBetweenSends = 10;
 char buf[16];
+
+byte PWM_PIN_1 = 6;
+byte PWM_PIN_2 = 9;
+ 
+int pwm_value1, pwm_value2;
  
 void setup() 
 {
   pinMode(RFM95_RST, OUTPUT);
+  pinMode(PWM_PIN_1, INPUT);
+  pinMode(PWM_PIN_2, INPUT);
   digitalWrite(RFM95_RST, HIGH);
  
   Serial.begin(115200);
-  while (!Serial) {
-    delay(1);
-  }
+  //while (!Serial) {
+    //delay(1);
+  //}
  
   delay(100);
  
@@ -137,27 +144,26 @@ int16_t packetnum = 0;  // packet counter, we increment per xmission
  
 void loop()
 {
-  delay(10); // Wait 1 second between transmits, could also 'sleep' here!
+  delay(5); // Wait 1 second between transmits, could also 'sleep' here!
   loopsSinceSent++;
   //Serial.println("Transmitting..."); // Send a message to rf95_server  
   
   
   if (loopsBetweenSends <= loopsSinceSent){
-    int readRudderVal = map(analogRead(A0), 0, 1023, 0, 90);
-    int readSailVal = map(analogRead(A0), 0, 1023, 0, 90);
-    if (readRudderVal != rudder_val && analogRead(A0) != 0){
-      rudder_val = readRudderVal;
-      update_lcd();
+    int readRudderVal = map(pulseIn(PWM_PIN_1, HIGH), 990, 1965, 0, 90);
+    int readSailVal = map(pulseIn(PWM_PIN_2, HIGH), 980, 1910, 0, 90);     
+    if (abs(readRudderVal - rudder_val) > 1){
+      rudder_val = readRudderVal;  
+      update_lcd_rudder();
     }
-    else if (readSailVal != sail_val && analogRead(A1) != 0){
+    if (abs(readSailVal - sail_val) > 1){
       sail_val = readSailVal;
-      update_lcd();
+      update_lcd_sail();
       
     }
-    
     loopsSinceSent = 0;
     char radiopacket[20] = "";
-    radiopacket[0] = 'R';
+    radiopacket[0] = 'R';    
     if (rudder_val < 10){
       radiopacket[1] = 48; // ascii 0
     }
@@ -165,8 +171,8 @@ void loop()
       radiopacket[1] = (rudder_val / 10) + 48;
     }
     radiopacket[2] = (rudder_val % 10) + 48;
-    Serial.print("Sending "); Serial.println(radiopacket);
-    rf95.send((uint8_t *)radiopacket, 20);
+    //Serial.print("Sending "); Serial.println(radiopacket);
+    //rf95.send((uint8_t *)radiopacket, 20);
   }  
        
   
@@ -179,12 +185,18 @@ void loop()
      msg = true;
   }
   if (msg){
-    Serial.print("Sending "); Serial.println(radiopacket);
-    //radiopacket[19] = 0;
+    if (radiopacket[0] == '?'){
+      returnData();
+    }
+    else{
+      Serial.print("Sending "); Serial.println(radiopacket);
+      //radiopacket[19] = 0;
+      
+      //Serial.println("Sending...");
+      delay(10);
+      rf95.send((uint8_t *)radiopacket, 20);
+    }
     
-    //Serial.println("Sending...");
-    delay(10);
-    rf95.send((uint8_t *)radiopacket, 20);
   }
   //itoa(packetnum++, radiopacket+13, 10);
   
@@ -207,11 +219,11 @@ void loop()
       //Serial.println((char*)buf);
       if (buf[0] == 'R'){  
         read_rudder_val = (buf[1] - 48)*10 + (buf[2] - 48);
-        update_lcd();
+        update_lcd_rudder();
       }
       else if (buf[0] == 'S'){  
         read_sail_val = (buf[1] - 48)*10 + (buf[2] - 48);
-        update_lcd();
+        update_lcd_sail();
       }
       //Serial.print("RSSI: ");
       //Serial.println(rf95.lastRssi(), DEC);    
@@ -228,11 +240,20 @@ void loop()
  
 }
 
-void update_lcd(){
-  reset_display();
-  sprintf(buf, "Rudder %d (%d)", rudder_val - 45, read_rudder_val);
-  lcd_message(buf, 0);
-  
+void update_lcd_rudder(){
+  char buffer[16];
+  int val = rudder_val;
+  val = val - 45;
+  sprintf(buffer, " Rudder %d (%d) ", val, read_rudder_val);
+  lcd_message(buffer, 0);
+}
+
+void update_lcd_sail(){
+  char buffer[16];
+  int val = sail_val;
+  val = val;
+  sprintf(buffer, " Sail %d (%d) ", val, read_sail_val);
+  lcd_message(buffer, 1);
 }
 
 void lcd_message(String message, int row){
@@ -265,3 +286,9 @@ int map(int x, int min1, int max1, int min2, int max2){
   return int(val);
 }
   
+void returnData(){
+  Serial.print("R "); Serial.print(rudder_val);
+  Serial.print(" S "); Serial.println(sail_val);
+  Serial.flush();
+  
+}
