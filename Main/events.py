@@ -120,6 +120,9 @@ class events(boat):
     #arr: [B1x,B1y, etc] (boat.event_arr)
     def Endurance(self):
         print("Endurance moment")
+        
+        gps.updategps()
+        print(gps.latitude)
 
         while(True):
             #main running
@@ -135,13 +138,38 @@ class events(boat):
     #arr: [B1x,B1y, etc] (boat.event_arr)
     def Station_Keeping(self):          #Jonah
         print("Station_Keeping moment")
-        #see SK_perc_guide notes on calculating go-to points
+        #Challenge	Goal:
+            #To	demonstrate	the	ability	of the boat to remain close to one position and respond to time-based commands.	
+        #Description:
+            #The boat will enter a 40 x 40m box and attempt to stay inside the box for 5 minutes.
+            #It must then exit within 30 seconds to avoid a penalty.
+        #Scoring:
+            #10	pts	max.
+            #2 pts per minute within the box during the 5 minute test (the boat may exit and reenter multiple times).
+            #2 pts per minute will be deducted for time within the box after 5½ minutes.	
+            #The final score will be reduced by 50% if any RC is preformed from the start of the 5 minute event	until the boat’s final exit.
+            #The final score will be to X.X precision
+        #assumptions: (based on guidelines)
+            #front is upstream
+
+
+        #see SK_perc_guide() notes on calculating go-to points
         #running:
         #1.) wait till fall behind 80%
-        #2.) sail to 90%, until 90%, set sail flat
-        #3.) if behind 75%, go to step 2, repeat
-        #4.) GO TO BACK POINT(or drop sails?) after time limit
-        time_limit = 5*60 #in seconds
+        #2.) sail to 90%, until at 90%
+        #3.) set sail flat
+        #4.) if behind 75%, go to step 2, repeat
+        #5.) GTFO (find&sail to best point) after time limit
+            #DO NOT JUST DROP SAIL
+                #how we won event first time was dropping sail
+                #and floating from front to end for total of 5 minute duration travel
+        time_perc = 5*60 * (70/100) #time to leave, 5 minute limit * %
+
+        #weakness's (TODO's):
+            #dont know what to do if it goes out of box
+                #just keeps going to point?
+            #what to do after it decides to leave box and does
+
 
         type_arr =   [ 0, 0, 0, 1]
         wanted_arr = [80,75,90,90]
@@ -150,12 +178,10 @@ class events(boat):
             #(4,5)90-line,      (6,7)90-point,
             #(8,9)Back-line [always auto put on end]
 
-        start = True; moving= False
+        start = True; moving = False
         #=== main running ===
         #line check is a long process, so instead of checking both
-        #uses mutual exclusion so not continiously moving to same point
-            #(kinda sucks need to rework)
-            #relook into if we even need mutual exclusion
+        #uses mutual exclusion so not continiously moving to same point (moving bool)
 
         #time calc
         start_time = time.time()
@@ -163,12 +189,20 @@ class events(boat):
         while(True):
             #return checks
             curr_time = time.time()
-            if curr_time - start_time >= time_limit:
-                #TODO:  either sail to back/side midpoint, or other func to find best path out
-                #LEAVE QUICKLY AS POSSIBLE:
-                #run down wind
-                #windVane.angle()
-                return
+            if curr_time - start_time >= time_perc:
+                #find best point to leave:
+                    #see what mid point closest (Left,Back,Right)
+                    #cartesian with rand radius
+                        #find point at perimeter at -45 or 125 (left,right) degrees (LDeg,RDeg line)
+                        #find m/b of both
+                    #take I() of LDeg,LSide; LDeg,BSide; RDeg,RSide; RDeg,BSide
+                        #find closest, sail to
+
+                #when to stop????
+                    #using past line depending
+
+                
+                return #maybe break to go to another loop, checking it doesnt crash?
             
             if self.event_NL(): return  #checks if mode has switched, exits func if so
 
