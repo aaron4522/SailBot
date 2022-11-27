@@ -165,11 +165,6 @@ class events(boat):
                 #and floating from front to end for total of 5 minute duration travel
         time_perc = 5*60 * (70/100) #time to leave, 5 minute limit * %
 
-        #weakness's (TODO's):
-            #dont know what to do if it goes out of box
-                #just keeps going to point?
-            #what to do after it decides to leave box and does
-
 
         type_arr =   [ 0, 0, 0, 1]
         wanted_arr = [80,75,90,90]
@@ -177,7 +172,7 @@ class events(boat):
         del type_arr, wanted_arr
             #(0,1)80-line,      (2,3)75-line,
             #(4,5)90-line,      (6,7)90-point,
-            
+
             #[always auto put on end]:
             #(8,9)Left-line,  (10,11)Right-line
             #(10,11)Back-line
@@ -208,13 +203,17 @@ class events(boat):
 
                 #TODO: when to stop????
                     #using past line depending
+                    #using side/back-line that the shortest on intersected at and using SK_line_check with front instead of back
+                        #return another var in cart_perimiter_scan, str, ("B","L","R")
+                        #or si (var from cart_perimiter_scan)
+                    #[!!!!!]might also just not have too as: as soon as you leav after the timelimit, the event is over and we can switch to manual
                 boat.goToGPS(targ_x,targ_y)
                 '''
                 stall = False
                 while(not self.SK_line_check(uhh_idk_something)): stall=True
                 '''
                 return #maybe break to go to another loop after this one, checking it doesnt crash?
-            del curr_time
+            #del curr_time
             if self.event_NL(): return  #checks if mode has switched, exits func if so
 
 
@@ -237,8 +236,8 @@ class events(boat):
                 moving = False
                 boat.adjustSail(90)  #loosen sail, do nuthin
 
-
-    def SK_perc_guid(self,inp_arr,type_arr,buoy_arr):
+    #give %-line of box and other lines(details in SK)
+    def SK_perc_guide(self,inp_arr,type_arr,buoy_arr):
         #calc front/back/sides mid point
         #find the parameter lat/long value per percent
         #calc line 75%/80%/90% (give long, if lat) towards front between them
@@ -324,6 +323,7 @@ class events(boat):
 
         return ret_arr
 
+    #if past line
     def SK_line_check(self,Tarr,Barr):
         #TRUE: BEHIND LINE
         #FALSE: AT OR PAST LINE
@@ -356,7 +356,8 @@ class events(boat):
         else: #upside down
             if Fa <= Fb: return False   #past or equal
             else: return True           #behind
-        
+    
+    #find best point of run to leave box
     def cart_perimiter_scan(self,arr):
         #arr: back-line,left-line,right-line (m,b's) 01,23,45
 
@@ -396,11 +397,11 @@ class events(boat):
         return t_arr[si+1],t_arr[si+2]
 
 
-    def SK_f(self,x,a1,b1,a2,b2): return self.SK_m(a1,b1,a2,b2)*x + self.SK_v(a1,b1,a2,b2)
-    def SK_m(self,a1,b1,a2,b2): return (b2-b1)/(a2-a1)
-    def SK_v(self,a1,b1,a2,b2): return b1-(self.SK_m(a1,b1,a2,b2)*a1)
-    def SK_I(self,M1,V1,M2,V2): return (V2-V1)/(M1-M2)
-    def SK_d(self,a1,b1,a2,b2): math.sqrt((a2-a1)**2 + (b2-b1)**2)
+    def SK_f(self,x,a1,b1,a2,b2): return self.SK_m(a1,b1,a2,b2)*x + self.SK_v(a1,b1,a2,b2)  #f(x)=mx+b
+    def SK_m(self,a1,b1,a2,b2): return (b2-b1)/(a2-a1)                                      #m: slope between two lines
+    def SK_v(self,a1,b1,a2,b2): return b1-(self.SK_m(a1,b1,a2,b2)*a1)                       #b: +y between two lines
+    def SK_I(self,M1,V1,M2,V2): return (V2-V1)/(M1-M2)                                      #find x-cord intersect between two lines
+    def SK_d(self,a1,b1,a2,b2): return math.sqrt((a2-a1)**2 + (b2-b1)**2)                   #find distance between two points
 
 
 
@@ -408,7 +409,7 @@ class events(boat):
     def Search(self):
         #make in boatMain along with mode switch, attach buoy coords and radius in ary
         #will need to redo GUI then ://////
-        self.SR_pattern(boat.gps.latitude, boat.gps.longitude, boat.event_arr[0], boat.event_arr[1], boat.event_arr[2])
+        arr = self.SR_pattern(boat.gps.latitude, boat.gps.longitude, boat.event_arr[0], boat.event_arr[1], boat.event_arr[2])
 
         while(True):
             #main running
