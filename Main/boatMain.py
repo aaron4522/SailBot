@@ -1,7 +1,3 @@
-"""
-The file to run to start the boat, calls all the other code to automate the boat. This will only run on the rasp pi
-"""
-
 import sys
 import constants as c
 import logging
@@ -155,23 +151,23 @@ class boat:
             if not self.manualControl:  # set mode for automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
                     logging.info("Received message to Automate: COLLISION_AVOIDANCE")
-                    events.Collision_Avoidance()
+                    events.Collision_Avoidance(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_PRECISION_NAVIGATE']:
                     logging.info("Received message to Automate: PRECISION_NAVIGATE")
-                    events.Percision_Navigation()
+                    events.Percision_Navigation(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_ENDURANCE']:
                     logging.info("Received message to Automate: ENDURANCE")
-                    events.Endurance()
+                    events.Endurance(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_STATION_KEEPING']:
                     logging.info("Received message to Automate: STATION_KEEPING")
-                    events.Station_Keeping()
+                    events.Station_Keeping(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_SEARCH']:
                     logging.info("Received message to Automate: SEARCH")
-                    events.Search()
+                    events.Search(self.event_arr)
 
                 if not self.currentTarget:
                     # if we dont have a target GPS load the next target from the targets list
