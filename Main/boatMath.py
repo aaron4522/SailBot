@@ -1,3 +1,6 @@
+"""
+Math functions useful for sailbotting
+"""
 import math
 
 def degreesToRadians(degrees):

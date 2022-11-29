@@ -1,4 +1,6 @@
-
+"""
+reads and sends data from the connected USB transceiver
+"""
 #from messages_pb2 import *
 import serial
 import constants as c
@@ -17,6 +19,7 @@ def ConvertStringsToBytes(src):
 class arduino:
 
     def __init__(self, port_num):
+        # connect to device on 'port_num'
         self.ser1 = serial.Serial(port_num, c.config['MAIN']['baudrate'], timeout = .5) 
         self.I2Cbus = smbus.SMBus(1)
 
@@ -25,7 +28,8 @@ class arduino:
         self.ser1.write(str(data).encode())
 
     def readData(self):
-        self.send("?")
+        # get data from transceiver
+        self.send("?") # transceiver is programmed to respond to '?' with its data
         msgs = []
         msg = self.read()
         if msg == None or msg == "'":
@@ -35,7 +39,7 @@ class arduino:
                 self.send("?")
                 msg = self.read()
         splits = msg.split(" ")
-        return [F"{splits[0]} {splits[1]}", F"{splits[2]} {splits[3]}"]
+        return [F"{splits[0]} {splits[1]}", F"{splits[2]} {splits[3]}"] # format data
     
                 
         

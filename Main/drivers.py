@@ -1,3 +1,7 @@
+"""
+hadles turning motors using Odrive/Stepper driver 
+"""
+
 import board
 import busio
 #import adafruit_pca9685 as pcaLib
@@ -9,19 +13,19 @@ from RPi import GPIO
 from time import sleep
 from Odrive import Odrive
 
+
+# define type of motor that is being used
 USE_ODRIVE_SAIL = True
 USE_STEPPER_SAIL = False
 
 USE_ODRIVE_RUDDER = True
 USE_STEPPER_RUDDER = False
-
-
-            
-if False:
-    SAIL_DIR_PIN = 17 #22
-    SAIL_PUL_PIN = 4 #27
-    RUDDER_DIR_PIN = 22 #17
-    RUDDER_PUL_PIN = 27 #4
+        
+if False: # The two wiring configurations, both defined here for easy switching
+    SAIL_DIR_PIN = 17 
+    SAIL_PUL_PIN = 4 
+    RUDDER_DIR_PIN = 22 
+    RUDDER_PUL_PIN = 27 
 else:
     SAIL_DIR_PIN = 22
     SAIL_PUL_PIN = 27
@@ -31,27 +35,22 @@ else:
 class obj_sail:
             
     def __init__(self, auto = False):
-        #self.channel =  pca.channels[channel_index]
         self.autoAdjust = auto
-        #self.windvane = windVane()
         self.current = 0
         if USE_STEPPER_SAIL:
             self.step = stepper.stepperDriver(SAIL_DIR_PIN, SAIL_PUL_PIN)
         if USE_ODRIVE_SAIL:
             self.odriveAxis = DRV.axis1
-        #pump_thread2 = Thread(target=self.autoAdjustSail)
-        #pump_thread2.start()
 
     def map(self, x, min1, max1, min2, max2):
+        # converts value x, which ranges from min1-max1, to a corresponding value ranging from min2-max2
+        # ex: map(0.3, 0, 1, 0, 100) returns 30
+        # ex: map(70, 0, 100, 0, 1) returns .7
         x = min(max(x, min1), max1)
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
 
     def set(self, degrees):
         degrees = float(degrees)
-            
-        maxAngle = 900
-        if degrees > maxAngle:
-            degrees = maxAngle
 
         if USE_STEPPER_SAIL:
             self.steps = int(400/360 * (self.current-degrees) ) * 15
@@ -88,18 +87,19 @@ class obj_rudder:
             self.odriveAxis = DRV.axis0
 
     def map(self, x, min1, max1, min2, max2, enforce_limits = True):
+        # converts value x, which ranges from min1-max1, to a corresponding value ranging from min2-max2
+        # ex: map(0.3, 0, 1, 0, 100) returns 30
+        # ex: map(70, 0, 100, 0, 1) returns .7
         if enforce_limits:
             x = min(max(x, min1), max1)
-        #print("mapping: ", x, min1, min2, max1, max2)
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
     
     def set(self, degrees):
 
         degrees = float(degrees)
         
-        maxAngle = 30
-
         if USE_STEPPER_RUDDER:
+            maxAngle = 30
             if degrees > maxAngle:
                 degrees = maxAngle
             elif degrees < -maxAngle:
@@ -129,6 +129,7 @@ class driver:
         self.rudder = obj_rudder()
 
 if __name__ == "__main__":
+    #manually control motors with commands 'sail {value}' and 'rudder {value}'
     drive = driver()
 
     while True:

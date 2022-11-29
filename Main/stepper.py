@@ -1,4 +1,6 @@
-
+"""
+handles sending signal to stepper driver to move stepper a set number of steps
+"""
 import sys
 import time
 import RPi.GPIO as GPIO
