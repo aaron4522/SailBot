@@ -1,3 +1,7 @@
+"""
+The file to run to start the boat, calls all the other code to automate the boat. This will only run on the rasp pi
+"""
+
 import sys
 import constants as c
 import logging
