@@ -198,7 +198,8 @@ class events(boat):
             #(12) mid m line for line check
 
         start = True#; moving = False
-        targ_x = None; targ_y = None
+        targ_x = None#; targ_y = None
+        skip = False
             #gotoGPS just sets it on course, not till it goes there
         #=== main running ===
         #line check is a long process, so instead of checking both
@@ -210,10 +211,16 @@ class events(boat):
 
         while(True):
             #return checks
+            if self.event_NL(): return  #checks if mode has switched, exits func if so
+
             curr_time = time.time()
-            if curr_time - start_time >= time_perc:
+            if int(curr_time - start_time)%3 != 0: continue #off-set the set GPS 
+
+            if skip or curr_time - start_time >= time_perc:
                 #find best point to leave:
-                if targ_x == None: targ_x, targ_y = self.cart_perimiter_scan(cool_arr[-7:-1])    #i thought the name sounded cool
+                if targ_x == None:
+                    skip = True
+                    targ_x, targ_y = self.cart_perimiter_scan(cool_arr[-7:-1])    #i thought the name sounded cool
 
                 #TODO: when to stop????
                     #using past line depending
@@ -227,7 +234,6 @@ class events(boat):
                 stall = False
                 while(not self.SK_line_check(uhh_idk_something)): stall=True
                 '''
-            if self.event_NL(): return  #checks if mode has switched, exits func if so
 
 
             #beginning set up
@@ -268,7 +274,7 @@ class events(boat):
                 #0: m/b, 1: x/y
 
         ret_arr = []
-        mid_arr=[], m_arr=[], b_arr=[]
+        mid_arr=[]#, m_arr=[], b_arr=[]
 
         # midpoints ==========================
         #   (12,13,34,24);(front,left,back,right)
@@ -277,6 +283,7 @@ class events(boat):
         # 0,1, 2,3, 4,5, 6,7
         for i in range(4):  # 0,1,2,3
             #TODO: remove nice variables: just fill in and make two lines (optimization)
+            #nah
             j1 = a[i*2]  # 0 - 0 - 4 - 2
             k1 = j1 +1  # 1 - 1 - 5 - 3
             j2 = a[(i*2) +1]  # 2 - 4 - 6 - 6  next over in "a"
