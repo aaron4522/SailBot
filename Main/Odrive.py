@@ -1,3 +1,7 @@
+"""
+calibrates and default values for Odrive and handles interfacing between Odrive and python code
+"""
+
 import odrive
 import odrive.utils as ut
 import constants as c
@@ -110,10 +114,13 @@ class Odrive():
 
     @pos.setter
     def pos(self, value):
+        # sets both motor's position to value
         self.pos0 = value
         self.pos1 = value
 
     def posSet(self, axis, value):
+        # sets 'axis' motor to value
+        # 'axis' is axis0 or axis1 object
         if axis == self.axis0:
             try:
                 self.axis0.controller.input_pos = value
@@ -164,8 +171,6 @@ class Odrive():
 
     def currentSet(self, axis, value):
         #this will change torque!!!
-        #self.torque = (8.27 * value / self.KVRAting)
-        #print(F"Warning: Changing the current limit will affect the torque")
         if axis == self.axis0:
             self.current0 = value
         elif axis == self.axis1:
@@ -267,7 +272,7 @@ def printCurrent(drv):
 if __name__ == '__main__':
     #print(c.config.keys())
     #print(sys.argv)
-    print("Run as sudo if on rasp pi, will othewise get error")
+    print("Run as sudo if on rasp pi, will otherwise not work")
     if len(sys.argv) < 2 or sys.argv[1] != '0':
         try:
             #odrive.find_any().reboot()

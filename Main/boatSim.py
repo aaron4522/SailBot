@@ -1,3 +1,5 @@
+# simulates boat from boatMain by creating virtualSensors 
+
 import boatMain, boatMath
 import pygame
 import math

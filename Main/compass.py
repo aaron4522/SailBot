@@ -1,3 +1,7 @@
+"""
+Handles interfacing with the I2C compass and accelerometer sensor
+"""
+
 #sudo pip3 install adafruit-circuitpython-lis2mdl
 
 
@@ -13,8 +17,8 @@ import math
 
 
 class compass:
-        #included "compass" to fix syntax with pi
     def __init__(self):
+        # Setup I2C connections
         i2c = busio.I2C(board.SCL, board.SDA)
         self.mag = adafruit_lsm303dlh_mag.LSM303DLH_Mag(i2c)
         self.accel = adafruit_lsm303_accel.LSM303_Accel(i2c)
@@ -32,20 +36,19 @@ class compass:
 
     @property
     def angle_X(self):
-        
+        # return X component of compass, occasionally the compass fails to read, if this happens 10 times in a row raise error
         try:
-            self.compassAngle1 = self.mag.magnetic[0]    #issues
+            self.compassAngle1 = self.mag.magnetic[0]   
             self.errcnt=0
         except:
             self.errcnt+=1
-            #print("haha" )#,compassAngle, angle)
             if self.errcnt>10:
                 raise Exception("DISCONNECTED COMPASS")
         
         return self.compassAngle1
     @property
     def angle_Y(self):
-        
+        # return Y component of compass, occasionally the compass fails to read, if this happens 10 times in a row raise error
         try:
             self.compassAngle2 = self.mag.magnetic[1]    #issues
             self.errcnt=0
@@ -58,7 +61,7 @@ class compass:
         return self.compassAngle2
     @property
     def angle_Z(self):
-        
+        # return Z component of compass, occasionally the compass fails to read, if this happens 10 times in a row raise error
         try:
             self.compassAngle3 = self.mag.magnetic[2]    #issues
             self.errcnt=0
@@ -76,6 +79,7 @@ class compass:
     
     @property
     def angle(self):
+        # returns smoothed angle measurement
         alpha = .9
         self.averagedAngle = self.averagedAngle * alpha + self.angleToNorth * (1-alpha)
         return self.averagedAngle

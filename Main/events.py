@@ -8,7 +8,6 @@ try:
     from windvane import windVane
     from GPS import gps
     from compass import compass
-    import GPS
     from camera import camera
 
     from drivers import driver
@@ -28,8 +27,10 @@ class events(boat):
 
     def __init__(self):
         self.MESSAGE = None
-
         print("init")
+        self.totalError = 0.0
+        self.oldError = 0.0
+        self.oldTime = time.time()
 
 
     def event_NL(self):
@@ -63,6 +64,23 @@ class events(boat):
 
         # SEND MESSAGE SECTION =========
         boat.sendData()
+
+        # New PID stuff
+        if (time.time() - self.oldTime < 100):  # Only runs every tenth of a second #new
+            # Finds the angle the boat should take
+            error = boat.targetAngle - boat.compass.angle  # Finds how far off the boat is from its goal
+            self.totalError += error  # Gets the total error to be used for the integral gain
+            derivativeError = (error - self.oldError) / (
+                        time.time() - self.oldtime)  # Gets the change in error for the derivative portion
+            deltaAngle = c.config['CONSTANTS']["P"] * error + c.config['CONSTANTS']["I"] * self.totalError + c.config['CONSTANTS']["D"] * derivativeError  # Finds the angle the boat should be going
+
+            # Translates the angle into lat and log so goToGPS won't ignore it
+            boat.currentAngle = getCoordinateADistanceAlongAngle(1000, deltaAngle + boat.compass.angle)
+
+            # Resets the variable
+            self.oldTime = time.time()
+            self.oldError = error
+
 
         return ret
 
@@ -120,6 +138,9 @@ class events(boat):
     #arr: [B1x,B1y, etc] (boat.event_arr)
     def Endurance(self):
         print("Endurance moment")
+        
+        gps.updategps()
+        print(gps.latitude)
 
         while(True):
             #main running
@@ -135,71 +156,154 @@ class events(boat):
     #arr: [B1x,B1y, etc] (boat.event_arr)
     def Station_Keeping(self):          #Jonah
         print("Station_Keeping moment")
-        #see SK_perc_guide notes on calculating go-to points
+        #Challenge	Goal:
+            #To	demonstrate	the	ability	of the boat to remain close to one position and respond to time-based commands.	
+        #Description:
+            #The boat will enter a 40 x 40m box and attempt to stay inside the box for 5 minutes.
+            #It must then exit within 30 seconds to avoid a penalty.
+        #Scoring:
+            #10	pts	max.
+            #2 pts per minute within the box during the 5 minute test (the boat may exit and reenter multiple times).
+            #2 pts per minute will be deducted for time within the box after 5½ minutes.	
+            #The final score will be reduced by 50% if any RC is preformed from the start of the 5 minute event	until the boat’s final exit.
+            #The final score will be to X.X precision
+        #assumptions: (based on guidelines)
+            #front is upstream
+
+
+        #see SK_perc_guide() notes on calculating go-to points
         #running:
         #1.) wait till fall behind 80%
-        #2.) sail to 90%, until 90%, set sail flat
-        #3.) if behind 75%, go to step 2, repeat
-        #4.) GO TO BACK POINT(or drop sails?) after time limit
-        time_limit = 5*60 #in seconds
+        #2.) sail to 90%, until at 90%
+        #3.) set sail flat
+        #4.) if behind 75%, go to step 2, repeat
+        #5.) GTFO (find&sail to best point) after time limit
+            #DO NOT JUST DROP SAIL
+                #how we won event first time was dropping sail
+                #and floating from front to end for total of 5 minute duration travel
+        time_perc = 5*60 * (70/100) #time to leave, 5 minute limit * %
+
 
         type_arr =   [ 0, 0, 0, 1]
         wanted_arr = [80,75,90,90]
-        self.SK_perc_guide(wanted_arr,type_arr,boat.event_arr)
+        cool_arr = self.SK_perc_guide(wanted_arr,type_arr,boat.event_arr)
+        del type_arr, wanted_arr
             #(0,1)80-line,      (2,3)75-line,
             #(4,5)90-line,      (6,7)90-point,
-            #(8,9)Back-line [always auto put on end]
 
-        start = True; moving= False
+            #[always auto put on end]:
+            #(8,9)Front-line            (here cause of cart_perimiter_scan)
+            #(10,11)Left-line,  (12,13)Right-line
+            #(14,15)Back-line
+            #(16) mid m line for line check
+
+        start = True#; moving = False
+        targ_x = None#; targ_y = None
+        skip = False
+            #gotoGPS just sets it on course, not till it goes there
         #=== main running ===
         #line check is a long process, so instead of checking both
-        #uses mutual exclusion so not continiously moving to same point
-            #(kinda sucks need to rework)
-            #relook into if we even need mutual exclusion
+        #DEPRICATED:uses mutual exclusion so not continiously moving to same point (moving bool)
+            #gotoGPS just sets it on course, not till it goes there
 
         #time calc
         start_time = time.time()
 
         while(True):
             #return checks
-            curr_time = time.time()
-            if curr_time - start_time >= time_limit:
-                #TODO:  either sail to back/side midpoint, or other func to find best path out
-                #LEAVE QUICKLY AS POSSIBLE:
-                #run down wind
-                #windVane.angle()
-                return
-            
+                #changed modes
             if self.event_NL(): return  #checks if mode has switched, exits func if so
 
+                #time based checks
+            curr_time = time.time()
+            if int(curr_time - start_time)%4 != 0: continue #off-set the set GPS 
+
+                #gtfo
+            if skip or curr_time - start_time >= time_perc:
+                #find best point to leave:
+                if targ_x == None:
+                    skip = True #faster if statement
+                    targ_x, targ_y = self.cart_perimiter_scan(cool_arr[-7:-1])    #i thought the name sounded cool
+
+                #TODO: when to stop????
+                    #using past line depending
+                    #using side/back-line that the shortest on intersected at and using SK_line_check with front instead of back
+                        #return another var in cart_perimiter_scan, str, ("B","L","R")
+                        #or si (var from cart_perimiter_scan)
+                    #maybe break to go to another loop after this one, checking it doesnt crash?
+                    #[!!!!!]might also just not have too as: as soon as you leave after the timelimit, the event is over and we can switch to manual
+                boat.goToGPS(targ_x,targ_y)
+                '''
+                stall = False
+                while(not self.SK_line_check(uhh_idk_something)): stall=True
+                '''
+                continue
+            
+                #if not in box
+                #ordered in certain way of most importance, handle up/down first before too left or right
+                #also put before time because then it doesnt matter cause it's already out
+            #past front
+            if not( self.SK_line_check(cool_arr[-9:-7], cool_arr[-3:-1],cool_arr[-1]) ):
+                logging.info("too forward")
+                #loosen sail, do nuthin; drift
+                boat.adjustSail(90)
+                continue
+            
+            #past bot
+            elif not( self.SK_line_check(cool_arr[-3:-1], cool_arr[-9:-7],cool_arr[-1]) ):
+                logging.info("too back")
+                #go to 90
+                boat.goToGPS(cool_arr[6],cool_arr[7])
+                continue
+            
+            #past left
+            elif not( self.SK_line_check(cool_arr[-7:-5], cool_arr[-5:-3],cool_arr[-1]) ):
+                logging.info("too left")
+                #find/go-to intersect of line (+)35degrees of wind direction to left line
+                #mini cart scan
+                t_x, t_y = self.mini_cart_permititer_scan(cool_arr[-7:-5],"L")
+                boat.goToGPS(t_x, t_y)
+                continue
+
+            #past right
+            elif not( self.SK_line_check(cool_arr[-5:-3], cool_arr[-7:-5],cool_arr[-1]) ):
+                logging.info("too right")
+                #find/go-to intersect of line (-)35degrees of wind direction to left line
+                #mini cart scan
+                t_x, t_y = self.mini_cart_permititer_scan(cool_arr[-5:-3],"R")
+                boat.goToGPS(t_x, t_y)
+                continue
+
+
+            #passed checks: SAILING; DOING THE EVENT====================
 
             #beginning set up
-            if start and not(moving):
+            if start: #and not(moving):
                 #if not moving and behind 80%
-                if self.SK_line_check(wanted_arr[0:1], wanted_arr[-3:]):
-                    start = False; moving = True
-                    boat.goToGPS(wanted_arr[6],wanted_arr[7])  #go to 90
+                if self.SK_line_check(cool_arr[0:2], cool_arr[-3:-1],cool_arr[-1]):
+                    start = False; #moving = True
+                    boat.goToGPS(cool_arr[6],cool_arr[7])  #go to 90
 
             #majority sail
-            elif not(start) and not(moving):
+            elif not(start): #and not(moving):
                 #if not moving and behind 75% and sail back
-                if self.SK_line_check(wanted_arr[2:3], wanted_arr[-3:]):
-                    moving = True
-                    boat.goToGPS(wanted_arr[6],wanted_arr[7])  #go to 90
+                if self.SK_line_check(cool_arr[2:4], cool_arr[-3:-1],cool_arr[-1]):
+                    #moving = True
+                    boat.goToGPS(cool_arr[6],cool_arr[7])  #go to 90
             
-            #if past or at 90% (redundence reduction)
-            elif not(self.SK_line_check(wanted_arr[4:5], wanted_arr[-3:])):
-                moving = False
-                boat.adjustSail(90)  #loosen sail, do nuthin
+                #if past or at 90% (redundence reduction)
+                elif not(self.SK_line_check(cool_arr[4:6], cool_arr[-3:-1],cool_arr[-1])):
+                    #moving = False
+                    boat.adjustSail(90)  #loosen sail, do nuthin
 
-
-    def SK_perc_guid(self,inp_arr,type_arr,buoy_arr):
+    #give %-line of box and other lines(details in SK)
+    def SK_perc_guide(self,inp_arr,type_arr,buoy_arr):
         #calc front/back/sides mid point
         #find the parameter lat/long value per percent
         #calc line 75%/80%/90% (give long, if lat) towards front between them
             #input an array of wanted %'s, return array with matching x/y's (in own array, array of arrays)
                 #saves on calc times
-            #https://www.desmos.com/calculator/wud5cve4bq
+            #https://www.desmos.com/calculator/yjeqtqunbh
                 #go with s scaling
                     #1.)find midpoints
                     #2.)between mid1, mid3: perc scale x/y's
@@ -211,7 +315,7 @@ class events(boat):
                 #0: m/b, 1: x/y
 
         ret_arr = []
-        mid_arr=[], m_arr=[], b_arr=[]
+        mid_arr=[]#, m_arr=[], b_arr=[]
 
         # midpoints ==========================
         #   (12,13,34,24);(front,left,back,right)
@@ -220,6 +324,7 @@ class events(boat):
         # 0,1, 2,3, 4,5, 6,7
         for i in range(4):  # 0,1,2,3
             #TODO: remove nice variables: just fill in and make two lines (optimization)
+            #nah
             j1 = a[i*2]  # 0 - 0 - 4 - 2
             k1 = j1 +1  # 1 - 1 - 5 - 3
             j2 = a[(i*2) +1]  # 2 - 4 - 6 - 6  next over in "a"
@@ -228,8 +333,9 @@ class events(boat):
             p = (buoy_arr[j1] + buoy_arr[j2])/2  # 0+1/2: j1,j2
             mid_arr.append(p)   #p
             mid_arr.append(self.SK_f(p, buoy_arr[j1], buoy_arr[k1], buoy_arr[j2], buoy_arr[k2]))    #p,j1,k1,j2,k2
-                
-        # m's and b's ==========================
+        
+        
+        '''# m's and b's ==========================
         #   dont wanna just delete cause dont wanna rewrite if somehow need them
         #   (mid13,mid24; 1,2; 3,4; mid12,mid34)
         m_arr.append(self.SK_m(mid_arr[2], mid_arr[3], mid_arr[6], mid_arr[7]))  # mid13 - mid24 (2,4)  m2
@@ -244,9 +350,9 @@ class events(boat):
 
 
         #front/back mid line for facing use
-        m_arr.append(self.SK_m(mid_arr[0],mid_arr[1],mid_arr[4],mid_arr[5]))
+        m_arr.append(self.SK_m(mid_arr[0],mid_arr[1],mid_arr[4],mid_arr[5]))'''
+        m2 = self.SK_m(mid_arr[2], mid_arr[3], mid_arr[6], mid_arr[7])
         
-
         #newline: s-scale
         for i in range(len(inp_arr)):
             perc = inp_arr[i]/100
@@ -258,17 +364,34 @@ class events(boat):
                 ret_arr.append(y)
                 continue
             else:
-                ret_arr.append( m_arr[0] )      #m
-                ret_arr.append( y-m_arr[0]*x )  #b
+                ret_arr.append( m2[0] )      #m
+                ret_arr.append( y-m2[0]*x )  #b
 
-        ret_arr.append(m_arr[1])
+        #sides-line for cart_perimiter_scan
+            #front
+        ret_arr.append( self.SK_m(buoy_arr[0], buoy_arr[1], buoy_arr[2], buoy_arr[3]) ) #m buoy1,buoy2
+        ret_arr.append( self.SK_v(buoy_arr[0], buoy_arr[1], buoy_arr[2], buoy_arr[3]) ) #b buoy1,buoy2
+            #left
+        ret_arr.append( self.SK_m(buoy_arr[0], buoy_arr[1], buoy_arr[4], buoy_arr[5]) ) #m buoy1,buoy3
+        ret_arr.append( self.SK_v(buoy_arr[0], buoy_arr[1], buoy_arr[4], buoy_arr[5]) ) #b buoy1,buoy3
+            #right
+        ret_arr.append( self.SK_v(buoy_arr[2], buoy_arr[3], buoy_arr[6], buoy_arr[7]) ) #m buoy2,buoy4
+        ret_arr.append( self.SK_v(buoy_arr[2], buoy_arr[3], buoy_arr[6], buoy_arr[7]) ) #b buoy2,buoy4
+
+        #back-line, m of middle-line(linecheck)
+        '''ret_arr.append(m_arr[1])
         ret_arr.append(b_arr[1])
         ret_arr.append(m_arr[2])
-        #ret_arr.append(b_arr[2])
+        #ret_arr.append(b_arr[2])'''
+            #back
+        ret_arr.append( self.SK_m(buoy_arr[4], buoy_arr[5], buoy_arr[6], buoy_arr[7]) ) #m buoy3,buoy4
+        ret_arr.append( self.SK_v(buoy_arr[4], buoy_arr[5], buoy_arr[6], buoy_arr[7]) ) #b buoy3,buoy4
+        ret_arr.append( self.SK_m(mid_arr[0],mid_arr[1],mid_arr[4],mid_arr[5]) )
 
         return ret_arr
 
-    def SK_line_check(self,Tarr,Barr):
+    #if past line
+    def SK_line_check(self,Tarr,Barr,mid_m):
         #TRUE: BEHIND LINE
         #FALSE: AT OR PAST LINE
 
@@ -280,7 +403,8 @@ class events(boat):
         Fa=0;Fb=0;Fc=0  #temp sets
         #check if sideways =========================
         #input x/y as Buoy x/y's to func
-        if abs(Barr[3]) < 1: #Barr is secretly the mid m line shhhhhhh
+        gps.updategps()
+        if abs(mid_m) < 1: #Barr is secretly the mid m line shhhhhhh (LOOK AT ME)
             #sideways  -------------------
             #x=(y-b)/m
             Fa= (boat.gps.latitude-Tarr[1])/Tarr[0]
@@ -299,11 +423,83 @@ class events(boat):
         else: #upside down
             if Fa <= Fb: return False   #past or equal
             else: return True           #behind
-        
+    
+    #find best point of run to leave box
+    def cart_perimiter_scan(self,arr):
+        #https://www.desmos.com/calculator/rz8tfc8fwn
+        #see what mid point closest (Left,Back,Right)
+            #cartesian with rand radius
+                #find point at perimeter at -45 or 125 (left,right) degrees (LDeg,RDeg line)
+                #find m/b of both
+                #x = r × cos( θ )
+                #y = r × sin( θ );  r=5(doesnt matter)
+            #take I() of LDeg,LSide; LDeg,BSide; RDeg,RSide; RDeg,BSide
+                #find closest, sail to
 
-    def SK_f(self,x,a1,b1,a2,b2): return self.SK_m(a1,b1,a2,b2)*x + self.SK_v(a1,b1,a2,b2)
-    def SK_m(self,a1,b1,a2,b2): return (b2-b1)/(a2-a1)
-    def SK_v(self,a1,b1,a2,b2): return b1-(self.SK_m(a1,b1,a2,b2)*a1)
+        #arr: back-line,left-line,right-line (m,b's) 01,23,45
+            #find x,y's of degrees at best run points left and right
+            
+        gps.updategps()
+        lat = boat.gps.latitude, long=boat.gps.longitude
+        t = math.pi/180
+        o = windVane.position
+        lx = 5*math.cos(135 *t+o*t)+lat
+        ly = 5*math.sin(135 *t+o*t)+long
+        rx = 5*math.cos(-135*t+o*t)+lat
+        ry = 5*math.sin(-135*t+o*t)+long
+            #into m,b's
+        lm = self.SK_m(lx,ly,lat,long)
+        lb = self.SK_v(lx,ly,lat,long)
+        rm = self.SK_m(rx,ry,lat,long)
+        rb = self.SK_v(rx,ry,lat,long)
+        #del t,o,lx,ly,rx,ry
+
+            #find intersects of LDeg,LSide; LDeg,BSide; RDeg,RSide; RDeg,BSide
+        t_arr=[]
+        t_arr.append( self.SK_I(lm,lb,arr[2],arr[3]) )  #x1(0)
+        t_arr.append( lm*t_arr[0]+lb )  #y1(1)
+        t_arr.append( self.SK_I(lm,lb,arr[0],arr[1]) )  #x2(2)
+        t_arr.append( lm*t_arr[2]+lb )  #y2(3)
+        t_arr.append( self.SK_I(rm,rb,arr[4],arr[5]) )  #x3(4)
+        t_arr.append( rm*t_arr[4]+rb )  #y3(5)
+        t_arr.append( self.SK_I(rm,rb,arr[0],arr[1]) )  #x4(6)
+        t_arr.append( rm*t_arr[6]+rb )  #y4(7)
+
+            #use distance equation and find closest
+        sd = self.SK_d(t_arr[0],t_arr[1],lat,long)
+        si = -1
+        for i in range(3):
+            a = self.SK_d(t_arr[2*(i+1)],t_arr[(2*i)+3],lat,long) #skip 0,1
+            if a<sd:    sd=a;si=i
+        return t_arr[si+1],t_arr[si+2]
+
+    def mini_cart_permititer_scan(self,arr,case):
+        gps.updategps()
+        lat = boat.gps.latitude, long=boat.gps.longitude
+        t = math.pi/180
+        o = windVane.position
+
+        if case == "L":
+            x = 5*math.cos(55 *t+o*t)+lat   #+35 from windvane
+            y = 5*math.sin(55 *t+o*t)+long
+        elif case == "R":
+            x = 5*math.cos(125 *t+o*t)+lat  #-35
+            y = 5*math.sin(125 *t+o*t)+long
+        else:
+            raise TypeError("mini_cart_permititer_scan ERROR")
+
+        m = self.SK_m(x,y,lat,long)
+        b = self.SK_v(x,y,lat,long)
+
+        ret1= self.SK_I(arr[0],arr[1],m,b)
+        return ret1, m*ret1 + b
+
+
+    def SK_f(self,x,a1,b1,a2,b2): return self.SK_m(a1,b1,a2,b2)*x + self.SK_v(a1,b1,a2,b2)  #f(x)=mx+b
+    def SK_m(self,a1,b1,a2,b2): return (b2-b1)/(a2-a1)                                      #m: slope between two lines
+    def SK_v(self,a1,b1,a2,b2): return b1-(self.SK_m(a1,b1,a2,b2)*a1)                       #b: +y between two lines
+    def SK_I(self,M1,V1,M2,V2): return (V2-V1)/(M1-M2)                                      #find x-cord intersect between two lines
+    def SK_d(self,a1,b1,a2,b2): return math.sqrt((a2-a1)**2 + (b2-b1)**2)                   #find distance between two points
 
 
 
@@ -311,7 +507,7 @@ class events(boat):
     def Search(self):
         #make in boatMain along with mode switch, attach buoy coords and radius in ary
         #will need to redo GUI then ://////
-        self.SR_pattern(boat.gps.latitude, boat.gps.longitude, boat.event_arr[0], boat.event_arr[1], boat.event_arr[2])
+        arr = self.SR_pattern(boat.gps.latitude, boat.gps.longitude, boat.event_arr[0], boat.event_arr[1], boat.event_arr[2])
 
         while(True):
             #main running

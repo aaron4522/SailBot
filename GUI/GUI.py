@@ -1013,4 +1013,3 @@ if __name__ == "__main__":
     w = mainWindow()
 
     sys.exit(app.exec_())
-

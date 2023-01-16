@@ -1,4 +1,4 @@
-
+# reads values from config.ini and returns them
 import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')

@@ -1,4 +1,6 @@
-
+"""
+reads value from I2C rotery encoder sensor
+"""
 from time import sleep
 from threading import Thread, Lock
 from queue import Queue
@@ -14,12 +16,11 @@ class windVane():
 
         self.stepsPerRev = 256
 
+        # pin numbers
         self.clk = 17
         self.dt = 18
         self.hef = 23
         
-        
-
     
         #self.q = Queue(0)
         
@@ -41,6 +42,9 @@ class windVane():
         
 
     def map(self, x, min1, max1, min2, max2):
+        # converts value x, which ranges from min1-max1, to a corresponding value ranging from min2-max2
+        # ex: map(0.3, 0, 1, 0, 100) returns 30
+        # ex: map(70, 0, 100, 0, 1) returns .7
         x = min(max(x, min1), max1)
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
 
