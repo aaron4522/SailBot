@@ -25,13 +25,18 @@ def find_side(img, x):
 #///////size contour cutoff///////
 #900 for jonah pc
 SIZE = 900
+#modeled with bottom of soldering plate with the 4 arm thingies
+#hold with dots horizontal (upright paperwise)
+#length in mm
+Wid_real = 14#find model
+Focal_L = (30*310)/Wid_real#(W*P_ex)/D_ex#calc (find pixels found and real distance in a case then plug in)
 
 #////////color mask values////////
 #BLUE / GREEN / RED
 
-SELECT = 3
+SELECT = 2
 #1: limited orange
-#2: big range orange
+#2: big range orange (use for distance)
 #3: blue
 
 if SELECT == 1:
@@ -82,12 +87,12 @@ while (True):
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     #cool boarder
-    cv2.rectangle(frame, (5, 5), (210, 75), [50, 150, 255], -1)
-    cv2.rectangle(frame, (5, 5), (210, 75), [0, 0, 0], 2)
+    cv2.rectangle(frame, (5, 5), (210, 92), [50, 150, 255], -1)
+    cv2.rectangle(frame, (5, 5), (210, 92), [0, 0, 0], 2)
 
     #sample rec
-    cv2.rectangle(frame, (5, 80), (30, 105), low, -1)
-    cv2.rectangle(frame, (35, 80), (60, 105), up, -1)
+    cv2.rectangle(frame, (5, 100), (30, 122), low, -1)
+    cv2.rectangle(frame, (35, 100), (60, 122), up, -1)
 
     #TO DO WORK:
     """
@@ -138,10 +143,14 @@ while (True):
         cv2.putText(frame, ctstr, (10 , 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 2)   #num of cnts
         cv2.putText(frame, arstr, (10 , 37), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 2)   #area of max
 
-    #perform REAL operations for max contour found in for statement
-        cv2.putText(frame, "TARGET OUTPUT: " + str(x + (w / 2))     , (10, 54), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0)  , 2)  # TARGET cords
-        cv2.putText(frame, find_side(vid_feed, x + (w / 2))         , (10, 71), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)  # TARGET output
+        #perform REAL operations for max contour found in for statement
+        cv2.putText(frame, "TARGET OUTPUT(midx): " + str(x + (w / 2)), (10, 54), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0)  , 2)  # TARGET cords
+        cv2.putText(frame, find_side(vid_feed, x + (w / 2))          , (10, 71), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)  # TARGET output
         #print( find_side(vid_feed, x+(w/2)) )
+
+        #distance formula
+        D = (Wid_real*Focal_L)/w
+        cv2.putText(frame, "DISTANCE: "+ str(D), (10, 88), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)  # TARGET output
 
     else:
         cv2.putText(frame, "NO CONTOURS", (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 2)  # area of max
