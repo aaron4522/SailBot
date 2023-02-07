@@ -33,7 +33,7 @@ class BoatVision():
     def __init__(self, source=0):
         # Settings TODO: migrate to settings file
         self.weights = "CV/buoy_weights.pt"
-        self.confidence = 0.4
+        self.conf_thresh 
         self.source = source
         self.cap = cv2.VideoCapture(source)
         self.img_size = 640
@@ -43,9 +43,26 @@ class BoatVision():
         # TODO: test performance after export to .onnx
             #model.export(format="onnx")
             # or cmd -> yolo task=detect mode=export model=<PATH> format = onnx
+            
+    def capture(self) -> Frame:
+        '''Captures a single frame via camera and returns a Frame for analysis'''
+        
+        cap = cv2.VideoCapture(self.source)
+        
+        ret, frame = cap.read()
+        if not ret:
+            print("Camera feed stopped. Exiting ...")
+            raise NoCamFeed
+        # frame = cv2.resize(frame, (img_size, img_size))
+        cap.release()
+        
+        result = self.model.predict(source=frame, conf=self.conf_thresh, save=False, line_thickness=1)
+        
+        return Frame(result)
+            
 
-    def cam_detect(self) -> Frame:
-        '''Detects buoys from camera source specified in settings'''
+    def cam_detect(self):
+        '''DEBUG: Detects buoys from camera source specified in settings'''
         
         cap = cv2.VideoCapture(self.source)
         while cap.isOpened():
@@ -57,7 +74,7 @@ class BoatVision():
                 break
             # frame = cv2.resize(frame, (img_size, img_size))
             
-            result = self.model.predict(source=frame, conf=self.confidence, save=False, line_thickness=1)
+            result = self.model.predict(source=frame, conf=self.conf_thresh, save=False, line_thickness=1)
             
             Frame(result)
             
@@ -73,11 +90,14 @@ class BoatVision():
         cap.release()
         cv2.destroyAllWindows()
     
-    def img_detect(self, imgs: str) -> Frame:
-        '''Detects buoys from specified image path(s)'''
-        result = self.model.predict(source=imgs, show=True, conf=self.confidence, save=False, line_thickness=1)
+    def img_detect(self, imgs: str):
+        '''DEBUG: Detects buoys from specified image path(s)'''
+        result = self.model.predict(source=imgs, show=True, conf=self.conf_thresh, save=False, line_thickness=1)
         
         Frame(result)
+
+class NoCamFeed(Exception):
+    pass
 
 if __name__ == "__main__":
     import sys
@@ -87,23 +107,23 @@ if __name__ == "__main__":
     try: 
         mode = sys.argv[1]
     except (IndexError):
-        mode = "cam" # default
+        mode = "img" # default
     
     
     if mode == "cam":
-        start = time()
         Detect.cam_detect()
-        end = time()
     elif mode == "img":
         import tkinter
         from tkinter.filedialog import askopenfilenames
+        import keyboard
         
         tkinter.Tk().withdraw()
         imgs = askopenfilenames()
         
         for img in imgs:
             Detect.img_detect(img)
-            input()
+            keyboard.wait('enter')
+            cv2.destroyAllWindows()
     else:
         quit("No mode selected!")
         
