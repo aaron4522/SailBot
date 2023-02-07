@@ -1,0 +1,8 @@
+# ADD ANY IMPORTED REPOs HERE:
+
+# boatVision
+ultralytics
+opencv-python
+numpy
+torch
+tkinter

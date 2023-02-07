@@ -33,3 +33,8 @@ https://pitt-my.sharepoint.com/:o:/r/personal/tad85_pitt_edu/Documents/Sailbot%2
 2. note: the constants are store in config.ini file, constants.py just loads and returns 
 
 #### other scripts not mentioned are not used
+
+
+## Installation
+1. cd Sailbot
+2. pip install -r requirements.txt
