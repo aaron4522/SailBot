@@ -26,6 +26,8 @@ from datetime import date, datetime
 from threading import Thread
 from time import sleep
 import numpy
+import rospy
+from std_msgs.msg import String
 
 class boat:
     """
@@ -35,14 +37,20 @@ class boat:
         """
         Set everything up and start the main loop
         """
-        with open('boatMainLog.log', 'a') as logfile:
-            logfile.write('\n\n---------------------------------\n')
-        logging.basicConfig(level=logging.INFO, filename='boatMainLog.log', filemode='a',
-                            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        rospy.init_node('boatMain', anonymous=True)
         
         # create sensor objects
-        self.gps = GPS.gps()
-        #self.compass = compass()
+        self.gps = object()
+        self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
+        self.compass = object() #compass()
+        
+        rospy.Subscriber('GPS_listener', String, self.ROS_GPSCallback)
+        rospy.Subscriber('compass_listener', String, self.ROS_compassCallback)
+
+        self.pub = rospy.Publisher('driver_talker', String, queue_size=10)
+        rospy.init_node('boatMain', anonymous=True)
+        
+        
         #self.windvane = windVane()
         self.drivers = driver(calibrateOdrive = calibrateOdrive)
         
@@ -80,6 +88,27 @@ class boat:
         #pump_thread.start()
         self.mainLoop()
         
+    def ROS_GPSCallback(self, string):
+        if string == "None,None,None":
+            self.gps.latitude = None
+            self.gps.longitude = None
+            self.gps.track_angle_deg = None
+            return
+
+        lat, long, trackangle = string.replace("(", "").replace(")", "").split(",")
+        self.gps.latitude = float(lat)
+        self.gps.longitude = float(long)
+        self.gps.track_angle_deg = float(trackangle)
+
+    def ROS_compassCallback(self, string):
+        if string == "None,None":
+            self.compass.angle = None
+            return
+
+        angle = string.replace("(", "").replace(")", "")
+        self.compass.angle = float(angle)
+
+        
 
     def adjustSail(self, angle=None):
         """
@@ -87,20 +116,27 @@ class boat:
         """
         if self.manualControl and angle != None:
             # set sail to angle
-            self.drivers.sail.set(angle)
-            logging.info(F"Adjusted Sail to: {angle} as requested by manual command")
+            if not rospy.is_shutdown():
+                dataStr = F"(driver:sail:{angle})"
+                rospy.loginfo(dataStr)
+                self.pub.publish(dataStr)
 
         elif self.currentTarget or self.manualControl:
             # set sail to optimal angle based on windvane readings
             windDir = self.windvane.angle
             targetAngle = windDir + 35
-            self.drivers.sail.set(targetAngle)
+            if not rospy.is_shutdown():
+                dataStr = F"(driver:sail:{targetAngle})"
+                rospy.loginfo(dataStr)
+                self.pub.publish(dataStr)
             self.currentSail = targetAngle
-            logging.info('Adjusted sail to: %d', targetAngle)
 
         else:
             # move sail to home position
-            self.drivers.sail.set(0)
+            if not rospy.is_shutdown():
+                dataStr = F"(driver:sail:{0})"
+                rospy.loginfo(dataStr)
+                self.pub.publish(dataStr)
             self.currentSail = 0
             logging.info('Adjusted sail to home position')
 
@@ -116,13 +152,21 @@ class boat:
 
             if d_angle > 180: d_angle -= 180
 
-            self.drivers.rudder.set(d_angle)
+            if not rospy.is_shutdown():
+                dataStr = F"(driver:rudder:{d_angle})"
+                rospy.loginfo(dataStr)
+                self.pub.publish(dataStr)
+
             self.currentRudder = d_angle
             logging.info('Adjusted rudder to: %d', d_angle)
 
         else:
-            # move sail to home position
-            self.drivers.rudder.set(0)
+            # move rudder to home position
+            if not rospy.is_shutdown():
+                dataStr = F"(driver:rudder:{0})"
+                rospy.loginfo(dataStr)
+                self.pub.publish(dataStr)
+
             self.currentRudder = 0
             logging.info('Adjusted rudder to home position')
 
@@ -359,11 +403,11 @@ class boat:
             # TODO determine pixel wise what is significantly closer
             if distRight - distLeft > 20:  # Left buoy is closer
                 # Turn right
-                newCompassAngle = (self.compass.mag + 10) % 360
+                newCompassAngle = (self.compass.angle + 10) % 360
                 self.turnToAngle(newCompassAngle)
             elif distLeft - distRight > 20:  # Right buoy closer
                 # Turn left
-                newCompassAngle = (self.compass.mag - 10) % 360
+                newCompassAngle = (self.compass.angle - 10) % 360
                 self.turnToAngle(newCompassAngle)
         else:
             # Go to gps

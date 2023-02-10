@@ -15,7 +15,8 @@ from threading import Thread
 import math
 from boatMath import degreesToRadians, getCoordinateADistanceAlongAngle, distanceInMBetweenEarthCoordinates, computeNewCoordinate, angleBetweenCoordinates, convertDegMinToDecDeg, convertWindAngle
 
-
+import rospy
+from std_msgs.msg import String
 
 
 
@@ -62,6 +63,19 @@ class gps():
         #pump_thread = Thread(target=self.run)# creates a Thread running an infinite loop pumping server
         #pump_thread.start()
 
+        pub = rospy.Publisher('GPS_talker', String, queue_size=10)
+        rospy.init_node('GPS_talker', anonymous=True)
+        rate = rospy.Rate(10) # 10hz
+        while not rospy.is_shutdown():
+            self.gps.update()
+            if(self.gps.has_fix):
+                dataStr = F"({self.gps.latitude},{self.gps.longitude},{self.gps.track_angle_deg})"
+            else:
+                dataStr = F"None,None,None"
+            rospy.loginfo(dataStr)
+            pub.publish(dataStr)
+            rate.sleep()
+
     def __getattribute__(self, name):
         """
         if an attempt is made to access an attribute that does not exist, it will then attempt to get the attribute from gps object
@@ -74,7 +88,8 @@ class gps():
 
     def run(self):
         while True:
-            self.updategps()
+            return # This should use ROS now instead of a loop
+            #self.updategps()
 
     def readgps(self):
         timestamp = time.monotonic()

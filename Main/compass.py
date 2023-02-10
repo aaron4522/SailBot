@@ -15,6 +15,9 @@ import math
 #^^from Thread import thread
 #import RPi.GPIO as GPIO
 
+import rospy
+from std_msgs.msg import String
+
 
 class compass:
     def __init__(self):
@@ -26,6 +29,15 @@ class compass:
         self.errcnt=0
         
         self.averagedAngle = 0
+
+        pub = rospy.Publisher('compass_talker', String, queue_size=10)
+        rospy.init_node('compass_talker', anonymous=True)
+        rate = rospy.Rate(10) # 10hz
+        while not rospy.is_shutdown():
+            dataStr = F"({self.angle})"
+            rospy.loginfo(dataStr)
+            pub.publish(dataStr)
+            rate.sleep()
 
     def run(self):
         pass
