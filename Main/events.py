@@ -1,4 +1,4 @@
-from curses import KEY_B2
+#from curses import KEY_B2
 import constants as c
 import logging
 import math
@@ -23,9 +23,10 @@ from time import sleep
 
 
 
-class events(boat):
+class event:
 
-    def __init__(self):
+    def __init__(self, boat_input):
+        self.boat_RefObj = boat_input
         self.MESSAGE = None
         print("init")
         self.totalError = 0.0
@@ -60,22 +61,22 @@ class events(boat):
             logging.info(f"failed to read command {self.MESSAGE}")
             print(f"message error: {e}")
         
-        boat.readMessages(self.MESSAGE) #override message to make faster
+        self.boat_RefObj.readMessages(self.MESSAGE) #override message to make faster
 
         # SEND MESSAGE SECTION =========
-        boat.sendData()
+        self.boat_RefObj.sendData()
 
         # New PID stuff
         if (time.time() - self.oldTime < 100):  # Only runs every tenth of a second #new
             # Finds the angle the boat should take
-            error = boat.targetAngle - boat.compass.angle  # Finds how far off the boat is from its goal
+            error = self.boat_RefObj.targetAngle - self.boat_RefObj.compass.angle  # Finds how far off the boat is from its goal
             self.totalError += error  # Gets the total error to be used for the integral gain
             derivativeError = (error - self.oldError) / (
                         time.time() - self.oldtime)  # Gets the change in error for the derivative portion
             deltaAngle = c.config['CONSTANTS']["P"] * error + c.config['CONSTANTS']["I"] * self.totalError + c.config['CONSTANTS']["D"] * derivativeError  # Finds the angle the boat should be going
 
             # Translates the angle into lat and log so goToGPS won't ignore it
-            boat.currentAngle = getCoordinateADistanceAlongAngle(1000, deltaAngle + boat.compass.angle)
+            self.boat_RefObj.currentAngle = getCoordinateADistanceAlongAngle(1000, deltaAngle + self.boat_RefObj.compass.angle)
 
             # Resets the variable
             self.oldTime = time.time()
@@ -109,7 +110,7 @@ class events(boat):
 
     #===================================================================================
     #inputs: B1,B2,B3,B4 long/lat
-    #arr: [B1x,B1y, etc] (boat.event_arr)
+    #arr: [B1x,B1y, etc] (self.boat_RefObj.event_arr)
     def Collision_Avoidance(self):
         print("Collision_Avoidance moment")
         #Challenge	Goal:
@@ -139,7 +140,7 @@ class events(boat):
     #===================================================================================
     #inputs: B1,B2,B3,B4 long/lat
     #TL[0,1],TR[2,3],BL[4,5],BR[6,7] (left/right top, left/right bottom)
-    #arr: [B1x,B1y, etc] (boat.event_arr)
+    #arr: [B1x,B1y, etc] (self.boat_RefObj.event_arr)
     def Percision_Navigation(self):     #Jonah
         print("Percision_Navigation moment")
         #Challenge	Goal:
@@ -191,9 +192,8 @@ class events(boat):
                 logging.info(f"PN: PASSED TARGET POINT: {self.target_set}")
                 print(f"Passed target point: {self.target_set}")
                 self.target_set += 1
-            boat.goToGPS(self.target_set*2,self.target_set*2 +1)
+            self.boat_RefObj.goToGPS(self.target_set*2,self.target_set*2 +1)
             
-    
     #find coords that shoudl go to via cart of buoy coords
     def PN_coords(self):
 
@@ -214,40 +214,40 @@ class events(boat):
         #calcing x/y points
         t = math.pi/180 #conv deg to rad
         #b3[0-3]
-        ret_arr.append( rad1*math.cos(  (90+m1) *t)+boat.event_arr[4] )  #pt1x[0]
-        ret_arr.append( rad1*math.sin(  (90+m1) *t)+boat.event_arr[5] )  #pt1y[1]
-        ret_arr.append( rad2*math.cos( (225+m2) *t)+boat.event_arr[4] )  #pt2x[2]
-        ret_arr.append( rad2*math.sin( (225+m2) *t)+boat.event_arr[5] )  #pt2y[3]
+        ret_arr.append( rad1*math.cos(  (90+m1) *t)+self.boat_RefObj.event_arr[4] )  #pt1x[0]
+        ret_arr.append( rad1*math.sin(  (90+m1) *t)+self.boat_RefObj.event_arr[5] )  #pt1y[1]
+        ret_arr.append( rad2*math.cos( (225+m2) *t)+self.boat_RefObj.event_arr[4] )  #pt2x[2]
+        ret_arr.append( rad2*math.sin( (225+m2) *t)+self.boat_RefObj.event_arr[5] )  #pt2y[3]
 
         #b3/4[4-5]
-        ret_arr.append( (boat.event_arr[4]+boat.event_arr[6])/2 )  #pt3x[4]
-        ret_arr.append( (boat.event_arr[5]+boat.event_arr[7])/2 )  #pt3y[5]
+        ret_arr.append( (self.boat_RefObj.event_arr[4]+self.boat_RefObj.event_arr[6])/2 )  #pt3x[4]
+        ret_arr.append( (self.boat_RefObj.event_arr[5]+self.boat_RefObj.event_arr[7])/2 )  #pt3y[5]
 
         #b4[6-9]
-        ret_arr.append( rad2*math.cos( (315-m2) *t)+boat.event_arr[6] )  #pt4x[6]
-        ret_arr.append( rad2*math.sin( (315-m2) *t)+boat.event_arr[7] )  #pt4y[7]
-        ret_arr.append( rad1*math.cos(  (90-m1) *t)+boat.event_arr[6] )  #pt5x[8]
-        ret_arr.append( rad1*math.sin(  (90-m1) *t)+boat.event_arr[7] )  #pt5y[9]
+        ret_arr.append( rad2*math.cos( (315-m2) *t)+self.boat_RefObj.event_arr[6] )  #pt4x[6]
+        ret_arr.append( rad2*math.sin( (315-m2) *t)+self.boat_RefObj.event_arr[7] )  #pt4y[7]
+        ret_arr.append( rad1*math.cos(  (90-m1) *t)+self.boat_RefObj.event_arr[6] )  #pt5x[8]
+        ret_arr.append( rad1*math.sin(  (90-m1) *t)+self.boat_RefObj.event_arr[7] )  #pt5y[9]
 
         #b1/2[10-11]
-        ret_arr.append( (boat.event_arr[0]+boat.event_arr[2])/2 )  #pt6x[10]
-        ret_arr.append( (boat.event_arr[1]+boat.event_arr[3])/2 )  #pt6y[11]
+        ret_arr.append( (self.boat_RefObj.event_arr[0]+self.boat_RefObj.event_arr[2])/2 )  #pt6x[10]
+        ret_arr.append( (self.boat_RefObj.event_arr[1]+self.boat_RefObj.event_arr[3])/2 )  #pt6y[11]
 
         return ret_arr
 
     #find if passed target (ret bool)
     def PN_PassCheck(self):
         #self.target_set,self.PN_arr
-        #boat.event_arr
+        #self.boat_RefObj.event_arr
 
         '''
         #SK_f(x)
-        #P1[0-1], boat.event_arr[4-5]
-        #P1[2-3], boat.event_arr[4-5]
+        #P1[0-1], self.boat_RefObj.event_arr[4-5]
+        #P1[2-3], self.boat_RefObj.event_arr[4-5]
         #
-        #P1[6-7], boat.event_arr[6-7]
-        #P1[8-9], boat.event_arr[6-7]
-        #boat.event_arr[0-1], boat.event_arr[2-3]
+        #P1[6-7], self.boat_RefObj.event_arr[6-7]
+        #P1[8-9], self.boat_RefObj.event_arr[6-7]
+        #self.boat_RefObj.event_arr[0-1], self.boat_RefObj.event_arr[2-3]
 
         #pt1: x<P1x[0],    y<L1(x)[ m(P1[0-1],[]) ]
         #pt2: x>P2x[2],    y<L2(x)
@@ -258,8 +258,8 @@ class events(boat):
         '''
 
         gps.updategps()
-        #boat.gps.longitude
-        #boat.gps.latitude
+        #self.boat_RefObj.gps.longitude
+        #self.boat_RefObj.gps.latitude
 
         #TODO:
         #either figure out better system, or put in a 'reverse if' of the next case in each statement to know whether the coords are right
@@ -278,34 +278,34 @@ class events(boat):
             #left(long) of BL buoy[{4},5]
             #below(lat) line between p1[0,1] and BL buoy[4,5]
             if self.target_set == 1:
-                x = (boat.gps.longitude <= boat.event_arr[4]
-                    and boat.gps.latitude <= self.SK_f( boat.gps.longitude,self.PN_arr[0],self.PN_arr[1],boat.event_arr[4],boat.event_arr[5] ))
+                x = (self.boat_RefObj.gps.longitude <= self.boat_RefObj.event_arr[4]
+                    and self.boat_RefObj.gps.latitude <= self.SK_f( self.boat_RefObj.gps.longitude,self.PN_arr[0],self.PN_arr[1],self.boat_RefObj.event_arr[4],self.boat_RefObj.event_arr[5] ))
 
             #below(lat) of BL buoy[4,{5}]
             #below(lat) line between p2[2,3] and BL buoy[4,5]
             elif self.target_set == 2:
-                x = (boat.gps.latitude <= boat.event_arr[5]
-                    and boat.gps.latitude <= self.SK_f( boat.gps.longitude,self.PN_arr[2],self.PN_arr[3],boat.event_arr[4],boat.event_arr[5] ))
+                x = (self.boat_RefObj.gps.latitude <= self.boat_RefObj.event_arr[5]
+                    and self.boat_RefObj.gps.latitude <= self.SK_f( self.boat_RefObj.gps.longitude,self.PN_arr[2],self.PN_arr[3],self.boat_RefObj.event_arr[4],self.boat_RefObj.event_arr[5] ))
 
             #right(long) of line perpendicular to p2[2,3] and p4[6,7] at p3[4,5]
             elif self.target_set == 3:
-                x = boat.gps.longitude >= self.PN_Perpend(boat.gps.longitude,self.PN_arr[4],self.PN_arr[5],self.PN_arr[2],self.PN_arr[3],self.PN_arr[4],self.PN_arr[5])
+                x = self.boat_RefObj.gps.longitude >= self.PN_Perpend(self.boat_RefObj.gps.longitude,self.PN_arr[4],self.PN_arr[5],self.PN_arr[2],self.PN_arr[3],self.PN_arr[4],self.PN_arr[5])
             
             #right(long) of BR buoy[{6},7]
             #above(lat) line between p4[6,7] and BR buoy[6,7]
             elif self.target_set == 4:
-                x = (boat.gps.longitude >= boat.event_arr[6]
-                    and boat.gps.latitude >= self.SK_f( boat.gps.longitude,self.PN_arr[6],self.PN_arr[7],boat.event_arr[6],boat.event_arr[7] ))
+                x = (self.boat_RefObj.gps.longitude >= self.boat_RefObj.event_arr[6]
+                    and self.boat_RefObj.gps.latitude >= self.SK_f( self.boat_RefObj.gps.longitude,self.PN_arr[6],self.PN_arr[7],self.boat_RefObj.event_arr[6],self.boat_RefObj.event_arr[7] ))
             
             #above(lat) of BR buoy[6,{7}]
             #above(lat) line between p5[8,9] and BR buoy[6,7]
             elif self.target_set == 5:
-                x = (boat.gps.latitude >= boat.event_arr[7]
-                    and boat.gps.latitude >= self.SK_f( boat.gps.longitude,self.PN_arr[8],self.PN_arr[9],boat.event_arr[6],boat.event_arr[7] ))
+                x = (self.boat_RefObj.gps.latitude >= self.boat_RefObj.event_arr[7]
+                    and self.boat_RefObj.gps.latitude >= self.SK_f( self.boat_RefObj.gps.longitude,self.PN_arr[8],self.PN_arr[9],self.boat_RefObj.event_arr[6],self.boat_RefObj.event_arr[7] ))
 
             #above(lat) line between TL[0,1] and TR[2,3]
             elif self.target_set == 6:
-                x = boat.gps.latitude >= self.SK_f( boat.gps.longitude,boat.event_arr[0],boat.event_arr[1],boat.event_arr[2],boat.event_arr[3] )
+                x = self.boat_RefObj.gps.latitude >= self.SK_f( self.boat_RefObj.gps.longitude,self.boat_RefObj.event_arr[0],self.boat_RefObj.event_arr[1],self.boat_RefObj.event_arr[2],self.boat_RefObj.event_arr[3] )
             else:
                 logging.info(f"PN: ERROR: 00: TARGET SET OUT OF RANGE (1to6)\nTARGET PNT = {self.target_set}")
                 print(f"PN: ERROR: 00: TARGET SET OUT OF RANGE (1to6)\nTARGET PNT = {self.target_set}")
@@ -315,34 +315,34 @@ class events(boat):
             #left(long) of BL buoy[{4},5]
             #below(lat) line between p1[0,1] and BL buoy[4,5]
             if self.target_set == 1:
-                x = (boat.gps.latitude <= boat.event_arr[4]
-                    and boat.gps.longitude <= self.SK_f( boat.gps.latitude,self.PN_arr[0],self.PN_arr[1],boat.event_arr[4],boat.event_arr[5] ))
+                x = (self.boat_RefObj.gps.latitude <= self.boat_RefObj.event_arr[4]
+                    and self.boat_RefObj.gps.longitude <= self.SK_f( self.boat_RefObj.gps.latitude,self.PN_arr[0],self.PN_arr[1],self.boat_RefObj.event_arr[4],self.boat_RefObj.event_arr[5] ))
 
             #below(lat) of BL buoy[4,{5}]
             #below(lat) line between p2[2,3] and BL buoy[4,5]
             elif self.target_set == 2:
-                x = (boat.gps.longitude <= boat.event_arr[5]
-                    and boat.gps.longitude <= self.SK_f( boat.gps.latitude,self.PN_arr[2],self.PN_arr[3],boat.event_arr[4],boat.event_arr[5] ))
+                x = (self.boat_RefObj.gps.longitude <= self.boat_RefObj.event_arr[5]
+                    and self.boat_RefObj.gps.longitude <= self.SK_f( self.boat_RefObj.gps.latitude,self.PN_arr[2],self.PN_arr[3],self.boat_RefObj.event_arr[4],self.boat_RefObj.event_arr[5] ))
 
             #right(long) of line perpendicular to p2[2,3] and p4[6,7] at p3[4,5]
             elif self.target_set == 3:
-                x = boat.gps.latitude >= self.PN_Perpend(boat.gps.latitude,self.PN_arr[4],self.PN_arr[5],self.PN_arr[2],self.PN_arr[3],self.PN_arr[4],self.PN_arr[5])
+                x = self.boat_RefObj.gps.latitude >= self.PN_Perpend(self.boat_RefObj.gps.latitude,self.PN_arr[4],self.PN_arr[5],self.PN_arr[2],self.PN_arr[3],self.PN_arr[4],self.PN_arr[5])
             
             #right(long) of BR buoy[{6},7]
             #above(lat) line between p4[6,7] and BR buoy[6,7]
             elif self.target_set == 4:
-                x = (boat.gps.latitude >= boat.event_arr[6]
-                    and boat.gps.longitude >= self.SK_f( boat.gps.latitude,self.PN_arr[6],self.PN_arr[7],boat.event_arr[6],boat.event_arr[7] ))
+                x = (self.boat_RefObj.gps.latitude >= self.boat_RefObj.event_arr[6]
+                    and self.boat_RefObj.gps.longitude >= self.SK_f( self.boat_RefObj.gps.latitude,self.PN_arr[6],self.PN_arr[7],self.boat_RefObj.event_arr[6],self.boat_RefObj.event_arr[7] ))
             
             #above(lat) of BR buoy[6,{7}]
             #above(lat) line between p5[8,9] and BR buoy[6,7]
             elif self.target_set == 5:
-                x = (boat.gps.longitude >= boat.event_arr[7]
-                    and boat.gps.longitude >= self.SK_f( boat.gps.latitude,self.PN_arr[8],self.PN_arr[9],boat.event_arr[6],boat.event_arr[7] ))
+                x = (self.boat_RefObj.gps.longitude >= self.boat_RefObj.event_arr[7]
+                    and self.boat_RefObj.gps.longitude >= self.SK_f( self.boat_RefObj.gps.latitude,self.PN_arr[8],self.PN_arr[9],self.boat_RefObj.event_arr[6],self.boat_RefObj.event_arr[7] ))
 
             #above(lat) line between TL[0,1] and TR[2,3]
             elif self.target_set == 6:
-                x = boat.gps.longitude >= self.SK_f( boat.gps.latitude,boat.event_arr[0],boat.event_arr[1],boat.event_arr[2],boat.event_arr[3] )
+                x = self.boat_RefObj.gps.longitude >= self.SK_f( self.boat_RefObj.gps.latitude,self.boat_RefObj.event_arr[0],self.boat_RefObj.event_arr[1],self.boat_RefObj.event_arr[2],self.boat_RefObj.event_arr[3] )
             else:
                 logging.info(f"PN: ERROR: 00: TARGET SET OUT OF RANGE (1to6)\nTARGET PNT = {self.target_set}")
                 print(f"PN: ERROR: 00: TARGET SET OUT OF RANGE (1to6)\nTARGET PNT = {self.target_set}")
@@ -352,34 +352,34 @@ class events(boat):
             #left(long) of BL buoy[{4},5]
             #below(lat) line between p1[0,1] and BL buoy[4,5]
             if self.target_set == 1:
-                x = (boat.gps.longitude >= boat.event_arr[4]
-                    and boat.gps.latitude >= self.SK_f( boat.gps.longitude,self.PN_arr[0],self.PN_arr[1],boat.event_arr[4],boat.event_arr[5] ))
+                x = (self.boat_RefObj.gps.longitude >= self.boat_RefObj.event_arr[4]
+                    and self.boat_RefObj.gps.latitude >= self.SK_f( self.boat_RefObj.gps.longitude,self.PN_arr[0],self.PN_arr[1],self.boat_RefObj.event_arr[4],self.boat_RefObj.event_arr[5] ))
 
             #below(lat) of BL buoy[4,{5}]
             #below(lat) line between p2[2,3] and BL buoy[4,5]
             elif self.target_set == 2:
-                x = (boat.gps.latitude >= boat.event_arr[5]
-                    and boat.gps.latitude >= self.SK_f( boat.gps.longitude,self.PN_arr[2],self.PN_arr[3],boat.event_arr[4],boat.event_arr[5] ))
+                x = (self.boat_RefObj.gps.latitude >= self.boat_RefObj.event_arr[5]
+                    and self.boat_RefObj.gps.latitude >= self.SK_f( self.boat_RefObj.gps.longitude,self.PN_arr[2],self.PN_arr[3],self.boat_RefObj.event_arr[4],self.boat_RefObj.event_arr[5] ))
 
             #right(long) of line perpendicular to p2[2,3] and p4[6,7] at p3[4,5]
             elif self.target_set == 3:
-                x = boat.gps.longitude <= self.PN_Perpend(boat.gps.longitude,self.PN_arr[4],self.PN_arr[5],self.PN_arr[2],self.PN_arr[3],self.PN_arr[4],self.PN_arr[5])
+                x = self.boat_RefObj.gps.longitude <= self.PN_Perpend(self.boat_RefObj.gps.longitude,self.PN_arr[4],self.PN_arr[5],self.PN_arr[2],self.PN_arr[3],self.PN_arr[4],self.PN_arr[5])
             
             #right(long) of BR buoy[{6},7]
             #above(lat) line between p4[6,7] and BR buoy[6,7]
             elif self.target_set == 4:
-                x = (boat.gps.longitude <= boat.event_arr[6]
-                    and boat.gps.latitude <= self.SK_f( boat.gps.longitude,self.PN_arr[6],self.PN_arr[7],boat.event_arr[6],boat.event_arr[7] ))
+                x = (self.boat_RefObj.gps.longitude <= self.boat_RefObj.event_arr[6]
+                    and self.boat_RefObj.gps.latitude <= self.SK_f( self.boat_RefObj.gps.longitude,self.PN_arr[6],self.PN_arr[7],self.boat_RefObj.event_arr[6],self.boat_RefObj.event_arr[7] ))
             
             #above(lat) of BR buoy[6,{7}]
             #above(lat) line between p5[8,9] and BR buoy[6,7]
             elif self.target_set == 5:
-                x = (boat.gps.latitude <= boat.event_arr[7]
-                    and boat.gps.latitude <= self.SK_f( boat.gps.longitude,self.PN_arr[8],self.PN_arr[9],boat.event_arr[6],boat.event_arr[7] ))
+                x = (self.boat_RefObj.gps.latitude <= self.boat_RefObj.event_arr[7]
+                    and self.boat_RefObj.gps.latitude <= self.SK_f( self.boat_RefObj.gps.longitude,self.PN_arr[8],self.PN_arr[9],self.boat_RefObj.event_arr[6],self.boat_RefObj.event_arr[7] ))
 
             #above(lat) line between TL[0,1] and TR[2,3]
             elif self.target_set == 6:
-                x = boat.gps.latitude <= self.SK_f( boat.gps.longitude,boat.event_arr[0],boat.event_arr[1],boat.event_arr[2],boat.event_arr[3] )
+                x = self.boat_RefObj.gps.latitude <= self.SK_f( self.boat_RefObj.gps.longitude,self.boat_RefObj.event_arr[0],self.boat_RefObj.event_arr[1],self.boat_RefObj.event_arr[2],self.boat_RefObj.event_arr[3] )
             else:
                 logging.info(f"PN: ERROR: 00: TARGET SET OUT OF RANGE (1to6)\nTARGET PNT = {self.target_set}")
                 print(f"PN: ERROR: 00: TARGET SET OUT OF RANGE (1to6)\nTARGET PNT = {self.target_set}")
@@ -389,34 +389,34 @@ class events(boat):
             #left(long) of BL buoy[{4},5]
             #below(lat) line between p1[0,1] and BL buoy[4,5]
             if self.target_set == 1:
-                x = (boat.gps.latitude >= boat.event_arr[4]
-                    and boat.gps.longitude >= self.SK_f( boat.gps.latitude,self.PN_arr[0],self.PN_arr[1],boat.event_arr[4],boat.event_arr[5] ))
+                x = (self.boat_RefObj.gps.latitude >= self.boat_RefObj.event_arr[4]
+                    and self.boat_RefObj.gps.longitude >= self.SK_f( self.boat_RefObj.gps.latitude,self.PN_arr[0],self.PN_arr[1],self.boat_RefObj.event_arr[4],self.boat_RefObj.event_arr[5] ))
 
             #below(lat) of BL buoy[4,{5}]
             #below(lat) line between p2[2,3] and BL buoy[4,5]
             elif self.target_set == 2:
-                x = (boat.gps.longitude >= boat.event_arr[5]
-                    and boat.gps.longitude >= self.SK_f( boat.gps.latitude,self.PN_arr[2],self.PN_arr[3],boat.event_arr[4],boat.event_arr[5] ))
+                x = (self.boat_RefObj.gps.longitude >= self.boat_RefObj.event_arr[5]
+                    and self.boat_RefObj.gps.longitude >= self.SK_f( self.boat_RefObj.gps.latitude,self.PN_arr[2],self.PN_arr[3],self.boat_RefObj.event_arr[4],self.boat_RefObj.event_arr[5] ))
 
             #right(long) of line perpendicular to p2[2,3] and p4[6,7] at p3[4,5]
             elif self.target_set == 3:
-                x = boat.gps.latitude <= self.PN_Perpend(boat.gps.latitude,self.PN_arr[4],self.PN_arr[5],self.PN_arr[2],self.PN_arr[3],self.PN_arr[4],self.PN_arr[5])
+                x = self.boat_RefObj.gps.latitude <= self.PN_Perpend(self.boat_RefObj.gps.latitude,self.PN_arr[4],self.PN_arr[5],self.PN_arr[2],self.PN_arr[3],self.PN_arr[4],self.PN_arr[5])
             
             #right(long) of BR buoy[{6},7]
             #above(lat) line between p4[6,7] and BR buoy[6,7]
             elif self.target_set == 4:
-                x = (boat.gps.latitude <= boat.event_arr[6]
-                    and boat.gps.longitude <= self.SK_f( boat.gps.latitude,self.PN_arr[6],self.PN_arr[7],boat.event_arr[6],boat.event_arr[7] ))
+                x = (self.boat_RefObj.gps.latitude <= self.boat_RefObj.event_arr[6]
+                    and self.boat_RefObj.gps.longitude <= self.SK_f( self.boat_RefObj.gps.latitude,self.PN_arr[6],self.PN_arr[7],self.boat_RefObj.event_arr[6],self.boat_RefObj.event_arr[7] ))
             
             #above(lat) of BR buoy[6,{7}]
             #above(lat) line between p5[8,9] and BR buoy[6,7]
             elif self.target_set == 5:
-                x = (boat.gps.longitude <= boat.event_arr[7]
-                    and boat.gps.longitude <= self.SK_f( boat.gps.latitude,self.PN_arr[8],self.PN_arr[9],boat.event_arr[6],boat.event_arr[7] ))
+                x = (self.boat_RefObj.gps.longitude <= self.boat_RefObj.event_arr[7]
+                    and self.boat_RefObj.gps.longitude <= self.SK_f( self.boat_RefObj.gps.latitude,self.PN_arr[8],self.PN_arr[9],self.boat_RefObj.event_arr[6],self.boat_RefObj.event_arr[7] ))
 
             #above(lat) line between TL[0,1] and TR[2,3]
             elif self.target_set == 6:
-                x = boat.gps.longitude <= self.SK_f( boat.gps.latitude,boat.event_arr[0],boat.event_arr[1],boat.event_arr[2],boat.event_arr[3] )
+                x = self.boat_RefObj.gps.longitude <= self.SK_f( self.boat_RefObj.gps.latitude,self.boat_RefObj.event_arr[0],self.boat_RefObj.event_arr[1],self.boat_RefObj.event_arr[2],self.boat_RefObj.event_arr[3] )
             else:
                 logging.info(f"PN: ERROR: 00: TARGET SET OUT OF RANGE (1to6)\nTARGET PNT = {self.target_set}")
                 print(f"PN: ERROR: 00: TARGET SET OUT OF RANGE (1to6)\nTARGET PNT = {self.target_set}")
@@ -441,7 +441,7 @@ class events(boat):
     def PN_checkwayside(self):
         #check if sideways or upsidedown
         #[!!!!!]return self.ifupsidedown,self.ifsideways
-        #boat.event_arr
+        #self.boat_RefObj.event_arr
         #PN_arr
         '''
         1:rightways [standard]
@@ -476,7 +476,7 @@ class events(boat):
 
     #===================================================================================
     #inputs: B1,B2,B3,B4 long/lat
-    #arr: [B1x,B1y, etc] (boat.event_arr)
+    #arr: [B1x,B1y, etc] (self.boat_RefObj.event_arr)
     def Endurance(self):
         print("Endurance moment")
         #Challenge	Goal:
@@ -507,7 +507,7 @@ class events(boat):
     #===================================================================================
     #inputs: B1,B2,B3,B4 long/lat
     #TL,TR,BL,BR
-    #arr: [B1x,B1y, etc] (boat.event_arr)
+    #arr: [B1x,B1y, etc] (self.boat_RefObj.event_arr)
     def Station_Keeping(self):          #Jonah
         print("Station_Keeping moment")
         #Challenge	Goal:
@@ -540,7 +540,7 @@ class events(boat):
 
         type_arr =   [ 0, 0, 0, 1]
         wanted_arr = [80,75,90,90]
-        cool_arr = self.SK_perc_guide(wanted_arr,type_arr,boat.event_arr)
+        cool_arr = self.SK_perc_guide(wanted_arr,type_arr,self.boat_RefObj.event_arr)
         del type_arr, wanted_arr
             #(0,1)80-line,      (2,3)75-line,
             #(4,5)90-line,      (6,7)90-point,
@@ -586,7 +586,7 @@ class events(boat):
                         #or si (var from cart_perimiter_scan)
                     #maybe break to go to another loop after this one, checking it doesnt crash?
                     #[!!!!!]might also just not have too as: as soon as you leave after the timelimit, the event is over and we can switch to manual
-                boat.goToGPS(targ_x,targ_y)
+                self.boat_RefObj.goToGPS(targ_x,targ_y)
                 '''
                 stall = False
                 while(not self.SK_line_check(uhh_idk_something)): stall=True
@@ -600,14 +600,14 @@ class events(boat):
             if not( self.SK_line_check(cool_arr[-9:-7], cool_arr[-3:-1],cool_arr[-1]) ):
                 logging.info("too forward")
                 #loosen sail, do nuthin; drift
-                boat.adjustSail(90)
+                self.boat_RefObj.adjustSail(90)
                 continue
             
             #past bot
             elif not( self.SK_line_check(cool_arr[-3:-1], cool_arr[-9:-7],cool_arr[-1]) ):
                 logging.info("too back")
                 #go to 90
-                boat.goToGPS(cool_arr[6],cool_arr[7])
+                self.boat_RefObj.goToGPS(cool_arr[6],cool_arr[7])
                 continue
             
             #past left
@@ -616,7 +616,7 @@ class events(boat):
                 #find/go-to intersect of line (+)35degrees of wind direction to left line
                 #mini cart scan
                 t_x, t_y = self.mini_cart_permititer_scan(cool_arr[-7:-5],"L")
-                boat.goToGPS(t_x, t_y)
+                self.boat_RefObj.goToGPS(t_x, t_y)
                 continue
 
             #past right
@@ -625,7 +625,7 @@ class events(boat):
                 #find/go-to intersect of line (-)35degrees of wind direction to left line
                 #mini cart scan
                 t_x, t_y = self.mini_cart_permititer_scan(cool_arr[-5:-3],"R")
-                boat.goToGPS(t_x, t_y)
+                self.boat_RefObj.goToGPS(t_x, t_y)
                 continue
 
 
@@ -636,19 +636,19 @@ class events(boat):
                 #if not moving and behind 80%
                 if self.SK_line_check(cool_arr[0:2], cool_arr[-3:-1],cool_arr[-1]):
                     start = False; #moving = True
-                    boat.goToGPS(cool_arr[6],cool_arr[7])  #go to 90
+                    self.boat_RefObj.goToGPS(cool_arr[6],cool_arr[7])  #go to 90
 
             #majority sail
             elif not(start): #and not(moving):
                 #if not moving and behind 75% and sail back
                 if self.SK_line_check(cool_arr[2:4], cool_arr[-3:-1],cool_arr[-1]):
                     #moving = True
-                    boat.goToGPS(cool_arr[6],cool_arr[7])  #go to 90
+                    self.boat_RefObj.goToGPS(cool_arr[6],cool_arr[7])  #go to 90
             
                 #if past or at 90% (redundence reduction)
                 elif not(self.SK_line_check(cool_arr[4:6], cool_arr[-3:-1],cool_arr[-1])):
                     #moving = False
-                    boat.adjustSail(90)  #loosen sail, do nuthin
+                    self.boat_RefObj.adjustSail(90)  #loosen sail, do nuthin
 
     #give %-line of box and other lines(details in SK)
     def SK_perc_guide(self,inp_arr,type_arr,buoy_arr):
@@ -750,7 +750,7 @@ class events(boat):
         #FALSE: AT OR PAST LINE
 
         #Ix/y:  current location of boat
-        #       boat.gps.longitude, boat.gps.latitude
+        #       self.boat_RefObj.gps.longitude, self.boat_RefObj.gps.latitude
         #Tarr:  m/b compare line
         #arr:   m/b Back line,
         
@@ -765,15 +765,15 @@ class events(boat):
         if abs(mid_m) < 1: #Barr is secretly the mid m line shhhhhhh (LOOK AT ME)
             #sideways  -------------------
             #x=(y-b)/m
-            Fa= (boat.gps.latitude-Tarr[1])/Tarr[0]
-            Fb= boat.gps.longitude
-            Fc= (boat.gps.latitude-Barr[1])/Barr[0]
+            Fa= (self.boat_RefObj.gps.latitude-Tarr[1])/Tarr[0]
+            Fb= self.boat_RefObj.gps.longitude
+            Fc= (self.boat_RefObj.gps.latitude-Barr[1])/Barr[0]
         else:
             #rightways  -------------------
             #y=mx+b
-            Fa= Tarr[0]*boat.gps.longitude +Tarr[1]
-            Fb= boat.gps.latitude
-            Fc= Barr[0]*boat.gps.longitude +Barr[1]
+            Fa= Tarr[0]*self.boat_RefObj.gps.longitude +Tarr[1]
+            Fb= self.boat_RefObj.gps.latitude
+            Fc= Barr[0]*self.boat_RefObj.gps.longitude +Barr[1]
 
         if Fa > Fc: #upright
             if Fa >= Fb: return False   #past or equal
@@ -798,7 +798,7 @@ class events(boat):
             #find x,y's of degrees at best run points left and right
             
         gps.updategps()
-        lat = boat.gps.latitude, long=boat.gps.longitude
+        lat = self.boat_RefObj.gps.latitude; long=self.boat_RefObj.gps.longitude
         t = math.pi/180
         o = windVane.position
         lx = 5*math.cos(135 *t+o*t)+lat
@@ -833,7 +833,7 @@ class events(boat):
 
     def mini_cart_permititer_scan(self,arr,case):
         gps.updategps()
-        lat = boat.gps.latitude, long=boat.gps.longitude
+        lat = self.boat_RefObj.gps.latitude; long=self.boat_RefObj.gps.longitude
         t = math.pi/180
         o = windVane.position
 
@@ -861,7 +861,7 @@ class events(boat):
 
 
     #===================================================================================
-    #inputs: B1 long/lat, Radius (boat.event_arr)
+    #inputs: B1 long/lat, Radius (self.boat_RefObj.event_arr)
     def Search(self):
         #Challenge	Goal:
             #To demonstrate the boat’s ability to autonomously locate an object
@@ -881,7 +881,7 @@ class events(boat):
 
         #make in boatMain along with mode switch, attach buoy coords and radius in ary
         #will need to redo GUI then ://////
-        arr = self.SR_pattern(boat.gps.latitude, boat.gps.longitude, boat.event_arr[0], boat.event_arr[1], boat.event_arr[2])
+        arr = self.SR_pattern(self.boat_RefObj.gps.latitude, self.boat_RefObj.gps.longitude, self.boat_RefObj.event_arr[0], self.boat_RefObj.event_arr[1], self.boat_RefObj.event_arr[2])
 
         while(True):
             #main running
@@ -916,8 +916,14 @@ class events(boat):
         
 
 if __name__ == "__main__":
-    eevee = events()
+    import sys
+    calibrateOdrive = True
+    for arg in sys.argv:
+        if arg == "noCal":
+            calibrateOdrive = False
+    b = boat(calibrateOdrive = calibrateOdrive)
+    print("CA, PN, E, SK, S")
     while True:
         inp = input("Mode Test: ") # Taking input from user
-        eevee.testloop(inp)
+        b.eevee.testloop(inp)
 

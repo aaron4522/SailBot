@@ -11,7 +11,7 @@ try:
     from compass import compass
     import GPS
     #from camera import camera
-    #from events import events
+    from events import event
 
     from drivers import driver
     from transceiver import arduino
@@ -68,6 +68,7 @@ class boat:
 
 
         # Set default values for variables
+        self.eevee = event(boat)
         self.event_arr = []
         self.manualControl = True   # check RC Mode to change manualControl, and manualControl checks for everything else (faster on memory)
         self.cycleTargets = False
@@ -195,23 +196,23 @@ class boat:
             if not self.manualControl:  # set mode for automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
                     logging.info("Received message to Automate: COLLISION_AVOIDANCE")
-                    events.Collision_Avoidance(self.event_arr)
+                    self.eevee.Collision_Avoidance()
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_PRECISION_NAVIGATE']:
                     logging.info("Received message to Automate: PRECISION_NAVIGATE")
-                    events.Percision_Navigation(self.event_arr)
+                    self.eevee.Percision_Navigation()
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_ENDURANCE']:
                     logging.info("Received message to Automate: ENDURANCE")
-                    events.Endurance(self.event_arr)
+                    self.eevee.Endurance()
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_STATION_KEEPING']:
                     logging.info("Received message to Automate: STATION_KEEPING")
-                    events.Station_Keeping(self.event_arr)
+                    self.eevee.Station_Keeping()
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_SEARCH']:
                     logging.info("Received message to Automate: SEARCH")
-                    events.Search(self.event_arr)
+                    self.eevee.Search()
 
                 if not self.currentTarget:
                     # if we dont have a target GPS load the next target from the targets list
