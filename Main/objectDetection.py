@@ -27,7 +27,7 @@ class Detection():
         #self.class_id: str = ObjectDetection.classes[int(self._bbox.cls.numpy()[0])]
     
     def __str__(self):
-        return f"{self.class_id} ({self.conf}) at ({self.xywh[0]},{self.xywh[1]})\n"
+        return f"Buoy ({self.conf}): at ({self.x},{self.y})\n"
 
 
 class ObjectDetection():

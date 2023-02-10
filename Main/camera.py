@@ -5,10 +5,10 @@ import cv2
 from time import time
 
 import constants as c
-#try:
-    #from GPS import gps
-#except ImportError:
-    #pass
+try:
+    from GPS import gps
+except ImportError:
+    print("Could not import GPS")
     
 # TODO: write drivers for camera servo and image capture
 
