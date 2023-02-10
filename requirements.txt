@@ -1,9 +1,16 @@
 # ADD ANY IMPORTED REPOs HERE:
+# INSTALLATION: cmd: pip install -r requirements.txt
 
-# boatVision
+# Common
+time
+sys
+numpy
+
+# objectDetection
 ultralytics
 opencv-python
-numpy
 torch
-tkinter
-keyboard
+    # Debug
+    tkinter
+    keyboard
+    
