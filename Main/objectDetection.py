@@ -16,15 +16,15 @@ except: ImportError()
 class Detection():
     """Bounding box and confidence for a detected object"""
     def __init__(self, result: torch.tensor):
-        self._bbox: torch.tensor = result.boxes
-        self._xywh: np.array = self._bbox.xywh.numpy()[0]
+        _bbox: torch.tensor = result.boxes
+        _xywh: np.array = self._bbox.xywh.numpy()[0]
         
-        self.x = self._xywh[0]
-        self.y = self._xywh[1]
-        self.w = self._xywh[2]
-        self.h = self._xywh[3]
-        self.conf: float = self._bbox.conf.numpy()[0]
-        #self.class_id: str = ObjectDetection.classes[int(self._bbox.cls.numpy()[0])]
+        self.x = _xywh[0]
+        self.y = _xywh[1]
+        self.w = _xywh[2]
+        self.h = _xywh[3]
+        self.conf = _bbox.conf.numpy()[0]
+        #self.class_id: str = ObjectDetection.classes[int(_bbox.cls.numpy()[0])]
     
     def __str__(self):
         return f"Buoy ({self.conf}): at ({self.x},{self.y})\n"
