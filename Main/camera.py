@@ -21,9 +21,6 @@ class Frame():
         self.pitch = Camera.pitch
         self.yaw = Camera.yaw
         self.detections = []
-            
-    def __str__(self):
-        print(f": ")
         
 class Camera():
     """Drivers and interface for camera"""
