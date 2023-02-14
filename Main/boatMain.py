@@ -11,7 +11,7 @@ try:
     from compass import compass
     import GPS
     #from camera import camera
-    from events import event
+    import events #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
 
     from drivers import driver
     from transceiver import arduino
@@ -68,7 +68,7 @@ class boat:
 
 
         # Set default values for variables
-        self.eevee = event(boat)
+        self.eevee = None
         self.event_arr = []
         self.manualControl = True   # check RC Mode to change manualControl, and manualControl checks for everything else (faster on memory)
         self.cycleTargets = False
@@ -196,25 +196,25 @@ class boat:
             if not self.manualControl:  # set mode for automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
                     logging.info("Received message to Automate: COLLISION_AVOIDANCE")
-                    self.eevee.Collision_Avoidance()
+                    self.eevee = events.Collision_Avoidance(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_PRECISION_NAVIGATE']:
                     logging.info("Received message to Automate: PRECISION_NAVIGATE")
-                    self.eevee.Percision_Navigation()
+                    self.eevee = events.Percision_Navigation(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_ENDURANCE']:
                     logging.info("Received message to Automate: ENDURANCE")
-                    self.eevee.Endurance()
+                    self.eevee = events.Endurance(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_STATION_KEEPING']:
                     logging.info("Received message to Automate: STATION_KEEPING")
-                    self.eevee.Station_Keeping()
+                    self.eevee = events.Station_Keeping(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_SEARCH']:
                     logging.info("Received message to Automate: SEARCH")
-                    self.eevee.Search()
+                    self.eevee = events.Search(self.event_arr)
 
-                if not self.currentTarget:
+                '''if not self.currentTarget:
                     # if we dont have a target GPS load the next target from the targets list
                     if self.targets != []:
                         self.currentTarget = self.targets.pop(0)
@@ -222,7 +222,20 @@ class boat:
                         print('no targets')
                 if self.currentTarget: 
                     # go to target if we have one
-                    self.goToGPS(self.currentTarget[0], self.currentTarget[1])
+                    self.goToGPS(self.currentTarget[0], self.currentTarget[1])'''
+                try:
+                    targ_x,targ_y = self.eevee.next_gps()
+                    if targ_x:  #__number__,__number__
+                        self.currentTarget[0], self.currentTarget[1] = targ_x,targ_y
+                        self.goToGPS(targ_x,targ_y)
+                    else:   #None,None
+                        self.adjustSail(90)
+                except events.eventFinished:
+                    #end of event
+                    self.eevee = None
+                    logging.info("OVERRIDE: Switching to RC")
+                    self.MODE_SETTING = c.config['MODES']['MOD_RC']
+                    self.manualControl = True
 
 
 
