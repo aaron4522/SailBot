@@ -103,6 +103,10 @@ class compass:
         print(F"Angle {self.angle}")
         #print(F"angle to north: {self.angleToNorth}")
             
+
+def main():
+    comp = compass()
+
 if __name__ == "__main__":
     comp = compass()
     while True:
