@@ -11,7 +11,7 @@ try:
     from compass import compass
     import GPS
     #from camera import camera
-    #from events import events
+    import events #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
 
     from drivers import driver
     from transceiver import arduino
@@ -26,6 +26,8 @@ from datetime import date, datetime
 from threading import Thread
 from time import sleep
 import numpy
+import rospy
+from std_msgs.msg import String
 
 class boat:
     """
@@ -35,14 +37,20 @@ class boat:
         """
         Set everything up and start the main loop
         """
-        with open('boatMainLog.log', 'a') as logfile:
-            logfile.write('\n\n---------------------------------\n')
-        logging.basicConfig(level=logging.INFO, filename='boatMainLog.log', filemode='a',
-                            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        rospy.init_node('boatMain', anonymous=True)
         
         # create sensor objects
-        self.gps = GPS.gps()
-        #self.compass = compass()
+        self.gps = object()
+        self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
+        self.compass = object() #compass()
+        
+        rospy.Subscriber('GPS_listener', String, self.ROS_GPSCallback)
+        rospy.Subscriber('compass_listener', String, self.ROS_compassCallback)
+
+        self.pub = rospy.Publisher('driver_talker', String, queue_size=10)
+        rospy.init_node('boatMain', anonymous=True)
+        
+        
         #self.windvane = windVane()
         self.drivers = driver(calibrateOdrive = calibrateOdrive)
         
@@ -60,6 +68,7 @@ class boat:
 
 
         # Set default values for variables
+        self.eevee = None
         self.event_arr = []
         self.manualControl = True   # check RC Mode to change manualControl, and manualControl checks for everything else (faster on memory)
         self.cycleTargets = False
@@ -80,6 +89,27 @@ class boat:
         #pump_thread.start()
         self.mainLoop()
         
+    def ROS_GPSCallback(self, string):
+        if string == "None,None,None":
+            self.gps.latitude = None
+            self.gps.longitude = None
+            self.gps.track_angle_deg = None
+            return
+
+        lat, long, trackangle = string.replace("(", "").replace(")", "").split(",")
+        self.gps.latitude = float(lat)
+        self.gps.longitude = float(long)
+        self.gps.track_angle_deg = float(trackangle)
+
+    def ROS_compassCallback(self, string):
+        if string == "None,None":
+            self.compass.angle = None
+            return
+
+        angle = string.replace("(", "").replace(")", "")
+        self.compass.angle = float(angle)
+
+        
 
     def adjustSail(self, angle=None):
         """
@@ -87,20 +117,27 @@ class boat:
         """
         if self.manualControl and angle != None:
             # set sail to angle
-            self.drivers.sail.set(angle)
-            logging.info(F"Adjusted Sail to: {angle} as requested by manual command")
+            if not rospy.is_shutdown():
+                dataStr = F"(driver:sail:{angle})"
+                rospy.loginfo(dataStr)
+                self.pub.publish(dataStr)
 
         elif self.currentTarget or self.manualControl:
             # set sail to optimal angle based on windvane readings
             windDir = self.windvane.angle
             targetAngle = windDir + 35
-            self.drivers.sail.set(targetAngle)
+            if not rospy.is_shutdown():
+                dataStr = F"(driver:sail:{targetAngle})"
+                rospy.loginfo(dataStr)
+                self.pub.publish(dataStr)
             self.currentSail = targetAngle
-            logging.info('Adjusted sail to: %d', targetAngle)
 
         else:
             # move sail to home position
-            self.drivers.sail.set(0)
+            if not rospy.is_shutdown():
+                dataStr = F"(driver:sail:{0})"
+                rospy.loginfo(dataStr)
+                self.pub.publish(dataStr)
             self.currentSail = 0
             logging.info('Adjusted sail to home position')
 
@@ -116,13 +153,21 @@ class boat:
 
             if d_angle > 180: d_angle -= 180
 
-            self.drivers.rudder.set(d_angle)
+            if not rospy.is_shutdown():
+                dataStr = F"(driver:rudder:{d_angle})"
+                rospy.loginfo(dataStr)
+                self.pub.publish(dataStr)
+
             self.currentRudder = d_angle
             logging.info('Adjusted rudder to: %d', d_angle)
 
         else:
-            # move sail to home position
-            self.drivers.rudder.set(0)
+            # move rudder to home position
+            if not rospy.is_shutdown():
+                dataStr = F"(driver:rudder:{0})"
+                rospy.loginfo(dataStr)
+                self.pub.publish(dataStr)
+
             self.currentRudder = 0
             logging.info('Adjusted rudder to home position')
 
@@ -151,25 +196,25 @@ class boat:
             if not self.manualControl:  # set mode for automation
                 if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
                     logging.info("Received message to Automate: COLLISION_AVOIDANCE")
-                    events.Collision_Avoidance(self.event_arr)
+                    self.eevee = events.Collision_Avoidance(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_PRECISION_NAVIGATE']:
                     logging.info("Received message to Automate: PRECISION_NAVIGATE")
-                    events.Percision_Navigation(self.event_arr)
+                    self.eevee = events.Percision_Navigation(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_ENDURANCE']:
                     logging.info("Received message to Automate: ENDURANCE")
-                    events.Endurance(self.event_arr)
+                    self.eevee = events.Endurance(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_STATION_KEEPING']:
                     logging.info("Received message to Automate: STATION_KEEPING")
-                    events.Station_Keeping(self.event_arr)
+                    self.eevee = events.Station_Keeping(self.event_arr)
 
                 elif self.MODE_SETTING == c.config['MODES']['MOD_SEARCH']:
                     logging.info("Received message to Automate: SEARCH")
-                    events.Search(self.event_arr)
+                    self.eevee = events.Search(self.event_arr)
 
-                if not self.currentTarget:
+                '''if not self.currentTarget:
                     # if we dont have a target GPS load the next target from the targets list
                     if self.targets != []:
                         self.currentTarget = self.targets.pop(0)
@@ -177,7 +222,20 @@ class boat:
                         print('no targets')
                 if self.currentTarget: 
                     # go to target if we have one
-                    self.goToGPS(self.currentTarget[0], self.currentTarget[1])
+                    self.goToGPS(self.currentTarget[0], self.currentTarget[1])'''
+                try:
+                    targ_x,targ_y = self.eevee.next_gps()
+                    if targ_x:  #__number__,__number__
+                        self.currentTarget[0], self.currentTarget[1] = targ_x,targ_y
+                        self.goToGPS(targ_x,targ_y)
+                    else:   #None,None
+                        self.adjustSail(90)
+                except events.eventFinished:
+                    #end of event
+                    self.eevee = None
+                    logging.info("OVERRIDE: Switching to RC")
+                    self.MODE_SETTING = c.config['MODES']['MOD_RC']
+                    self.manualControl = True
 
 
 
@@ -359,11 +417,11 @@ class boat:
             # TODO determine pixel wise what is significantly closer
             if distRight - distLeft > 20:  # Left buoy is closer
                 # Turn right
-                newCompassAngle = (self.compass.mag + 10) % 360
+                newCompassAngle = (self.compass.angle + 10) % 360
                 self.turnToAngle(newCompassAngle)
             elif distLeft - distRight > 20:  # Right buoy closer
                 # Turn left
-                newCompassAngle = (self.compass.mag - 10) % 360
+                newCompassAngle = (self.compass.angle - 10) % 360
                 self.turnToAngle(newCompassAngle)
         else:
             # Go to gps
