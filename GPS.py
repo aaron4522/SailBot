@@ -147,7 +147,7 @@ class gps(Node):
                 print('Height geo ID: {} meters'.format(self.gps.height_geoid))
             """
 
-def main():
+def main(args = None):
     rclpy.init(args=args)
 
     GPS = gps()
