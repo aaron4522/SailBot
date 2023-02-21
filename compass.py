@@ -16,10 +16,11 @@ import math
 #import RPi.GPIO as GPIO
 
 import rclpy
+from rclpy.node import Node
 from std_msgs.msg import String
 
 
-class compass:
+class compass(Node):
     def __init__(self):
         # Setup I2C connections
         i2c = busio.I2C(board.SCL, board.SDA)
@@ -30,14 +31,16 @@ class compass:
         
         self.averagedAngle = 0
 
-        pub = rclpy.Publisher('compass_talker', String, queue_size=10)
-        rclpy.init_node('compass_talker', anonymous=True)
-        rate = rclpy.Rate(10) # 10hz
-        while not rclpy.is_shutdown():
-            dataStr = F"({self.angle})"
-            rclpy.loginfo(dataStr)
-            pub.publish(dataStr)
-            rate.sleep()
+        super().__init__('Compass')
+        self.pub = self.create_publisher(String, 'Compass_talker', 10)
+        timer_period = 0.5  # seconds
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+
+    def timer_callback(self):
+        msg = String()
+        msg.data = F"{self.angle}"
+        self.pub.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % msg.data)
 
     def run(self):
         pass
@@ -104,8 +107,16 @@ class compass:
         #print(F"angle to north: {self.angleToNorth}")
             
 
-def main():
-    comp = compass()
+def main(args = None):
+    rclpy.init(args=args)
+    compass = compass()
+    rclpy.spin(compass)
+
+    # Destroy the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    compass.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == "__main__":
     comp = compass()

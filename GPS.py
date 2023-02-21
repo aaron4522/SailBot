@@ -149,9 +149,7 @@ class gps(Node):
 
 def main(args = None):
     rclpy.init(args=args)
-
     GPS = gps()
-
     rclpy.spin(GPS)
 
     # Destroy the node explicitly
