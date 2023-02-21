@@ -149,6 +149,9 @@ class gps():
                 print('Height geo ID: {} meters'.format(self.gps.height_geoid))
             """
 
+def main():
+    GPS = gps()
+
 if __name__ == "__main__":
     GPS = gps()
     while True:
