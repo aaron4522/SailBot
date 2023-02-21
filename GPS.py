@@ -71,7 +71,7 @@ class gps(Node):
     def timer_callback(self):
         msg = String()
         msg.data = F"{self.gps.latitude},{self.gps.longitude},{self.gps.track_angle_deg}"
-        self.publisher_.publish(msg)
+        self.pub.publish(msg)
         self.get_logger().info('Publishing: "%s"' % msg.data)
 
     def __getattribute__(self, name):
