@@ -109,13 +109,13 @@ class compass(Node):
 
 def main(args = None):
     rclpy.init(args=args)
-    compass = compass()
-    rclpy.spin(compass)
+    comp = compass()
+    rclpy.spin(comp)
 
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
-    compass.destroy_node()
+    comp.destroy_node()
     rclpy.shutdown()
 
 if __name__ == "__main__":
