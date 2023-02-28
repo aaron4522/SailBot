@@ -6,18 +6,18 @@ import cv2
 import numpy as np
 import torch
 from time import time
+import logging
 
 import constants as c
-try:
-    from camera import Camera, Frame
-    from GPS import gps
-except: ImportError()
+from camera import Camera, Frame
+#from GPS import gps
 
-class Detection():
+
+class Detection:
     """Bounding box and confidence for a detected object"""
     def __init__(self, result: torch.tensor):
         _bbox: torch.tensor = result.boxes
-        _xywh: np.array = self._bbox.xywh.numpy()[0]
+        _xywh: np.array = _bbox.xywh.numpy()[0]
         
         self.x = _xywh[0]
         self.y = _xywh[1]
@@ -25,9 +25,6 @@ class Detection():
         self.h = _xywh[3]
         self.conf = _bbox.conf.numpy()[0]
         #self.class_id: str = ObjectDetection.classes[int(_bbox.cls.numpy()[0])]
-    
-    def __str__(self):
-        return f"Buoy ({self.conf}): at ({self.x},{self.y})\n"
 
 
 class ObjectDetection():
@@ -37,8 +34,8 @@ class ObjectDetection():
             # TODO: test performance after export to .onnx
             #model.export(format="onnx") or cmd -> yolo task=detect mode=export model=<PATH> format = onnx
     
-    def analyze(self, frame: Frame) -> Frame:
-        """Detects buoys from a Camera.Frame object
+    def analyze(self, frame: Frame):
+        """Detects buoys on a given Camera.Frame object
         Args:
             frame (Camera.Frame): the Frame object to perform analysis on.   
         """
@@ -49,9 +46,8 @@ class ObjectDetection():
         result = result[0] # metadata -> list[tensor]
         
         for detection in result:
+            logging.info("Buoy ({detection.conf}): at ({detection.x},{detection.y})\n")
             frame.detections.append(Detection(detection))
-            
-        return frame
     
             
 class ObjectDetectionTester(ObjectDetection):
@@ -82,7 +78,7 @@ class ObjectDetectionTester(ObjectDetection):
         Args:
             img (str): file path of selected image
         """
-        self.model.predict(source=img, show=True, conf=self.conf_thresh, save=False, line_thickness=1)
+        self.model.predict(source=img, show=True, conf=float(c.config["OBJECTDETECTION"]["conf_thresh"]), save=False, line_thickness=1)
         
 
 if __name__ == "__main__":
@@ -93,7 +89,6 @@ if __name__ == "__main__":
         mode = sys.argv[1]
     except (IndexError):
         mode = input("Specifiy test mode (cam/img): ")
-    
     
     if mode == "cam":
         object_det_tester.cam_detect()
@@ -109,7 +104,5 @@ if __name__ == "__main__":
             object_det_tester.img_detect(img)
             keyboard.wait('enter')
             cv2.destroyAllWindows()
-        quit()
     else:
         quit("No mode selected!")
-        

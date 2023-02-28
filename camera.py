@@ -3,6 +3,7 @@ Interface for camera
 """
 import cv2
 from time import time
+import logging
 
 import constants as c
 try:
@@ -10,7 +11,12 @@ try:
 except ImportError:
     print("Could not import GPS")
     
-# TODO: write drivers for camera servo and image capture
+# TODO: 
+# Write drivers for camera servo and image capture
+# Stabilize for wave disruption by centering horizon?
+# Target lock: Alter pitch & yaw to keep target in focus
+MAX_PITCH: int = 90
+MAX_YAW: int = 90
 
 class Frame():
     """Image with context metadata"""
@@ -20,17 +26,39 @@ class Frame():
         self.cords = cords
         self.pitch = Camera.pitch
         self.yaw = Camera.yaw
-        self.detections = []
+        self.detections = [] # empty until objectDetection.analyze()
         
 class Camera():
     """Drivers and interface for camera"""
     def __init__(self):
         self.pitch = 0 # TODO: set to curr servo angle
         self.yaw = 0 # TODO: set to curr servo angle
-        self.cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
+        self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
+        
+    @property
+    def pitch(self):
+        return self._pitch
+    @pitch.setter
+    def pitch(self, angle: int):
+        if (angle < -MAX_PITCH or angle > MAX_PITCH):
+            raise ValueError(f"Impossible angle: {angle} for pitch")
+        # MOVE CAMERA
+        logging.debug("Moving camera pitch to {angle}")
+        self._pitch = angle
+        
+    @property
+    def yaw(self):
+        return self.yaw
+    @yaw.setter
+    def yaw(self, angle: int):
+        if (angle < -MAX_YAW or angle > MAX_YAW):
+            raise ValueError(f"Impossible angle: {angle} for yaw")
+        # MOVE CAMERA
+        logging.debug("Moving camera yaw to {angle}")
+        self._yaw = angle
         
     def __del__(self):
-        self.cap.release()
+        self._cap.release()
         cv2.destroyAllWindows()
         
     def capture(self, save=True, context=True, show=False) -> Frame:
@@ -40,7 +68,7 @@ class Camera():
             save (bool): whether to include the image in return Frame
             show (bool): whether to show the image that is captured
         """
-        ret, img = self.cap.read()
+        ret, img = self._cap.read()
         if not ret:
             raise RuntimeError("No camera feed detected")
         
@@ -61,23 +89,22 @@ class Camera():
         else:
             return Frame()
         
-    @property
-    def pitch(self):
-        return self._pitch
-    @pitch.setter
-    def pitch(self, angle: int):
-        if (angle < -90 or angle > 90):
-            raise ValueError(f"Impossible angle: {angle} for pitch")
-        self._pitch = angle
+    def survey(self, num_images=3) -> list[Frame]:
+        """Takes a series of x pictures over 270 degrees of vision
+        Args:
+            num_images (int): how many images to take across FoV
+        """
+        images: list[Frame] = []
+        step = (MAX_YAW * 2) / num_images
         
-    @property
-    def yaw(self):
-        return self.yaw
-    @yaw.setter
-    def yaw(self, angle: int):
-        if (angle < -90 or angle > 90):
-            raise ValueError(f"Impossible angle: {angle} for yaw")
-        self._yaw = angle
+        if self.yaw < 0: # survey left -> right
+            for self.yaw in range(-MAX_YAW, MAX_YAW, step):
+                images.append(self.capture())
+        if self.yaw > 0: # survey right -> left
+            for self.yaw in range(MAX_YAW, -MAX_YAW, -step):
+                images.append(self.capture())
+        
+        return images
     
 
 if __name__ == "__main__":
