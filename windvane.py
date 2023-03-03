@@ -113,10 +113,12 @@ class windVane():
         if hefState == False:
             self.counter = 0
        """     
-        
-if __name__ == '__main__':
+def main():
     wv = windVane()
     while True:
         sleep(.1)
         print(F"Angle {wv.position}")
+
+if __name__ == '__main__':
+    main()
     
