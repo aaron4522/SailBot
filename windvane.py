@@ -7,8 +7,10 @@ from queue import Queue
 import board
 from RPi import GPIO
 from adafruit_seesaw import seesaw, rotaryio, digitalio
-import constants as c
-
+try:
+    import sailbot.constants as c
+except:
+    import constants as c
 
 class windVane():
 
