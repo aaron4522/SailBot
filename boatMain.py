@@ -1,10 +1,12 @@
 import sys
 try:
     import constants as c
+    import boatMath
 except:
     import sailbot.constants as c
+    import sailbot.boatMath as boatMath
 import logging
-import boatMath
+
 import math
 
 try:
