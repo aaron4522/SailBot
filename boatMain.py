@@ -26,10 +26,12 @@ from datetime import date, datetime
 from threading import Thread
 from time import sleep
 import numpy
-import rospy
+import rclpy
+from rclpy.node import Node
 from std_msgs.msg import String
 
-class boat:
+class boat(Node):
+    super().__init__('main_subscriber')
     """
     The overarching class for the entire boat, contains all sensor objects and automation functions
     """
@@ -37,18 +39,18 @@ class boat:
         """
         Set everything up and start the main loop
         """
-        rospy.init_node('boatMain', anonymous=True)
+        
         
         # create sensor objects
         self.gps = object()
         self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
         self.compass = object() #compass()
         
-        rospy.Subscriber('GPS_listener', String, self.ROS_GPSCallback)
-        rospy.Subscriber('compass_listener', String, self.ROS_compassCallback)
+        self.gps_subscription = self.create_subscription(String, 'GPS_listener', self.ROS_GPSCallback, 10)
+        self.compass_subscription = self.create_subscription(String, 'compass_listener', self.ROS_compassCallback, 10)
 
-        self.pub = rospy.Publisher('driver_talker', String, queue_size=10)
-        rospy.init_node('boatMain', anonymous=True)
+        self.pub = rclpy.Publisher('driver_talker', String, queue_size=10)
+        rclpy.init_node('boatMain', anonymous=True)
         
         
         #self.windvane = windVane()
@@ -498,6 +500,9 @@ class boat:
 
 
 def main():
+
+    rclpy.init(args=args)
+
     calibrateOdrive = True
     for arg in sys.argv:
         if arg == "noCal":
@@ -510,10 +515,16 @@ def main():
         print("Cleaning Up")
         b.adjustRudder(0)
         b.adjustSail(0)
+
+        b.destroy_node()
+        rclpy.shutdown()
+
     except KeyboardInterrupt as e:
         print("\n\nEXITING...\n\n")
         b.adjustRudder(0)
         b.adjustSail(0)
+        b.destroy_node()
+        rclpy.shutdown()
         print("EXITED CLEANLY")
 
 if __name__ == "__main__":
