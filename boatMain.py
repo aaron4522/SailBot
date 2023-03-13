@@ -497,13 +497,7 @@ class boat:
         logging.info("finished turnToAngle")
 
 
-if __name__ == "__main__":
-    """
-    this is the code that runs if you run this file 
-    read in command line args and create boat object
-    start mainloop
-    when code is stopped return sail and rudder to 0 position
-    """
+def main():
     calibrateOdrive = True
     for arg in sys.argv:
         if arg == "noCal":
@@ -521,5 +515,14 @@ if __name__ == "__main__":
         b.adjustRudder(0)
         b.adjustSail(0)
         print("EXITED CLEANLY")
+
+if __name__ == "__main__":
+    """
+    this is the code that runs if you run this file 
+    read in command line args and create boat object
+    start mainloop
+    when code is stopped return sail and rudder to 0 position
+    """
+    main()
 
 
