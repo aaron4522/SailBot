@@ -1,22 +1,17 @@
 #from curses import KEY_B2
-import constants as c
+
 import logging
 import math
 import time
 
 try:
-    from windvane import windVane
     from GPS import gps
-    from compass import compass
-    from camera import camera
+    import constants as c
 
-    from drivers import driver
-    from transceiver import arduino
-
-    #from boatMain import boat
 except Exception as e:
-    print("Failed to import some modules, if this is not a simulation fix this before continuing")
-    print(F"Exception raised: {e}")
+    from sailbot.GPS import gps
+    import sailbot.constants as c
+
 from datetime import date, datetime
 from threading import Thread
 from time import sleep
