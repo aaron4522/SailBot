@@ -5,13 +5,20 @@ hadles turning motors using Odrive/Stepper driver
 import board
 import busio
 #import adafruit_pca9685 as pcaLib
-import constants as c
-import stepper
+try:
+    import constants as c
+    import stepper
+    from Odrive import Odrive
+    from windvane import windVane
+except:
+    import sailbot.constants as c
+    import sailbot.stepper as stepper
+    from sailbot.Odrive import Odrive
+    from sailbot.windvane import windVane
+
 from threading import Thread
-from windvane import windVane
 from RPi import GPIO
 from time import sleep
-from Odrive import Odrive
 
 
 # define type of motor that is being used
