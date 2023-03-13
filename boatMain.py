@@ -1,25 +1,40 @@
 import sys
+ROS = None
 try:
     import constants as c
     import boatMath
+    ROS = False
 except:
     import sailbot.constants as c
     import sailbot.boatMath as boatMath
+    ROS = True
 import logging
 
 import math
 
 try:
     # try and load all the sensor libraries
-    from windvane import windVane
-    from GPS import gps
-    from compass import compass
-    import GPS
-    #from camera import camera
-    import events #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
+    if not ROS:
+        from windvane import windVane
+        from GPS import gps
+        from compass import compass
+        import GPS
+        #from camera import camera
+        import events #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
 
-    from drivers import driver
-    from transceiver import arduino
+        from drivers import driver
+        from transceiver import arduino
+    else:
+        from sailbot.windvane import windVane
+        from sailbot.GPS import gps
+        from sailbot.compass import compass
+        import sailbot.GPS as GPS
+        #from camera import camera
+        import sailbot.events as events #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
+
+        from sailbot.drivers import driver
+        from sailbot.transceiver import arduino
+
 except Exception as e:
     # if libraries fail give error message, and exit if this file is being run directly
     print("Failed to import some modules, if this is not a simulation fix this before continuing")
