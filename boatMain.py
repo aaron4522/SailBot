@@ -1,5 +1,8 @@
 import sys
-import constants as c
+try:
+    import constants as c
+except:
+    import sailbot.constants as c
 import logging
 import boatMath
 import math
