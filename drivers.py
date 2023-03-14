@@ -5,6 +5,8 @@ hadles turning motors using Odrive/Stepper driver
 import board
 import busio
 #import adafruit_pca9685 as pcaLib
+import rclpy
+from rclpy.node import Node
 try:
     import constants as c
     import stepper
