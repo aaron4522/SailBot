@@ -4,7 +4,7 @@ import os
 
 if os.path.isfile('config.ini'):
     prefix = ''
-elif os.path.isfile('config.ini'):
+elif os.path.isfile('sailbot/config.ini'):
     prefix = 'sailbot/'
 else:
     raise Exception("cannot find config.ini file")
