@@ -7,7 +7,7 @@ if os.path.isfile('config.ini'):
 elif os.path.isfile('sailbot/config.ini'):
     prefix = 'sailbot/'
 else:
-    raise Exception(F"cannot find config.ini file in {os.getcwd}")
+    raise Exception(F"cannot find config.ini file in {os.getcwd()}")
 
 config = configparser.ConfigParser()
 config.read(F'{prefix}config.ini')
