@@ -4,7 +4,10 @@ calibrates and default values for Odrive and handles interfacing between Odrive 
 
 import odrive
 import odrive.utils as ut
-import constants as c
+try:
+    import constants as c
+except:
+    import sailbot.constants as c
 from time import sleep
 import sys
 
