@@ -7,6 +7,7 @@ import busio
 #import adafruit_pca9685 as pcaLib
 import rclpy
 from rclpy.node import Node
+from std_msgs.msg import String
 try:
     import constants as c
     import stepper
