@@ -1,11 +1,12 @@
 # reads values from config.ini and returns them
 import configparser
+import os
 
-try:
-    import boatMath # see if we are in sailbot folder or parent folder
+if os.path.isfile('config.ini'):
     prefix = ''
-except:
+else:
     prefix = 'sailbot/'
+    
 config = configparser.ConfigParser()
 config.read(F'{prefix}config.ini')
     
