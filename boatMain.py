@@ -134,9 +134,10 @@ class boat(Node):
         """
         Move the sail to 'angle', angle is value between 0 and 90, 0 being all the way in
         """
+        dataStr = String()
         if self.manualControl and angle != None:
             # set sail to angle
-            dataStr = F"(driver:sail:{angle})"
+            dataStr.data = F"(driver:sail:{angle})"
             self.get_logger().info(dataStr)
             self.pub.publish(dataStr)
 
@@ -144,14 +145,14 @@ class boat(Node):
             # set sail to optimal angle based on windvane readings
             windDir = self.windvane.angle
             targetAngle = windDir + 35
-            dataStr = F"(driver:sail:{targetAngle})"
+            dataStr.data = F"(driver:sail:{targetAngle})"
             self.get_logger().info(dataStr)
             self.pub.publish(dataStr)
             self.currentSail = targetAngle
 
         else:
             # move sail to home position
-            dataStr = F"(driver:sail:{0})"
+            dataStr.data = F"(driver:sail:{0})"
             self.get_logger().info(dataStr)
             self.pub.publish(dataStr)
             self.currentSail = 0
@@ -161,6 +162,7 @@ class boat(Node):
         """
         Move the rudder to 'angle', angle is value between -45 and 45
         """
+        dataStr = String()
         if self.currentTarget or self.manualControl == True:
             # adjust rudder for best wind
             # angleTo = gps.angleTo(self.currentTarget)
@@ -169,7 +171,7 @@ class boat(Node):
 
             if d_angle > 180: d_angle -= 180
 
-            dataStr = F"(driver:rudder:{d_angle})"
+            dataStr.data = F"(driver:rudder:{d_angle})"
             self.get_logger().info(dataStr)
             self.pub.publish(dataStr)
 
@@ -178,7 +180,7 @@ class boat(Node):
 
         else:
             # move rudder to home position
-            dataStr = F"(driver:rudder:{0})"
+            dataStr.data = F"(driver:rudder:{0})"
             self.get_logger().info(dataStr)
             self.pub.publish(dataStr)
 
