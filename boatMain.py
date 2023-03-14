@@ -136,27 +136,24 @@ class boat(Node):
         """
         if self.manualControl and angle != None:
             # set sail to angle
-            if not rclpy.is_shutdown():
-                dataStr = F"(driver:sail:{angle})"
-                rclpy.loginfo(dataStr)
-                self.pub.publish(dataStr)
+            dataStr = F"(driver:sail:{angle})"
+            rclpy.loginfo(dataStr)
+            self.pub.publish(dataStr)
 
         elif self.currentTarget or self.manualControl:
             # set sail to optimal angle based on windvane readings
             windDir = self.windvane.angle
             targetAngle = windDir + 35
-            if not rclpy.is_shutdown():
-                dataStr = F"(driver:sail:{targetAngle})"
-                rclpy.loginfo(dataStr)
-                self.pub.publish(dataStr)
+            dataStr = F"(driver:sail:{targetAngle})"
+            rclpy.loginfo(dataStr)
+            self.pub.publish(dataStr)
             self.currentSail = targetAngle
 
         else:
             # move sail to home position
-            if not rclpy.is_shutdown():
-                dataStr = F"(driver:sail:{0})"
-                rclpy.loginfo(dataStr)
-                self.pub.publish(dataStr)
+            dataStr = F"(driver:sail:{0})"
+            rclpy.loginfo(dataStr)
+            self.pub.publish(dataStr)
             self.currentSail = 0
             logging.info('Adjusted sail to home position')
 
@@ -172,20 +169,18 @@ class boat(Node):
 
             if d_angle > 180: d_angle -= 180
 
-            if not rclpy.is_shutdown():
-                dataStr = F"(driver:rudder:{d_angle})"
-                rclpy.loginfo(dataStr)
-                self.pub.publish(dataStr)
+            dataStr = F"(driver:rudder:{d_angle})"
+            rclpy.loginfo(dataStr)
+            self.pub.publish(dataStr)
 
             self.currentRudder = d_angle
             logging.info('Adjusted rudder to: %d', d_angle)
 
         else:
             # move rudder to home position
-            if not rclpy.is_shutdown():
-                dataStr = F"(driver:rudder:{0})"
-                rclpy.loginfo(dataStr)
-                self.pub.publish(dataStr)
+            dataStr = F"(driver:rudder:{0})"
+            rclpy.loginfo(dataStr)
+            self.pub.publish(dataStr)
 
             self.currentRudder = 0
             logging.info('Adjusted rudder to home position')
