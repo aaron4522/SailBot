@@ -69,10 +69,6 @@ class boat(Node):
         
         self.gps_subscription = self.create_subscription(String, 'GPS_listener', self.ROS_GPSCallback, 10)
         self.compass_subscription = self.create_subscription(String, 'compass_listener', self.ROS_compassCallback, 10)
-
-        self.pub = rclpy.Publisher('driver_talker', String, queue_size=10)
-        rclpy.init_node('boatMain', anonymous=True)
-        
         
         #self.windvane = windVane()
         self.drivers = driver(calibrateOdrive = calibrateOdrive)
