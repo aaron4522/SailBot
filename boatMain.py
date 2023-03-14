@@ -64,7 +64,7 @@ class boat(Node):
 
         # create sensor objects
         self.gps = object()
-        self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
+        #self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
         self.compass = object() #compass()
         
         self.gps_subscription = self.create_subscription(String, 'GPS_listener', self.ROS_GPSCallback, 10)
@@ -404,7 +404,7 @@ class boat(Node):
                     elif ary[0] == 'addTarget': # add current GPS to list of targets
                         while self.gps.latitude == None or self.gps.longitude == None:
                             print("no gps")
-                            self.gps.updategps()
+                            #self.gps.updategps()
                             sleep(.1)
                         target = (self.gps.latitude, self.gps.longitude)
                         logging.info(F"added Target at {target}")
@@ -456,10 +456,10 @@ class boat(Node):
         """
 
         # Get current GPS coordinates, if we can't load info from GPS wait until we can and print error message
-        self.gps.updategps()
+        #self.gps.updategps()
         while self.gps.latitude == None or self.gps.longitude == None:
             print("no gps")
-            self.gps.updategps()
+            #self.gps.updategps()
             sleep(.1)
 
         # determine angle we need to turn
