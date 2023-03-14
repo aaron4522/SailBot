@@ -4,9 +4,11 @@ import os
 
 if os.path.isfile('config.ini'):
     prefix = ''
-else:
+elif os.path.isfile('config.ini'):
     prefix = 'sailbot/'
-    
+else:
+    raise Exception("cannot find config.ini file")
+
 config = configparser.ConfigParser()
 config.read(F'{prefix}config.ini')
     
