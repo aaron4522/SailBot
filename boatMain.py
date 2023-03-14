@@ -51,7 +51,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 class boat(Node):
-    super().__init__('main_subscriber')
+    
     """
     The overarching class for the entire boat, contains all sensor objects and automation functions
     """
@@ -60,6 +60,7 @@ class boat(Node):
         Set everything up and start the main loop
         """
         
+        super(calibrateOdrive).__init__('main_subscriber')
         
         # create sensor objects
         self.gps = object()
