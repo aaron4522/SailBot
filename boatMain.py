@@ -67,11 +67,11 @@ class boat(Node):
         #self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
         self.compass = object() #compass()
         
-        self.gps_subscription = self.create_subscription(String, 'GPS_listener', self.ROS_GPSCallback, 10)
-        self.compass_subscription = self.create_subscription(String, 'compass_listener', self.ROS_compassCallback, 10)
+        self.gps_subscription = self.create_subscription(String, 'GPS', self.ROS_GPSCallback, 10)
+        self.compass_subscription = self.create_subscription(String, 'compass', self.ROS_compassCallback, 10)
         
+        self.pub = self.create_publisher(String, 'driver', 10)
         #self.windvane = windVane()
-        self.drivers = driver(calibrateOdrive = calibrateOdrive)
         
         # try both of the USB ports the 'arduino' (transciver) may be connected to
         try:
@@ -136,26 +136,26 @@ class boat(Node):
         """
         if self.manualControl and angle != None:
             # set sail to angle
-            if not rospy.is_shutdown():
+            if not rclpy.is_shutdown():
                 dataStr = F"(driver:sail:{angle})"
-                rospy.loginfo(dataStr)
+                rclpy.loginfo(dataStr)
                 self.pub.publish(dataStr)
 
         elif self.currentTarget or self.manualControl:
             # set sail to optimal angle based on windvane readings
             windDir = self.windvane.angle
             targetAngle = windDir + 35
-            if not rospy.is_shutdown():
+            if not rclpy.is_shutdown():
                 dataStr = F"(driver:sail:{targetAngle})"
-                rospy.loginfo(dataStr)
+                rclpy.loginfo(dataStr)
                 self.pub.publish(dataStr)
             self.currentSail = targetAngle
 
         else:
             # move sail to home position
-            if not rospy.is_shutdown():
+            if not rclpy.is_shutdown():
                 dataStr = F"(driver:sail:{0})"
-                rospy.loginfo(dataStr)
+                rclpy.loginfo(dataStr)
                 self.pub.publish(dataStr)
             self.currentSail = 0
             logging.info('Adjusted sail to home position')
@@ -172,9 +172,9 @@ class boat(Node):
 
             if d_angle > 180: d_angle -= 180
 
-            if not rospy.is_shutdown():
+            if not rclpy.is_shutdown():
                 dataStr = F"(driver:rudder:{d_angle})"
-                rospy.loginfo(dataStr)
+                rclpy.loginfo(dataStr)
                 self.pub.publish(dataStr)
 
             self.currentRudder = d_angle
@@ -182,9 +182,9 @@ class boat(Node):
 
         else:
             # move rudder to home position
-            if not rospy.is_shutdown():
+            if not rclpy.is_shutdown():
                 dataStr = F"(driver:rudder:{0})"
-                rospy.loginfo(dataStr)
+                rclpy.loginfo(dataStr)
                 self.pub.publish(dataStr)
 
             self.currentRudder = 0

@@ -125,15 +125,45 @@ class obj_rudder:
 
         self.current = degrees
 
-class driver:
+class driver(Node):
 
     def __init__(self, calibrateOdrive = True):
+        super().__init__('driver')
         global DRV
         if USE_ODRIVE_SAIL or USE_ODRIVE_RUDDER:
             DRV = Odrive(calibrate=calibrateOdrive)
             pass
         self.sail = obj_sail()
         self.rudder = obj_rudder()
+
+        self.driver_subscription = self.create_subscription(String, 'driver', self.ROS_Callback, 10)
+
+    def ROS_Callback(self, string):
+        # string = (driver:sail/rudder:{targetAngle})
+        resolved = False
+        args = string.split(":")
+        if args[0] == 'driver':
+            if args[1] == 'sail':
+                self.sail.set(float(args[2]))
+                resolved = True
+            elif args[1] == 'rudder':
+                self.rudder.set(float(args[2]))
+                resolved = True
+
+        if not resolved:
+            print(F"driver failed to resolve command: {string}")
+
+
+def main(args = None):
+    rclpy.init(args=args)
+    drv = driver()
+    rclpy.spin(drv)
+
+    # Destroy the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    drv.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == "__main__":
     #manually control motors with commands 'sail {value}' and 'rudder {value}'
