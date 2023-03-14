@@ -60,7 +60,7 @@ class boat(Node):
         Set everything up and start the main loop
         """
         
-        super(calibrateOdrive).__init__('main_subscriber')
+        super().__init__('main_subscriber')
 
         # create sensor objects
         self.gps = object()
