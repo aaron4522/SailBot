@@ -61,7 +61,7 @@ class boat(Node):
         """
         
         super(calibrateOdrive).__init__('main_subscriber')
-        
+
         # create sensor objects
         self.gps = object()
         self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
@@ -520,7 +520,7 @@ class boat(Node):
         logging.info("finished turnToAngle")
 
 
-def main():
+def main(args=None):
 
     rclpy.init(args=args)
 
