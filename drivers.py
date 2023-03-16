@@ -144,7 +144,7 @@ class driver(Node):
     def ROS_Callback(self, string):
         # string = (driver:sail/rudder:{targetAngle})
         resolved = False
-        args = string.data.split(":").replace('(', '').replace(')', "")
+        args = string.data.replace('(', '').replace(')', "").split(":")
         if args[0] == 'driver':
             if args[1] == 'sail':
                 self.sail.set(float(args[2]))
