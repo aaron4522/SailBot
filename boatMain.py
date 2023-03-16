@@ -50,6 +50,9 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
+class dummyObject(object):
+    pass
+
 class boat(Node):
     
     """
@@ -63,12 +66,13 @@ class boat(Node):
         super().__init__('main_subscriber')
 
         # create sensor objects
-        self.gps = object()
+        self.gps = dummyObject()
         self.gps.latitude = 0.0
         self.gps.longitude = 0.0
         self.gps.track_angle_deg = 0.0
-        #self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
-        self.compass = object() #compass()
+        self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
+        self.compass = dummyObject() #compass()
+        self.compass.angle = 0.0
         
         self.gps_subscription = self.create_subscription(String, 'GPS', self.ROS_GPSCallback, 10)
         self.compass_subscription = self.create_subscription(String, 'compass', self.ROS_compassCallback, 10)
