@@ -146,10 +146,13 @@ class driver(Node):
         resolved = False
         args = string.data.split(":")
         if args[0] == 'driver':
+            print(1)
             if args[1] == 'sail':
+                print(2)
                 self.sail.set(float(args[2]))
                 resolved = True
             elif args[1] == 'rudder':
+                print(3)
                 self.rudder.set(float(args[2]))
                 resolved = True
 
