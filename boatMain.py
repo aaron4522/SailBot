@@ -138,7 +138,7 @@ class boat(Node):
         if self.manualControl and angle != None:
             # set sail to angle
             dataStr.data = F"(driver:sail:{angle})"
-            self.get_logger().info(dataStr)
+            self.get_logger().info(dataStr.data)
             self.pub.publish(dataStr)
 
         elif self.currentTarget or self.manualControl:
@@ -146,14 +146,14 @@ class boat(Node):
             windDir = self.windvane.angle
             targetAngle = windDir + 35
             dataStr.data = F"(driver:sail:{targetAngle})"
-            self.get_logger().info(dataStr)
+            self.get_logger().info(dataStr.data)
             self.pub.publish(dataStr)
             self.currentSail = targetAngle
 
         else:
             # move sail to home position
             dataStr.data = F"(driver:sail:{0})"
-            self.get_logger().info(dataStr)
+            self.get_logger().info(dataStr.data)
             self.pub.publish(dataStr)
             self.currentSail = 0
             logging.info('Adjusted sail to home position')
@@ -172,7 +172,7 @@ class boat(Node):
             if d_angle > 180: d_angle -= 180
 
             dataStr.data = F"(driver:rudder:{d_angle})"
-            self.get_logger().info(dataStr)
+            self.get_logger().info(dataStr.data)
             self.pub.publish(dataStr)
 
             self.currentRudder = d_angle
@@ -181,7 +181,7 @@ class boat(Node):
         else:
             # move rudder to home position
             dataStr.data = F"(driver:rudder:{0})"
-            self.get_logger().info(dataStr)
+            self.get_logger().info(dataStr.data)
             self.pub.publish(dataStr)
 
             self.currentRudder = 0
