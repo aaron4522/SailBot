@@ -154,7 +154,7 @@ class driver(Node):
                 resolved = True
 
         if not resolved:
-            print(F"driver failed to resolve command: {string}")
+            print(F"driver failed to resolve command: {string.data}, parsed to {args}")
 
 
 def main(args = None):
