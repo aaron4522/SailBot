@@ -141,10 +141,10 @@ class driver(Node):
 
         self.driver_subscription = self.create_subscription(String, 'driver', self.ROS_Callback, 10)
 
-    def ROS_Callback(self, data):
+    def ROS_Callback(self, string):
         # string = (driver:sail/rudder:{targetAngle})
         resolved = False
-        args = data.split(":")
+        args = string.data.split(":")
         if args[0] == 'driver':
             if args[1] == 'sail':
                 self.sail.set(float(args[2]))
@@ -154,7 +154,7 @@ class driver(Node):
                 resolved = True
 
         if not resolved:
-            print(F"driver failed to resolve command: {data}")
+            print(F"driver failed to resolve command: {string}")
 
 
 def main(args = None):
