@@ -64,6 +64,9 @@ class boat(Node):
 
         # create sensor objects
         self.gps = object()
+        self.gps.latitude = 0.0
+        self.gps.longitude = 0.0
+        self.gps.track_angle_deg = 0.0
         #self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
         self.compass = object() #compass()
         
