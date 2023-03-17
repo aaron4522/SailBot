@@ -72,9 +72,8 @@ class obj_sail:
 
         if USE_ODRIVE_SAIL:
             val = self.map(degrees, 0, 90, 0, float(c.config['ODRIVE']['odriveSailRotations']))
-            print("setting sail")
             DRV.posSet(self.odriveAxis, val)
-            
+            print(F"sail set to {degrees}")
         self.current = degrees
     
     def autoAdjustSail(self):
@@ -183,7 +182,6 @@ if __name__ == "__main__":
         
         if arr[0] == "sail":
             val = int(arr[1])
-            print("sail set call")
             drive.sail.set(val)
             
             
