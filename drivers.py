@@ -160,8 +160,10 @@ class driver(Node):
 def main(args = None):
     rclpy.init(args=args)
     drv = driver()
-    rclpy.spin(drv)
-
+    try:
+        rclpy.spin(drv)
+    except Exception as e:
+        print(F"exception rased in driver {e}")
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
