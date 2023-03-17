@@ -72,6 +72,7 @@ class obj_sail:
 
         if USE_ODRIVE_SAIL:
             val = self.map(degrees, 0, 90, 0, float(c.config['ODRIVE']['odriveSailRotations']))
+            print("setting sail")
             DRV.posSet(self.odriveAxis, val)
             
         self.current = degrees
@@ -182,7 +183,9 @@ if __name__ == "__main__":
         
         if arr[0] == "sail":
             val = int(arr[1])
+            print("sail set call")
             drive.sail.set(val)
+            
             
         elif arr[0] == "rudder" or arr[0] == 'r':
               drive.rudder.set(int(arr[1]))

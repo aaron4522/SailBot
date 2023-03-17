@@ -124,6 +124,7 @@ class Odrive():
     def posSet(self, axis, value):
         # sets 'axis' motor to value
         # 'axis' is axis0 or axis1 object
+        print(F"odrive posSet {axis} {value}")
         if axis == self.axis0:
             try:
                 self.axis0.controller.input_pos = value
