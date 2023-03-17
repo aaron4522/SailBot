@@ -167,6 +167,7 @@ def main(args = None):
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
+    print("Destroying driver node")
     drv.destroy_node()
     rclpy.shutdown()
 
