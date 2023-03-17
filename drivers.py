@@ -60,6 +60,7 @@ class obj_sail:
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
 
     def set(self, degrees):
+        print(F"setting sail: {degrees}")
         degrees = float(degrees)
 
         if USE_STEPPER_SAIL:
@@ -73,7 +74,6 @@ class obj_sail:
         if USE_ODRIVE_SAIL:
             val = self.map(degrees, 0, 90, 0, float(c.config['ODRIVE']['odriveSailRotations']))
             DRV.posSet(self.odriveAxis, val)
-            print(F"sail set to {degrees}")
         self.current = degrees
     
     def autoAdjustSail(self):
@@ -105,7 +105,7 @@ class obj_rudder:
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
     
     def set(self, degrees):
-
+        print(F"setting rudder: {degrees}")
         degrees = float(degrees)
         
         if USE_STEPPER_RUDDER:
