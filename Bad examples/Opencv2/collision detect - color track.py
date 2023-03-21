@@ -25,11 +25,6 @@ def find_side(img, x):
 #///////size contour cutoff///////
 #900 for jonah pc
 SIZE = 900
-#modeled with bottom of soldering plate with the 4 arm thingies
-#hold with dots horizontal (upright paperwise)
-#length in mm
-Wid_real = 14#find model
-Focal_L = (30*310)/Wid_real#(W*P_ex)/D_ex#calc (find pixels found and real distance in a case then plug in)
 
 #////////color mask values////////
 #BLUE / GREEN / RED
@@ -69,6 +64,17 @@ count=0
 arr=[]
 
 #LOOP
+inp = input("Hardcoded distance formula (y/n): ")
+if inp == "y":
+    # modeled with bottom of soldering plate with the 4 arm thingies
+    # hold with dots horizontal (upright paperwise)
+    # length in mm
+    Wid_real = 14  # find model
+    Focal_L = (30 * 310) / Wid_real  # (W*P_ex)/D_ex#calc (find pixels found and real distance in a case then plug in)
+else:
+    inp_D = float(input("INPUT DISTANCE: "))
+    Wid_real = float(input("INPUT REAL_WIDTH: "))
+
 while (True):
     cnt_count = 0
     s_time = time.time()
@@ -149,8 +155,9 @@ while (True):
         #print( find_side(vid_feed, x+(w/2)) )
 
         #distance formula
+        if inp != 'y': Focal_L = (inp_D * w) / Wid_real
         D = (Wid_real*Focal_L)/w
-        cv2.putText(frame, "DISTANCE: "+ str(D), (10, 88), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)  # TARGET output
+        if inp == 'y': cv2.putText(frame, "DISTANCE: "+ str(D), (10, 88), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 2)  # TARGET output
 
     else:
         cv2.putText(frame, "NO CONTOURS", (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 2)  # area of max
@@ -171,6 +178,7 @@ while (True):
         arr=[]
         #no detect: 0.024s
         #detect   : 0.025s to 0.030s
+        if inp != 'y': print(F"FOCAL_LENGTH: {Focal_L}")
 
     # quits when pressing 'q'
     if cv2.waitKey(1) & 0xFF == ord('q'):

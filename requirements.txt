@@ -10,7 +10,8 @@ numpy
 ultralytics
 opencv-python
 torch
-    # Debug
-    tkinter
-    keyboard
+
+# Debug
+tkinter
+keyboard
     

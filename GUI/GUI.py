@@ -1,4 +1,4 @@
-from re import A
+#from re import A
 import sys
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore
@@ -539,56 +539,72 @@ class tabWidget(QWidget):
         self.tab4.setLayout(self.tab4.layout)
 
 
+    #===================================================================================
+    #inputs: B1,B2,B3 long/lat
+    #arr: [B1x,B1y, etc]
     def tab_CA(self):
         self.tab_CA = QWidget()
         self.tab_EVENTS.addTab(self.tab_CA, "Collis Avoid")
         self.tab_CA.layout = QGridLayout(self)
 
-        names = ['Buoy x1', 'Buoy y1', 'Buoy x2', 'Buoy y2', 'Buoy x3', 'Buoy y3', 'Buoy x4', 'Buoy y4']
+        names = ['Buoy(StartT) x1', 'Buoy(StartT) y1', 'Buoy(StartB) x2', 'Buoy(StartB) y2', 'Buoy(R) x3', 'Buoy(R) y3']
         self.CA_BX = []
         self.CA_BX = ArrLineEdit(self.tab_CA,len(names),names)
         #ArrName(self.tab_CA,8,names)
 
         self.tab_CA.setLayout(self.tab_CA.layout)
 
+    #===================================================================================
+    #inputs: B1,B2,B3,B4 long/lat
+    #TL[0,1],TR[2,3],BL[4,5],BR[6,7] (left/right top, left/right bottom)
+    #arr: [B1x,B1y, etc]
     def tab_PN(self):
         self.tab_PN = QWidget()
         self.tab_EVENTS.addTab(self.tab_PN, "Prec Nav")
         self.tab_PN.layout = QGridLayout(self)
 
-        names = ['Buoy x1', 'Buoy y1', 'Buoy x2', 'Buoy y2', 'Buoy x3', 'Buoy y3', 'Buoy x4', 'Buoy y4']
+        names = ['Buoy(TL) x1', 'Buoy(TL) y1', 'Buoy(TR) x2', 'Buoy(TR) y2', 'Buoy(BL) x3', 'Buoy(BL) y3', 'Buoy(BR) x4', 'Buoy(BR) y4']
         self.PN_BX = ArrLineEdit(self.tab_PN,len(names),names)
 
         self.tab_PN.setLayout(self.tab_PN.layout)
 
+    #===================================================================================
+    #inputs: B1,B2,B3,B4 long/lat
+    #arr: [B1x,B1y, etc]
     def tab_EN(self):
         self.tab_EN = QWidget()
         self.tab_EVENTS.addTab(self.tab_EN, "Endur")
         self.tab_EN.layout = QGridLayout(self)
 
-        names = ['Buoy x1', 'Buoy y1', 'Buoy x2', 'Buoy y2', 'Buoy x3', 'Buoy y3', 'Buoy x4', 'Buoy y4']
+        names = ['Buoy(BR) x1', 'Buoy(BR) y1', 'Buoy(TR) x2', 'Buoy(TR) y2', 'Buoy(TL) x3', 'Buoy(TL) y3', 'Buoy(BL) x4', 'Buoy(BL) y4']
         self.EN_BX = ArrLineEdit(self.tab_EN,len(names),names)
 
 
         self.tab_EN.setLayout(self.tab_EN.layout)
 
+    #===================================================================================
+    #inputs: B1,B2,B3,B4 long/lat
+    #TL,TR,BL,BR
+    #arr: [B1x,B1y, etc]
     def tab_SK(self):
         self.tab_SK = QWidget()
         self.tab_EVENTS.addTab(self.tab_SK, "Stat Keep")
         self.tab_SK.layout = QGridLayout(self)
 
-        names = ['Buoy x1', 'Buoy y1', 'Buoy x2', 'Buoy y2', 'Buoy x3', 'Buoy y3', 'Buoy x4', 'Buoy y4']
+        names = ['Buoy(TL) x1', 'Buoy(TL) y1', 'Buoy(TR) x2', 'Buoy(TR) y2', 'Buoy(BL) x3', 'Buoy(BL) y3', 'Buoy(BR) x4', 'Buoy(BR) y4']
         self.SK_BX = ArrLineEdit(self.tab_SK,len(names),names)
 
 
         self.tab_SK.setLayout(self.tab_SK.layout)
 
+    #===================================================================================
+    #inputs: B1 long/lat, Radius (self.event_arr)
     def tab_SR(self):
         self.tab_SR = QWidget()
         self.tab_EVENTS.addTab(self.tab_SR, "Search")
         self.tab_SR.layout = QGridLayout(self)
 
-        names = ['Buoy x', 'Buoy y', 'radius']
+        names = ['Center x', 'Center y', 'radius']
         self.SR_BX = ArrLineEdit(self.tab_SR,len(names),names)
 
 

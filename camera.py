@@ -79,6 +79,65 @@ class Camera():
             raise ValueError(f"Impossible angle: {angle} for yaw")
         self._yaw = angle
     
+    #true center camera position
+    def center(self):
+        print("TODO")
+
+    #go far left,right,center looking for buoy whole time detect() - 3 set points in x axis
+    def scanTHIRDS(self):
+        #move to closest point in the trio, move to next (left has priority if it exists)
+        #detect() at each set camera position (x axis wise)
+
+        #speculation:
+        #find y axis base for each based on gyroscope - calc on basis before going to point and at point (% variation consideration)
+        #might not need dynamic y axis if stand is made well (just a thought)
+        print("TODO")
+
+    #tracking camera postion to center on object (possibly move rudder)
+    def track(self):
+        print("TODO")
+
+    #look for buoy in capture taken
+    def detect(self):
+        print("TODO")
+        #aaron AI goku based code with capture()
+
+    #calculate gps coords of object based on distance formula and angle
+    def coordcalc(self):
+        print("TODO")
+        #rework events to work on ever updating gps coords rather then fantom radius area?
+        #how would you differenciate them from eachother?
+    
+    #backburner: free control movement wise with continuous capture feed for demonstration purposes
+    def freemove(self):
+        print("TODO")
+
+    #============================================================================================================================
+    def testloop(self):
+        print('''
+=============================
+Accepted Command info:
+[0] freemove(): free control movement wise with continuous capture feed for demonstration purposes
+[1] center():   true center camera position
+[2] scanTHIRDS(): go far left,right,center looking for buoy whole time detect() - 3 set points in x axis
+[3] detect(): look for buoy in capture taken
+-----------------------------''')
+        inp = input("Command Test: ")
+        
+        if inp == "0":
+            self.freemove()
+        if inp == "1":
+            self.center()
+        if inp == "2":
+            self.scanTHIRDS()
+        if inp == "3":
+            self.detect()
+        else:
+            print("nah...")
+            raise Exception("invalid command selection")
+
+#============================================================================================================================
 
 if __name__ == "__main__":
     cam = Camera()
+    cam.testloop()
