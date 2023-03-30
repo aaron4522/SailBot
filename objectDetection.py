@@ -7,12 +7,13 @@ import numpy as np
 import torch
 from time import time
 import logging
+from dataclasses import dataclass
 
 import constants as c
 from camera import Camera, Frame
 #from GPS import gps
 
-
+@dataclass(order=True)
 class Detection:
     """Bounding box and confidence for a detected object"""
     def __init__(self, result: torch.tensor):
@@ -25,6 +26,9 @@ class Detection:
         self.h = _xywh[3]
         self.conf = _bbox.conf.numpy()[0]
         #self.class_id: str = ObjectDetection.classes[int(_bbox.cls.numpy()[0])]
+        #self.pos = None
+        sort_index: int = self.conf
+        
 
 
 class ObjectDetection():
