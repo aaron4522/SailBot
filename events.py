@@ -6,6 +6,9 @@ import time
 
 try:
     from GPS import gps
+    from compass import compass
+    from camera import Camera, Frame
+    from objectDetection import ObjectDetection, Detection
     import constants as c
 
 except Exception as e:
@@ -798,12 +801,7 @@ class Station_Keeping(event):   #jonah
 
 
 class Search(event):
-    #===================================================================================
-    #inputs: B1 long/lat, Radius (self.event_arr)
-    def __init__(self,arr):
-        super().__init__(arr)
-        print("Search moment")
-        #Challenge	Goal:
+    #Challenge	Goal:
             #To demonstrate the boat’s ability to autonomously locate an object
         #Description:
             #An orange buoy will be placed somewhere within 100 m of a reference position
@@ -815,8 +813,21 @@ class Search(event):
             #12 pts for touching (w/o signal)
             #9 pts for passing within 1m
             #6 pts for performing a search pattern (creeping line, expanding square, direct tracking to buoy, etc)
-        #assumptions: (based on guidelines)
-            #left of start direction is upstream
+    # Strategy:
+        # Define search path as series of GPS lines to cover the most ground in shortest time
+        # If x% match verify:
+            # Check if estimated position is outside of given bounds + buffer
+        # Then deviate from course and go to position
+            # If target confidence increases -> target lock & goto
+            # if target confidence decreases -> 
+        # On
+            
+    #inputs: B1 long/lat, Radius (self.event_arr)
+    def __init__(self,arr):
+        super().__init__(arr)
+        print("Search moment")
+        self.object_detection = ObjectDetection()
+        self.camera = Camera()
 
 
         #make in boatMain along with mode switch, attach buoy coords and radius in ary
@@ -825,6 +836,22 @@ class Search(event):
     
     def next_gps(self):
         return 0,0
+    
+    def loop(self):
+        """Event body"""
+        imgs: list[Frame] = self.camera.survey(3) # (3, analyze=True?)
+        for i, img in enumerate(i, imgs):
+            self.object_detection.analyze(img)
+        imgs.sort() # sort by confidence
+        # Datapoints:
+            # GPS pos of boat
+            # GPS pos of detections
+            # Confidence of detections
+        # Abstract:
+            # Create a heatmap of buoys which persists across surveys
+                # (lat, long, confidence) 
+        
+        
     
     def SR_pattern(self):
         #find five coords via search pattern
