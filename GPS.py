@@ -13,7 +13,11 @@ import adafruit_lsm303dlh_mag
 from time import sleep
 from threading import Thread
 import math
-from sailbot.boatMath import degreesToRadians, getCoordinateADistanceAlongAngle, distanceInMBetweenEarthCoordinates, computeNewCoordinate, angleBetweenCoordinates, convertDegMinToDecDeg, convertWindAngle
+
+try:
+    from boatMath import degreesToRadians, getCoordinateADistanceAlongAngle, distanceInMBetweenEarthCoordinates, computeNewCoordinate, angleBetweenCoordinates, convertDegMinToDecDeg, convertWindAngle
+except:
+    from sailbot.boatMath import degreesToRadians, getCoordinateADistanceAlongAngle, distanceInMBetweenEarthCoordinates, computeNewCoordinate, angleBetweenCoordinates, convertDegMinToDecDeg, convertWindAngle
 
 import rclpy
 from rclpy.node import Node
@@ -64,7 +68,7 @@ class gps(Node):
         #pump_thread = Thread(target=self.run)# creates a Thread running an infinite loop pumping server
         #pump_thread.start()
         super().__init__('GPS')
-        self.pub = self.create_publisher(String, 'GPS_talker', 10)
+        self.pub = self.create_publisher(String, 'GPS', 10)
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 

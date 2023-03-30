@@ -5,13 +5,23 @@ hadles turning motors using Odrive/Stepper driver
 import board
 import busio
 #import adafruit_pca9685 as pcaLib
-import constants as c
-import stepper
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+try:
+    import constants as c
+    import stepper
+    from Odrive import Odrive
+    from windvane import windVane
+except:
+    import sailbot.constants as c
+    import sailbot.stepper as stepper
+    from sailbot.Odrive import Odrive
+    from sailbot.windvane import windVane
+
 from threading import Thread
-from windvane import windVane
 from RPi import GPIO
 from time import sleep
-from Odrive import Odrive
 
 
 # define type of motor that is being used
@@ -50,6 +60,7 @@ class obj_sail:
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
 
     def set(self, degrees):
+        print(F"setting sail: {degrees}")
         degrees = float(degrees)
 
         if USE_STEPPER_SAIL:
@@ -63,7 +74,6 @@ class obj_sail:
         if USE_ODRIVE_SAIL:
             val = self.map(degrees, 0, 90, 0, float(c.config['ODRIVE']['odriveSailRotations']))
             DRV.posSet(self.odriveAxis, val)
-            
         self.current = degrees
     
     def autoAdjustSail(self):
@@ -95,7 +105,7 @@ class obj_rudder:
         return min2 + (max2-min2)*((x-min1)/(max1-min1))
     
     def set(self, degrees):
-
+        print(F"setting rudder: {degrees}")
         degrees = float(degrees)
         
         if USE_STEPPER_RUDDER:
@@ -118,15 +128,48 @@ class obj_rudder:
 
         self.current = degrees
 
-class driver:
+class driver(Node):
 
     def __init__(self, calibrateOdrive = True):
+        super().__init__('driver')
         global DRV
         if USE_ODRIVE_SAIL or USE_ODRIVE_RUDDER:
             DRV = Odrive(calibrate=calibrateOdrive)
             pass
         self.sail = obj_sail()
         self.rudder = obj_rudder()
+
+        self.driver_subscription = self.create_subscription(String, 'driver', self.ROS_Callback, 10)
+
+    def ROS_Callback(self, string):
+        # string = (driver:sail/rudder:{targetAngle})
+        resolved = False
+        args = string.data.replace('(', '').replace(')', "").split(":")
+        if args[0] == 'driver':
+            if args[1] == 'sail':
+                self.sail.set(float(args[2]))
+                resolved = True
+            elif args[1] == 'rudder':
+                self.rudder.set(float(args[2]))
+                resolved = True
+
+        if not resolved:
+            print(F"driver failed to resolve command: {string.data}, parsed to {args}")
+
+
+def main(args = None):
+    rclpy.init(args=args)
+    drv = driver()
+    try:
+        rclpy.spin(drv)
+    except Exception as e:
+        print(F"exception rased in driver {e}")
+    # Destroy the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    print("Destroying driver node")
+    drv.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == "__main__":
     #manually control motors with commands 'sail {value}' and 'rudder {value}'
@@ -143,6 +186,7 @@ if __name__ == "__main__":
         if arr[0] == "sail":
             val = int(arr[1])
             drive.sail.set(val)
+            
             
         elif arr[0] == "rudder" or arr[0] == 'r':
               drive.rudder.set(int(arr[1]))

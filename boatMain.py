@@ -1,20 +1,40 @@
 import sys
-import constants as c
+ROS = None
+try:
+    import constants as c
+    import boatMath
+    ROS = False
+except:
+    import sailbot.constants as c
+    import sailbot.boatMath as boatMath
+    ROS = True
 import logging
-import boatMath
+
 import math
 
 try:
     # try and load all the sensor libraries
-    from windvane import windVane
-    from GPS import gps
-    from compass import compass
-    import GPS
-    #from camera import camera
-    import events #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
+    if not ROS:
+        from windvane import windVane
+        from GPS import gps
+        from compass import compass
+        import GPS
+        #from camera import camera
+        import events #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
 
-    from drivers import driver
-    from transceiver import arduino
+        from drivers import driver
+        from transceiver import arduino
+    else:
+        from sailbot.windvane import windVane
+        from sailbot.GPS import gps
+        from sailbot.compass import compass
+        import sailbot.GPS as GPS
+        #from camera import camera
+        import sailbot.events as events #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
+
+        from sailbot.drivers import driver
+        from sailbot.transceiver import arduino
+
 except Exception as e:
     # if libraries fail give error message, and exit if this file is being run directly
     print("Failed to import some modules, if this is not a simulation fix this before continuing")
@@ -26,10 +46,15 @@ from datetime import date, datetime
 from threading import Thread
 from time import sleep
 import numpy
-import rospy
+import rclpy
+from rclpy.node import Node
 from std_msgs.msg import String
 
-class boat:
+class dummyObject(object):
+    pass
+
+class boat(Node):
+    
     """
     The overarching class for the entire boat, contains all sensor objects and automation functions
     """
@@ -37,22 +62,23 @@ class boat:
         """
         Set everything up and start the main loop
         """
-        rospy.init_node('boatMain', anonymous=True)
         
-        # create sensor objects
-        self.gps = object()
-        self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
-        self.compass = object() #compass()
-        
-        rospy.Subscriber('GPS_listener', String, self.ROS_GPSCallback)
-        rospy.Subscriber('compass_listener', String, self.ROS_compassCallback)
+        super().__init__('main_subscriber')
 
-        self.pub = rospy.Publisher('driver_talker', String, queue_size=10)
-        rospy.init_node('boatMain', anonymous=True)
+        # create sensor objects
+        self.gps = dummyObject()
+        self.gps.latitude = 0.0
+        self.gps.longitude = 0.0
+        self.gps.track_angle_deg = 0.0
+        self.gps.updateGPS = lambda *args: None #do nothing if this function is called and return None
+        self.compass = dummyObject() #compass()
+        self.compass.angle = 0.0
         
+        self.gps_subscription = self.create_subscription(String, 'GPS', self.ROS_GPSCallback, 10)
+        self.compass_subscription = self.create_subscription(String, 'compass', self.ROS_compassCallback, 10)
         
+        self.pub = self.create_publisher(String, 'driver', 10)
         #self.windvane = windVane()
-        self.drivers = driver(calibrateOdrive = calibrateOdrive)
         
         # try both of the USB ports the 'arduino' (transciver) may be connected to
         try:
@@ -115,29 +141,27 @@ class boat:
         """
         Move the sail to 'angle', angle is value between 0 and 90, 0 being all the way in
         """
+        dataStr = String()
         if self.manualControl and angle != None:
             # set sail to angle
-            if not rospy.is_shutdown():
-                dataStr = F"(driver:sail:{angle})"
-                rospy.loginfo(dataStr)
-                self.pub.publish(dataStr)
+            dataStr.data = F"(driver:sail:{angle})"
+            self.get_logger().info(dataStr.data)
+            self.pub.publish(dataStr)
 
         elif self.currentTarget or self.manualControl:
             # set sail to optimal angle based on windvane readings
             windDir = self.windvane.angle
             targetAngle = windDir + 35
-            if not rospy.is_shutdown():
-                dataStr = F"(driver:sail:{targetAngle})"
-                rospy.loginfo(dataStr)
-                self.pub.publish(dataStr)
+            dataStr.data = F"(driver:sail:{targetAngle})"
+            self.get_logger().info(dataStr.data)
+            self.pub.publish(dataStr)
             self.currentSail = targetAngle
 
         else:
             # move sail to home position
-            if not rospy.is_shutdown():
-                dataStr = F"(driver:sail:{0})"
-                rospy.loginfo(dataStr)
-                self.pub.publish(dataStr)
+            dataStr.data = F"(driver:sail:{0})"
+            self.get_logger().info(dataStr.data)
+            self.pub.publish(dataStr)
             self.currentSail = 0
             logging.info('Adjusted sail to home position')
 
@@ -145,6 +169,7 @@ class boat:
         """
         Move the rudder to 'angle', angle is value between -45 and 45
         """
+        dataStr = String()
         if self.currentTarget or self.manualControl == True:
             # adjust rudder for best wind
             # angleTo = gps.angleTo(self.currentTarget)
@@ -153,20 +178,18 @@ class boat:
 
             if d_angle > 180: d_angle -= 180
 
-            if not rospy.is_shutdown():
-                dataStr = F"(driver:rudder:{d_angle})"
-                rospy.loginfo(dataStr)
-                self.pub.publish(dataStr)
+            dataStr.data = F"(driver:rudder:{d_angle})"
+            self.get_logger().info(dataStr.data)
+            self.pub.publish(dataStr)
 
             self.currentRudder = d_angle
             logging.info('Adjusted rudder to: %d', d_angle)
 
         else:
             # move rudder to home position
-            if not rospy.is_shutdown():
-                dataStr = F"(driver:rudder:{0})"
-                rospy.loginfo(dataStr)
-                self.pub.publish(dataStr)
+            dataStr.data = F"(driver:rudder:{0})"
+            self.get_logger().info(dataStr.data)
+            self.pub.publish(dataStr)
 
             self.currentRudder = 0
             logging.info('Adjusted rudder to home position')
@@ -381,7 +404,7 @@ class boat:
                     elif ary[0] == 'addTarget': # add current GPS to list of targets
                         while self.gps.latitude == None or self.gps.longitude == None:
                             print("no gps")
-                            self.gps.updategps()
+                            #self.gps.updategps()
                             sleep(.1)
                         target = (self.gps.latitude, self.gps.longitude)
                         logging.info(F"added Target at {target}")
@@ -433,10 +456,10 @@ class boat:
         """
 
         # Get current GPS coordinates, if we can't load info from GPS wait until we can and print error message
-        self.gps.updategps()
+        #self.gps.updategps()
         while self.gps.latitude == None or self.gps.longitude == None:
             print("no gps")
-            self.gps.updategps()
+            #self.gps.updategps()
             sleep(.1)
 
         # determine angle we need to turn
@@ -497,13 +520,10 @@ class boat:
         logging.info("finished turnToAngle")
 
 
-if __name__ == "__main__":
-    """
-    this is the code that runs if you run this file 
-    read in command line args and create boat object
-    start mainloop
-    when code is stopped return sail and rudder to 0 position
-    """
+def main(args=None):
+
+    rclpy.init(args=args)
+
     calibrateOdrive = True
     for arg in sys.argv:
         if arg == "noCal":
@@ -516,10 +536,25 @@ if __name__ == "__main__":
         print("Cleaning Up")
         b.adjustRudder(0)
         b.adjustSail(0)
+
+        b.destroy_node()
+        rclpy.shutdown()
+
     except KeyboardInterrupt as e:
         print("\n\nEXITING...\n\n")
         b.adjustRudder(0)
         b.adjustSail(0)
+        b.destroy_node()
+        rclpy.shutdown()
         print("EXITED CLEANLY")
+
+if __name__ == "__main__":
+    """
+    this is the code that runs if you run this file 
+    read in command line args and create boat object
+    start mainloop
+    when code is stopped return sail and rudder to 0 position
+    """
+    main()
 
 

@@ -7,8 +7,10 @@ from queue import Queue
 import board
 from RPi import GPIO
 from adafruit_seesaw import seesaw, rotaryio, digitalio
-import constants as c
-
+try:
+    import sailbot.constants as c
+except:
+    import constants as c
 
 class windVane():
 
@@ -111,10 +113,12 @@ class windVane():
         if hefState == False:
             self.counter = 0
        """     
-        
-if __name__ == '__main__':
+def main():
     wv = windVane()
     while True:
         sleep(.1)
         print(F"Angle {wv.position}")
+
+if __name__ == '__main__':
+    main()
     

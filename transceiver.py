@@ -3,7 +3,10 @@ reads and sends data from the connected USB transceiver
 """
 #from messages_pb2 import *
 import serial
-import constants as c
+try:
+    import constants as c
+except:
+    import sailbot.constants as c
 import sys
 import smbus2 as smbus#,smbus2
 import time

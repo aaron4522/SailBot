@@ -32,7 +32,7 @@ class compass(Node):
         self.averagedAngle = 0
 
         super().__init__('Compass')
-        self.pub = self.create_publisher(String, 'Compass_talker', 10)
+        self.pub = self.create_publisher(String, 'compass', 10)
         timer_period = 0.5  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 

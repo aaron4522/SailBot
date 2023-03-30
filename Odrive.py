@@ -4,7 +4,10 @@ calibrates and default values for Odrive and handles interfacing between Odrive 
 
 import odrive
 import odrive.utils as ut
-import constants as c
+try:
+    import constants as c
+except:
+    import sailbot.constants as c
 from time import sleep
 import sys
 
@@ -121,6 +124,7 @@ class Odrive():
     def posSet(self, axis, value):
         # sets 'axis' motor to value
         # 'axis' is axis0 or axis1 object
+        #print(F"odrive posSet {value}")
         if axis == self.axis0:
             try:
                 self.axis0.controller.input_pos = value
