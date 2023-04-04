@@ -3,6 +3,7 @@ Interface for camera
 """
 import cv2
 from time import time
+import logging
 import math
 
 import constants as c
@@ -12,7 +13,12 @@ try:
 except ImportError:
     print("Could not import GPS")
     
-# TODO: write drivers for camera servo and image capture
+# TODO: 
+# Write drivers for camera servo and image capture
+# Stabilize for wave disruption by centering horizon?
+# Target lock: Alter pitch & yaw to keep target in focus
+MAX_PITCH: int = 90
+MAX_YAW: int = 90
 
 class Frame():
     """Image with context metadata"""
@@ -22,7 +28,8 @@ class Frame():
         self.cords = cords
         self.pitch = Camera.pitch
         self.yaw = Camera.yaw
-        self.detections = []
+        self.detections = [] # Initially empty, contains objectDetection.Detection after objectDetection.analyze(Frame.img) is run
+            
         
 class Camera():
     """Drivers and interface for camera"""
@@ -30,21 +37,22 @@ class Camera():
         #pitch: +up/-down; yaw: +left/-right
         self.pitch = 0 # TODO: set to curr servo angle
         self.yaw = 0 # TODO: set to curr servo angle
-        self.cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
+        self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
         self.obj_info = [0,0,0,0] #x,y,width,height
         
     def __del__(self):
-        self.cap.release()
+        self._cap.release()
         cv2.destroyAllWindows()
         
-    def capture(self, save=True, context=True, show=False) -> Frame:
+    def capture(self, context=True, show=False) -> Frame:
         """Takes a single picture from camera
         Args:
             context (bool): whether to include time, gps, and camera angle in return Frame
-            save (bool): whether to include the image in return Frame
             show (bool): whether to show the image that is captured
+        Returns:
+            A Camera.Frame object
         """
-        ret, img = self.cap.read()
+        ret, img = self._cap.read()
         if not ret:
             raise RuntimeError("No camera feed detected")
         
@@ -56,41 +64,48 @@ class Camera():
             #gps.updategps() TODO: GPS missing imports
             #cords = (gps.latitude, gps.longitude)
             cords = None # TEMP
-            if save:
-                return Frame(img=img, time=time, cords=cords)
-            else:
-                return Frame(time=time, cords=cords)            
-        elif save:
-            return Frame(img=img)
+            return Frame(img=img, time=time, cords=cords)            
         else:
-            return Frame()
-
-    #---------------------------------- 
+            return Frame(img=img)
+        
+    def survey(self, num_images=3) -> list[Frame]:
+        """Takes a series of x pictures over 270 degrees of vision
+        Args:
+            num_images (int): how many images to take across FoV
+        """
+        images: list[Frame] = []
+        step = (MAX_YAW * 2) / num_images
+        
+        if self.yaw < 0: # survey left -> right
+            for self.yaw in range(-MAX_YAW, MAX_YAW, step):
+                images.append(self.capture())
+        if self.yaw > 0: # survey right -> left
+            for self.yaw in range(MAX_YAW, -MAX_YAW, -step):
+                images.append(self.capture())
+        
+        return images
+    
     @property
-    def pitch(self):
+    def pitch(self): # Protects servo from moving outside its maximum range
         return self._pitch
-    #NOTE: PRIORITY[{!!!!!!!!!!!!!!!!!!!!}]
     @pitch.setter
     def pitch(self, angle: int):
-        if (angle < -90 or angle > 90):
-            #NOTE: print warning and just go to +-90 instead?
+        if (angle < -MAX_PITCH or angle > MAX_PITCH):
             raise ValueError(f"Impossible angle: {angle} for pitch")
-        #NOTE: integrated code here
+        # MOVE CAMERA
+        logging.debug("Moving camera pitch to {angle}")
         self._pitch = angle
-
-    #----------------------------------    
+        
     @property
-    def yaw(self):
+    def yaw(self): # Protects servo from moving outside its maximum range
         return self.yaw
-    #NOTE: PRIORITY[{!!!!!!!!!!!!!!!!!!!!}]
     @yaw.setter
     def yaw(self, angle: int):
-        if (angle < -90 or angle > 90):
-            #NOTE: print warning and just go to +-90 instead?
+        if (angle < -MAX_YAW or angle > MAX_YAW):
             raise ValueError(f"Impossible angle: {angle} for yaw")
-        #NOTE: integrated code here
+        # MOVE CAMERA
+        logging.debug("Moving camera yaw to {angle}")
         self._yaw = angle
-
     #----------------------------------
     #go far left,right,center looking for buoy whole time detect() - 3 set points in x axis
     def scanTHIRDS(self):

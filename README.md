@@ -1,40 +1,42 @@
 # SailBot
 Main codebase for SailBot 2019-21
-https://pitt-my.sharepoint.com/:o:/r/personal/tad85_pitt_edu/Documents/Sailbot%20Stuff?d=w0d1afb3f4ab44df2b02186d8015ae380&csf=1&web=1&e=uvn9TV
 
-## What each of the scripts do and important notes
-
-### GPS (also contains compass)
-1. contains functiond for converting between distance units
-2. contains gps class, which has attributes latitude and longitude
-3. contains compass class
-
-### OdriveTest
-1. contains odrive object and initialization values
-2. setting odrive.pos will change motor position
-
-### transciver
-1. contains arduino class which:
-2. sends messages to other transciver
-3. reads messages sent from other transciver
-
-### windvane
-1. contains windvane class with property angle
-
-### drivers
-1. Has sail and rudder objects which have properties angle, used for setting angle of sail and rudders
-2. Has code for stepper motors and servos
-
-### boatMain
-1. will eventually call all the automation code
-
-### constants
-1. holds all of the constants used by other scripts
-2. note: the constants are store in config.ini file, constants.py just loads and returns 
-
-#### other scripts not mentioned are not used
-
+## Guide
+Onenote notebook containing boat startup steps, documentation and passwords can be found [here](https://pitt-my.sharepoint.com/:o:/r/personal/tad85_pitt_edu/Documents/Sailbot%20Stuff?d=w0d1afb3f4ab44df2b02186d8015ae380&csf=1&web=1&e=uvn9TV)
 
 ## Installation
-1. cd Sailbot
-2. pip install -r requirements.txt
+In the terminal, navigate to the directory where you want to install the repository and enter
+```
+git clone https://github.com/SailBotPitt/SailBot.git
+```
+
+Install required dependencies by entering
+```
+pip install -r requirements.txt
+```
+*this requires python 3.10 to be installed*
+
+## Scripts
+### Logic
+- **boatMain** - dain loop controlling every aspect of the boat
+- **events** - directs boat behavior depending on which [competition challenges](https://www.sailbot.org/wp-content/uploads/2022/05/SailBot-2022-Events.pdf) the boat is participating in
+
+### Sensors/Controls
+Scripts which interface with the mechanical parts of the boat and provide abstracted functions used by 
+- **GPS** - boat position
+- **compass** - boat heading
+- **windvane** - wind direction
+- **camera** - RGB optical camera
+- **drivers** - controls motors for rudder and sail
+- **transceiver** - wireless communication to shore
+
+### Utils
+Miscellaneous functions used by the boat
+- **constants** - config containing all static parameters used by the boat
+- **boatMath** - common functions for converting between coordinates and angles
+- **objectDetection** - AI buoy detection from an image
+- **Odrive** - used to calibrate motor speed and limits
+
+### Debug
+Scripts used to test boat behavior
+- **boatSim** - simulates how the boat moves in a virtual environment
