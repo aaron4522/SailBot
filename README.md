@@ -23,20 +23,20 @@ pip install -r requirements.txt
 
 ### Sensors/Controls
 Scripts which interface with the mechanical parts of the boat and provide abstracted functions used by 
-**GPS** - boat position
-**compass** - boat heading
-**windvane** - wind direction
-**camera** - RGB optical camera
-**drivers** - controls motors for rudder and sail
-**transceiver** - wireless communication to shore
+- **GPS** - boat position
+- **compass** - boat heading
+- **windvane** - wind direction
+- **camera** - RGB optical camera
+- **drivers** - controls motors for rudder and sail
+- **transceiver** - wireless communication to shore
 
 ### Utils
 Miscellaneous functions used by the boat
-**constants** - config containing all static parameters used by the boat
-**boatMath** - common functions for converting between coordinates and angles
-**objectDetection** - AI buoy detection from an image
-**Odrive** - used to calibrate motor speed and limits
+- **constants** - config containing all static parameters used by the boat
+- **boatMath** - common functions for converting between coordinates and angles
+- **objectDetection** - AI buoy detection from an image
+- **Odrive** - used to calibrate motor speed and limits
 
 ### Debug
 Scripts used to test boat behavior
-**boatSim** - simulates how the boat moves in a virtual environment
+- **boatSim** - simulates how the boat moves in a virtual environment
