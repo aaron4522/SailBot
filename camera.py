@@ -28,7 +28,8 @@ class Frame():
         self.cords = cords
         self.pitch = Camera.pitch
         self.yaw = Camera.yaw
-        self.detections = [] # empty until objectDetection.analyze()
+        self.detections = [] # Initially empty, contains objectDetection.Detection after objectDetection.analyze(Frame.img) is run
+            
         
 class Camera():
     """Drivers and interface for camera"""
@@ -39,38 +40,17 @@ class Camera():
         self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
         self.obj_info = [0,0,0,0] #x,y,width,height
         
-    @property
-    def pitch(self):
-        return self._pitch
-    @pitch.setter
-    def pitch(self, angle: int):
-        if (angle < -MAX_PITCH or angle > MAX_PITCH):
-            raise ValueError(f"Impossible angle: {angle} for pitch")
-        # MOVE CAMERA
-        logging.debug("Moving camera pitch to {angle}")
-        self._pitch = angle
-        
-    @property
-    def yaw(self):
-        return self.yaw
-    @yaw.setter
-    def yaw(self, angle: int):
-        if (angle < -MAX_YAW or angle > MAX_YAW):
-            raise ValueError(f"Impossible angle: {angle} for yaw")
-        # MOVE CAMERA
-        logging.debug("Moving camera yaw to {angle}")
-        self._yaw = angle
-        
     def __del__(self):
         self._cap.release()
         cv2.destroyAllWindows()
         
-    def capture(self, save=True, context=True, show=False) -> Frame:
+    def capture(self, context=True, show=False) -> Frame:
         """Takes a single picture from camera
         Args:
             context (bool): whether to include time, gps, and camera angle in return Frame
-            save (bool): whether to include the image in return Frame
             show (bool): whether to show the image that is captured
+        Returns:
+            A Camera.Frame object
         """
         ret, img = self._cap.read()
         if not ret:
@@ -84,14 +64,9 @@ class Camera():
             #gps.updategps() TODO: GPS missing imports
             #cords = (gps.latitude, gps.longitude)
             cords = None # TEMP
-            if save:
-                return Frame(img=img, time=time, cords=cords)
-            else:
-                return Frame(time=time, cords=cords)            
-        elif save:
-            return Frame(img=img)
+            return Frame(img=img, time=time, cords=cords)            
         else:
-            return Frame()
+            return Frame(img=img)
         
     def survey(self, num_images=3) -> list[Frame]:
         """Takes a series of x pictures over 270 degrees of vision
@@ -110,33 +85,27 @@ class Camera():
         
         return images
     
-
-    #---------------------------------- 
     @property
-    def pitch(self):
+    def pitch(self): # Protects servo from moving outside its maximum range
         return self._pitch
-    #NOTE: PRIORITY[{!!!!!!!!!!!!!!!!!!!!}]
     @pitch.setter
     def pitch(self, angle: int):
-        if (angle < -90 or angle > 90):
-            #NOTE: print warning and just go to +-90 instead?
+        if (angle < -MAX_PITCH or angle > MAX_PITCH):
             raise ValueError(f"Impossible angle: {angle} for pitch")
-        #NOTE: integrated code here
+        # MOVE CAMERA
+        logging.debug("Moving camera pitch to {angle}")
         self._pitch = angle
-
-    #----------------------------------    
+        
     @property
-    def yaw(self):
+    def yaw(self): # Protects servo from moving outside its maximum range
         return self.yaw
-    #NOTE: PRIORITY[{!!!!!!!!!!!!!!!!!!!!}]
     @yaw.setter
     def yaw(self, angle: int):
-        if (angle < -90 or angle > 90):
-            #NOTE: print warning and just go to +-90 instead?
+        if (angle < -MAX_YAW or angle > MAX_YAW):
             raise ValueError(f"Impossible angle: {angle} for yaw")
-        #NOTE: integrated code here
+        # MOVE CAMERA
+        logging.debug("Moving camera yaw to {angle}")
         self._yaw = angle
-
     #----------------------------------
     #go far left,right,center looking for buoy whole time detect() - 3 set points in x axis
     def scanTHIRDS(self):
