@@ -10,34 +10,33 @@ import constants as c
 try:
     from GPS import gps
     from compass import compass
-except ImportError:
-    print("Could not import GPS")
+    from cameraServos import CameraServos
+except ImportError as e:
+    print("Failed to import some modules, if this is not a simulation fix this before continuing")
+    print(f"Exception raised: {e}")
     
 # TODO: 
-# Write drivers for camera servo and image capture
 # Stabilize for wave disruption by centering horizon?
+    # Otherwise, try to account for in data?
 # Target lock: Alter pitch & yaw to keep target in focus
-MAX_PITCH: int = 90
-MAX_YAW: int = 90
+
 
 class Frame():
     """Image with context metadata"""
-    def __init__(self, img=None, time=None, cords=None):
+    def __init__(self, img=None, time=None, gps=None, pitch=None, yaw=None):
         self.img = img
         self.time = time
-        self.cords = cords
-        self.pitch = Camera.pitch
-        self.yaw = Camera.yaw
+        self.gps = gps
+        self.pitch = pitch
+        self.yaw = yaw
         self.detections = [] # Initially empty, contains objectDetection.Detection after objectDetection.analyze(Frame.img) is run
             
         
 class Camera():
     """Drivers and interface for camera"""
     def __init__(self):
-        #pitch: +up/-down; yaw: +left/-right
-        self.pitch = 0 # TODO: set to curr servo angle
-        self.yaw = 0 # TODO: set to curr servo angle
         self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
+        self.servos = CameraServos()
         self.obj_info = [0,0,0,0] #x,y,width,height
         
     def __del__(self):
@@ -46,97 +45,77 @@ class Camera():
         
     def capture(self, context=True, show=False) -> Frame:
         """Takes a single picture from camera
-        Args:
-            context (bool): whether to include time, gps, and camera angle in return Frame
-            show (bool): whether to show the image that is captured
-        Returns:
-            A Camera.Frame object
+        # Args:
+            - context (bool): whether to include time, gps, and camera angle in return Frame
+            - show (bool): whether to show the image that is captured
+        # Returns:
+            The captured image stored as a Frame object
         """
+        
+        img, time, cords, pitch, yaw = None
+        
         ret, img = self._cap.read()
         if not ret:
             raise RuntimeError("No camera feed detected")
         
         if show:
             cv2.imshow(img)
-        
+            
         if context:
-            time = time()
-            #gps.updategps() TODO: GPS missing imports
-            #cords = (gps.latitude, gps.longitude)
-            cords = None # TEMP
-            return Frame(img=img, time=time, cords=cords)            
+            time, gps, pitch, yaw = self.__get_context()
+            return Frame(img=img, time=time, gps=gps, pitch=pitch, yaw=yaw)            
         else:
             return Frame(img=img)
         
-    def survey(self, num_images=3) -> list[Frame]:
-        """Takes a series of x pictures over 270 degrees of vision
-        Args:
-            num_images (int): how many images to take across FoV
+    def survey(self, num_images=3, pitch=CameraServos.pitch, servo_range=180, context=True, show=False) -> list[Frame]:
+        """Takes a horizontal panaroma over the camera's field of view
+            - Maximum boat FoV is ~242.2 degrees (not tested)
+        # Args:
+            - num_images (int): how many images to take across FoV
+                - Picamera2 lens covers an FoV of 62.2 degrees horizontal and 48.8 vertical
+                
+            - pitch (int): fixed camera pitch angle
+                - must be between 0 and 180 degrees: 0 points straight down, 180 points straight up
+                
+            - servo_range (int): the allowed range of motion for camera servos, always centered
+                - must be between 0 and 180 degrees: 0 means servo is fixed to center, 180 is full servo range of motion
+                - ex. a range of 90 degrees limits servo movement to between 45-135 degrees for a total boat FoV of 152.2 degrees
+                
+            - context (bool): whether to include time, gps and camera angle of captured images
+            
+            - show (bool): whether to show each image as captured
+            
+        # Returns:
+            - A list of the captured images stored as Frame objects
         """
-        images: list[Frame] = []
-        step = (MAX_YAW * 2) / num_images
         
-        if self.yaw < 0: # survey left -> right
-            for self.yaw in range(-MAX_YAW, MAX_YAW, step):
-                images.append(self.capture())
-        if self.yaw > 0: # survey right -> left
-            for self.yaw in range(MAX_YAW, -MAX_YAW, -step):
-                images.append(self.capture())
+        images: list[Frame] = []
+        servo_step = servo_range / num_images
+        
+        # Move camera to desired pitch
+        self.servos.pitch = pitch
+        
+        if self.yaw <= 90: 
+            # Survey left -> right when camera is facing left or center
+            for self.yaw in range(CameraServos.MIN_ANGLE, CameraServos.MAX_ANGLE, servo_step):
+                images.append(self.capture(context=context, show=show))
+        else:
+            # Survey right -> left when camera is facing right
+            for self.yaw in range(CameraServos.MAX_ANGLE, CameraServos.MIN_ANGLE, -servo_step):
+                images.append(self.capture(context=context, show=show))
         
         return images
     
-    @property
-    def pitch(self): # Protects servo from moving outside its maximum range
-        return self._pitch
-    @pitch.setter
-    def pitch(self, angle: int):
-        if (angle < -MAX_PITCH or angle > MAX_PITCH):
-            raise ValueError(f"Impossible angle: {angle} for pitch")
-        # MOVE CAMERA
-        logging.debug("Moving camera pitch to {angle}")
-        self._pitch = angle
+    def __get_context(self):
+        """Helper method to get and format metadata for images"""
+        time = time()
+        gps.updategps() # TODO: replace with ROS subscriber
+        gps = (gps.longitude, gps.latitude)
+        pitch = self.servos.pitch
+        yaw = self.servos.yaw
         
-    @property
-    def yaw(self): # Protects servo from moving outside its maximum range
-        return self.yaw
-    @yaw.setter
-    def yaw(self, angle: int):
-        if (angle < -MAX_YAW or angle > MAX_YAW):
-            raise ValueError(f"Impossible angle: {angle} for yaw")
-        # MOVE CAMERA
-        logging.debug("Moving camera yaw to {angle}")
-        self._yaw = angle
-    #----------------------------------
-    #go far left,right,center looking for buoy whole time detect() - 3 set points in x axis
-    def scanTHIRDS(self):
-        #move to closest point in the trio, move to next (left has priority if it exists)
-        #detect() at each set camera position (x axis wise)
-        #speculation:
-        #find y axis base for each based on gyroscope - calc on basis before going to point and at point (% variation consideration)
-        #might not need dynamic y axis if stand is made well (just a thought)
-
-        #NOTE: could be more dynamic between 90 and 45 but ehhhh
-        if self.detect(): return
-        #----
-        sign = 1    #less if statements
-        if self.yaw < 0: sign = -1  #right side
-        #----
-        self.pitch(sign*45)
-        if self.detect(): return
-        self.pitch(sign*90)
-        if self.detect(): return
-        self.pitch(sign*45)
-        if self.detect(): return
-        #----
-        self.pitch(0)
-        if self.detect(): return
-        #----
-        self.pitch(-1*sign*45)
-        if self.detect(): return
-        self.pitch(-1*sign*90)
-        if self.detect(): return
-        self.pitch(-1*sign*45)
-        if self.detect(): return
+        return time, gps, pitch, yaw
+    
 
     #----------------------------------
     #NOTE: NOT PRIORITY
