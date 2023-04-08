@@ -22,34 +22,52 @@ except ImportError as e:
 
 
 class Frame():
-    """Image with context metadata"""
+    """
+    Image with context metadata
+    
+    Attributes:
+        - img (np.ndarray): the RGB image taken
+        - time: the UTC time at which the image was captured
+        - gps: the position of the boat at time of capture
+        - pitch: the camera's pitch angle at time of capture
+        - yaw: the camera's yaw angle at time of capture
+        - detections: a list of buoy Detections
+            - initially empty! must call objectDetection.analyze(Frame.img) to populate
+    """
     def __init__(self, img=None, time=None, gps=None, pitch=None, yaw=None):
         self.img = img
         self.time = time
         self.gps = gps
         self.pitch = pitch
         self.yaw = yaw
-        self.detections = [] # Initially empty, contains objectDetection.Detection after objectDetection.analyze(Frame.img) is run
+        self.detections = []
             
         
 class Camera():
-    """Drivers and interface for camera"""
+    """
+    Drivers and interface for camera
+    
+    Attributes:
+        - servos (CameraServo): interface to control camera servos
+            - servos.pitch and servos.yaw will always have the immediate camera position
+            - pitch and yaw can be modified to move the physical servos 
+    
+    Functions:
+        - capture(): Takes a picture
+        - survey(): Takes a panorama
+    """
     def __init__(self):
         self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
         self.servos = CameraServos()
         self.obj_info = [0,0,0,0] #x,y,width,height
         
-    def __del__(self):
-        self._cap.release()
-        cv2.destroyAllWindows()
-        
     def capture(self, context=True, show=False) -> Frame:
         """Takes a single picture from camera
-        # Args:
+        Args:
             - context (bool): whether to include time, gps, and camera angle in return Frame
             - show (bool): whether to show the image that is captured
-        # Returns:
-            The captured image stored as a Frame object
+        Returns:
+            - The captured image stored as a Frame object
         """
         
         img, time, cords, pitch, yaw = None
@@ -115,6 +133,10 @@ class Camera():
         yaw = self.servos.yaw
         
         return time, gps, pitch, yaw
+    
+    def __del__(self):
+        self._cap.release()
+        cv2.destroyAllWindows()
     
 
     #----------------------------------

@@ -19,7 +19,17 @@ YAW_PORT = 1
 
 
 class CameraServos():
-    """Drivers and interface for camera servos"""
+    """
+    Drivers and interface for camera servos
+    
+    Attributes:
+        - pitch: camera pitch
+        - yaw: camera yaw
+        
+    Functions:
+        - reset(): returns camera servos to center
+    """
+    
     def __init__(self):
         self._kit = adafruit_servokit.ServoKit(channels=16)
         self.pitch: property
@@ -29,11 +39,13 @@ class CameraServos():
         self.reset()
         
     def reset(self):
+        """Return camera servos to center"""
         self.pitch = DEFAULT_ANGLE
         self.yaw = DEFAULT_ANGLE
     
-    # Private setters & getters
-    # Implicitly invoked when calling pitch = 70
+    # ============ HERE BE DRAGONS ============
+    # Python boilerplate for creating implicit setters and getters
+    # Instead of writing 'servos.set_pitch(90)' just write 'servos.pitch = 90'
     def _get_pitch(self):
         self._kit.servo[PITCH_PORT].angle
         
