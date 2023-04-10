@@ -13,9 +13,18 @@ import constants as c
 from camera import Camera, Frame
 #from GPS import gps # TODO: ROS subscriber
 
-@dataclass(order=True)
+@dataclass(order=True, slots=True)
 class Detection:
-    """Bounding box and confidence for a detected object"""
+    """
+    Object containing the confidence level, bounding box, and location of a buoy from a given image
+    Attributes:
+        - x (int): - bottom left corner? pixel of bounding box rectangle
+        - y (int): - top right corner? pixel of bounding box rectangle
+        - w (int): - width (in pixels) of bounding box rectangle
+        - h (int): - height (in pixels) of bounding box rectangle
+        - conf (float): - confidence level that detected object is a buoy [0-1]
+    """
+    
     def __init__(self, result: torch.tensor):
         _bbox: torch.tensor = result.boxes
         _xywh: np.array = _bbox.xywh.numpy()[0]
@@ -31,19 +40,32 @@ class Detection:
         
 
 class ObjectDetection():
-    """Contains AI object detection model"""
+    """
+    AI object detection model
+    
+    Functions: 
+        - analyze() - checks image for buoys
+    """
+    
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        """Prevent duplicate classes from being created"""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls, *args, **kwargs)
+        return cls._instance
+    
     def __init__(self):
         self.model = YOLO(c.config["OBJECTDETECTION"]["weights"])  # Initialize model for analysis
             # TODO: test performance after export to .onnx
             #model.export(format="onnx") or cmd -> yolo task=detect mode=export model=<PATH> format = onnx
     
     def analyze(self, image) -> list[Detection]:
-        """Detects buoys within a given image.
-        Can be supplied from cv2 or using the Camera.capture()/Camera.survey() methods
+        """Detects buoys within a given image. Can be supplied from cv2 or using the Camera.capture()/Camera.survey() methods.
         Args:
-            image: Can be a numpy.ndarray from cv2/Camera.capture() or a .jpg/.png/etc
+            - image (np.ndarray, .jpg, .png): The RGB image to search for buoys
         Returns:
-            A list of Detection objects (objectDetection.Detection) containing the bounding boxes and confidence of any matches the model returns
+            - A list buoys found (if any) stored as a list of Detection objects
         """
         # TODO: test results.cpu() or results.to("cpu") for performance on Pi
         result = self.model.predict(source=image, conf=float(c.config["OBJECTDETECTION"]["conf_thresh"]), save=False, line_thickness=1)
@@ -57,7 +79,7 @@ class ObjectDetection():
         return detections
             
 class ObjectDetectionTester(ObjectDetection):
-    """Debug class to test ObjectDetection functions for model verification and functionality"""
+    """Debug class to test ObjectDetection functionality"""
     # Basic model function can be tested by running `yolo predict model=CV/buoy_weights.pt source=0`
     def __init__(self):
         super().__init__()

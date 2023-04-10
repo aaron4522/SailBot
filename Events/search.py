@@ -27,11 +27,22 @@ from objectDetection import ObjectDetection, Detection
         
     # Strategy:
         - Define search path as series of GPS lines to cover the most ground in shortest time
-        - If x% match verify:
-            - Check if estimated position is outside of given bounds + buffer
-        - Then deviate from course and go to position
-            - If target confidence increases -> target lock & goto
-            - if target confidence decreases -> 
+        - Travel between each waypoint checking for buoys
+            - Pan camera and take pictures for maximum FoV
+            - Detect buoys
+                - If x% match:
+                    - Error Check:
+                        - Take a confirmation picture and confirm its not one-off false positive
+                        - Check if estimated position is outside of given bounds + buffer
+                    - Approximate buoy's gps location
+                    - Divert course and travel to buoy gps
+                    - Focus camera on expected buoy position
+                    - Take pictures intermittently & analyze
+                    - Move camera to keep buoy in center frame
+                    - If confidence stays above threshold:
+                        - Keep moving towards buoy
+                    - Else:
+                        - False positive! PANIC! Return to previous search course
 """
 
 REQUIRED_ARGS = 2

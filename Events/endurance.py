@@ -3,7 +3,7 @@ import logging
 from eventUtils import Event, EventFinished
 
 """
-# Challenge	Goal:
+# Challenge Goal:
     - To demonstrate the boat's durability and capability to sail some distance
     
     # Description:
