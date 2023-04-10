@@ -125,3 +125,5 @@ class Search(Event):
         
         return tarx,tary
     
+if __name__ == "__main__":
+    pass

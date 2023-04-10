@@ -368,3 +368,5 @@ class Station_Keeping(Event):
         ret1= self.SK_I(arr[0],arr[1],m,b)
         return ret1, m*ret1 + b
     
+if __name__ == "__main__":
+    pass

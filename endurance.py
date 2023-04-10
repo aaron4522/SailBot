@@ -47,4 +47,6 @@ class Endurance(Event):
     def loop(self):
         """Event logic that will be executed continuously"""
         raise EventFinished
-    
+
+if __name__ == "__main__":
+    pass

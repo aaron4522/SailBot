@@ -357,3 +357,5 @@ class Precision_Navigation(Event):
 
         return b,a  #changed for bool table reasons to b,a
     
+if __name__ == "__main__":
+    pass
