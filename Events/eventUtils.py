@@ -3,7 +3,8 @@ Event blueprint class and common utility functions used in events
 """
 # Event descriptions can be found here: https://www.sailbot.org/wp-content/uploads/2022/05/SailBot-2022-Events.pdf
 
-from abc import abstract
+from abc import abstractmethod
+from dataclasses import dataclass
 import math
 import time
 
@@ -14,9 +15,12 @@ try:
 except Exception as e:
     from sailbot.GPS import gps
     import sailbot.constants as c
+@dataclass(slots=True)
+class Waypoint:
+    """A GPS marker for buoys, travel destinations, etc."""
+    long: float
+    lat: float
     
-
-@abstract
 class Event():
     """
     Basic blueprint for creating new events
@@ -42,6 +46,7 @@ class Event():
         self.last_pnt_x, self.last_pnt_y = None,None
         self.gps_class = gps()
         
+    @abstractmethod
     def next_gps(self):
         """
         The next GPS point that the boat should go to
@@ -53,6 +58,7 @@ class Event():
 
         raise NotImplementedError
     
+    @abstractmethod
     def loop(self):
         """Event logic that will be executed continuously"""
         raise NotImplementedError
