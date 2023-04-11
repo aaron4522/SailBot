@@ -10,6 +10,11 @@ import constants as c
 try:
     from GPS import gps
     from compass import compass
+except ImportError as e:
+    print("Failed to import some modules, if this is not a simulation fix this before continuing")
+    print(f"Exception raised: {e}")
+    
+try:
     from cameraServos import CameraServos
 except ImportError as e:
     print("Failed to import some modules, if this is not a simulation fix this before continuing")
@@ -56,9 +61,9 @@ class Camera():
         - capture(): Takes a picture
         - survey(): Takes a panorama
     """
-    def __init__(self):
+    def __init__(self, pi=False):
         self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
-        self.servos = CameraServos()
+        self.servos = CameraServos
         self.obj_info = [0,0,0,0] #x,y,width,height
         
     def capture(self, context=True, show=False) -> Frame:
@@ -70,7 +75,7 @@ class Camera():
             - The captured image stored as a Frame object
         """
         
-        img, time, cords, pitch, yaw = None
+        img, time, cords, pitch, yaw = None, None, None, None, None
         
         ret, img = self._cap.read()
         if not ret:
@@ -85,7 +90,7 @@ class Camera():
         else:
             return Frame(img=img)
         
-    def survey(self, num_images=3, pitch=CameraServos.pitch, servo_range=180, context=True, show=False) -> list[Frame]:
+    def survey(self, num_images=3, pitch=70, servo_range=180, context=True, show=False) -> list[Frame]:
         """Takes a horizontal panaroma over the camera's field of view
             - Maximum boat FoV is ~242.2 degrees (not tested)
         # Args:

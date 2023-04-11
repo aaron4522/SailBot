@@ -2,6 +2,7 @@
 Interface for detecting buoys
 """
 from ultralytics import YOLO # Documentation: https://docs.ultralytics.com/cfg/
+import supervision as sv
 import cv2
 import numpy as np
 import torch
@@ -13,7 +14,7 @@ import constants as c
 from camera import Camera, Frame
 #from GPS import gps # TODO: ROS subscriber
 
-@dataclass(order=True, slots=True)
+@dataclass(order=True)
 class Detection:
     """
     Object containing the confidence level, bounding box, and location of a buoy from a given image

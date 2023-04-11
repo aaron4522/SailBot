@@ -3,7 +3,14 @@ Drivers and interface for camera servos
 """
 # Code adapted from https://github.com/ArduCAM/PCA9685
 import logging
-import adafruit_servokit
+
+import constants as c
+try:
+    import adafruit_servokit
+except ImportError as e:
+    print("Failed to import some modules, if this is not a simulation fix this before continuing")
+    print(f"Exception raised: {e}")
+   
 
 
 # Yaw and Pitch assumed to have same range limits
