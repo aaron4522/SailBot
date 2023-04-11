@@ -2,7 +2,7 @@ from time import time
 from logging import logging
 import math
 
-from eventUtils import Event, EventFinished
+from eventUtils import Event, EventFinished, Waypoint
 
 """
 # Challenge	Goal:
@@ -52,9 +52,16 @@ class Precision_Navigation(Event):
         self.rev_bool = False
         self.target_set = 1
         self.start_time = time.time()
-
+        
     def next_gps(self):
-        """The next GPS point that the boat should go to"""
+        """
+        Main event script logic. Executed continuously by boatMain.
+        
+        Returns either:
+            - The next GPS point that the boat should sail to stored as a Waypoint object
+            - OR None to signal the boat to drop sails and clear waypoint queue
+            - OR EventFinished exception to signal that the event has been completed
+        """
             #time based check
         #curr_time = time.time()
         #if int(curr_time - self.start_time)%4 != 0: return None,None
@@ -73,10 +80,9 @@ class Precision_Navigation(Event):
         
         logging.info(f"PN: CURR TARGET POINT: {self.target_set}")
         print(f"Current target point: {self.target_set}")
-        return self.PN_arr[self.target_set*2], self.PN_arr[(self.target_set*2)+1]
+        #return self.PN_arr[self.target_set*2], self.PN_arr[(self.target_set*2)+1]
     
-    def loop(self):
-        """Event logic that will be executed continuously"""
+        return Waypoint(0.0, 0.0)
             
     #find coords that should go to via cart of buoy coords
     def PN_coords(self):

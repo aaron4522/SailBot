@@ -2,7 +2,7 @@ import logging
 import math
 import time
 
-from eventUtils import Event
+from eventUtils import Event, EventFinished, Waypoint
 from windvane import windVane
 
 """
@@ -78,7 +78,14 @@ class Station_Keeping(Event):
         self.start_time = time.time()
 
     def next_gps(self):
-        """The next GPS point that the boat should go to"""
+        """
+        Main event script logic. Executed continuously by boatMain.
+        
+        Returns either:
+            - The next GPS point that the boat should sail to stored as a Waypoint object
+            - OR None to signal the boat to drop sails and clear waypoint queue
+            - OR EventFinished exception to signal that the event has been completed
+        """
             #time based checks, off-set the set GPS 
         curr_time = time.time()
         #if int(curr_time - self.start_time)%4 != 0: return None,None #have set in main that this continues to previous declared point
@@ -161,10 +168,7 @@ class Station_Keeping(Event):
                 self.last_pnt_x, self.last_pnt_y = None,None
                 return None,None  #loosen sail, do nuthin
         
-        return self.last_pnt_x, self.last_pnt_y
-
-    def loop(self):
-        """Event logic that will be executed continuously"""
+        return Waypoint(self.last_pnt_x, self.last_pnt_y)
         
     #give %-line of box and other lines(details in SK)
     def SK_perc_guide(self,inp_arr,type_arr,buoy_arr):

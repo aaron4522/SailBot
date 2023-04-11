@@ -2,7 +2,7 @@ import logging
 import math
 import time
 
-from eventUtils import Event, EventFinished
+from eventUtils import Event, EventFinished, Waypoint
 from camera import Camera, Frame
 from objectDetection import ObjectDetection, Detection
 
@@ -69,11 +69,14 @@ class Search(Event):
         self.arr = self.SR_pattern()
     
     def next_gps(self):
-        """The next GPS point that the boat should go to"""
-        return 0,0
-    
-    def loop(self):
-        """Event logic that will be executed continuously"""
+        """
+        Main event script logic. Executed continuously by boatMain.
+        
+        Returns either:
+            - The next GPS point that the boat should sail to stored as a Waypoint object
+            - OR None to signal the boat to drop sails and clear waypoint queue
+            - OR EventFinished exception to signal that the event has been completed
+        """
         
         imgs: list[Frame] = self.camera.survey(3) # (3, analyze=True?)
         for i, img in enumerate(i, imgs):
@@ -85,7 +88,9 @@ class Search(Event):
             # Confidence of detections
         # Abstract:
             # Create a heatmap of buoys which persists across surveys
-                # (lat, long, confidence) 
+                # (lat, long, confidence)
+        
+        return Waypoint(0.0, 0.0)
     
     def create_search_pattern(self):
         """

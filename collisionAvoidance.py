@@ -2,7 +2,7 @@ import logging
 import math
 import time
 
-from eventUtils import Event, EventFinished
+from eventUtils import Event, EventFinished, Waypoint
 
 """
 # Challenge Goal:
@@ -46,12 +46,16 @@ class CollisionAvoidance(Event):
         
 
     def next_gps(self):
-        """The next GPS point that the boat should go to"""
-        return 0,0
-    
-    def loop(self):
-        """Event logic that will be executed continuously"""
-        raise EventFinished
+        """
+        Main event script logic. Executed continuously by boatMain.
+        
+        Returns either:
+            - The next GPS point that the boat should sail to stored as a Waypoint object
+            - OR None to signal the boat to drop sails and clear waypoint queue
+            - OR EventFinished exception to signal that the event has been completed
+        """
+        
+        return Waypoint(0.0, 0.0)
     
 if __name__ == "__main__":
     pass

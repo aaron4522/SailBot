@@ -17,7 +17,11 @@ except Exception as e:
     import sailbot.constants as c
 @dataclass(slots=True)
 class Waypoint:
-    """A GPS marker for buoys, travel destinations, etc."""
+    """
+    A GPS marker for buoys, travel destinations, etc.
+    - Initialize using Waypoint(longitude, latitude)
+    """
+    
     long: float
     lat: float
     
@@ -25,66 +29,57 @@ class Event():
     """
     Basic blueprint for creating new events
     
-    Attributes: TODO
+    Attributes: 
         - event_info (array) - provided starter information about the event
             - further clarified in each specific class
-        - total_error - 
-        - old_error - 
-        - old_time - 
-        - last_pnt_x
-        - last_pnt_y
     
-    Functions: TODO
-        - PID() - 
+    Functions:
+        - next_gps() - event logic which determines where to sail to next
     """
     
     def __init__(self, event_info):        
         self.event_info = event_info
-        self.total_error = 0.0
-        self.oldError = 0.0
-        self.oldTime = time.time()
-        self.last_pnt_x, self.last_pnt_y = None,None
-        self.gps_class = gps()
         
     @abstractmethod
     def next_gps(self):
         """
-        The next GPS point that the boat should go to
+        Main event script logic. Executed continuously by boatMain.
         
-        Returns:
-            - (long, lat) for next coordinates for boat to sail to
-            - (None, None) signals to drop sails and clear target
+        Returns either:
+            - The next GPS point that the boat should sail to stored as a Waypoint object
+            - OR None to signal the boat to drop sails and clear waypoint queue
+            - OR EventFinished exception to signal that the event has been completed
         """
 
         raise NotImplementedError
-    
-    @abstractmethod
-    def loop(self):
-        """Event logic that will be executed continuously"""
-        raise NotImplementedError
-    
-    #TODO: find new place to relocate
-    def PID(self):  #hana
-        # New PID stuff
-        if (time.time() - self.oldTime < 100):  # Only runs every tenth of a second #new
-            # Finds the angle the boat should take
-            error = self.boat_RefObj.targetAngle - self.compass.angle  # Finds how far off the boat is from its goal
-            self.totalError += error  # Gets the total error to be used for the integral gain
-            derivativeError = (error - self.oldError) / (time.time() - self.oldtime)  # Gets the change in error for the derivative portion
-            deltaAngle = c.config['CONSTANTS']["P"] * error + c.config['CONSTANTS']["I"] * self.totalError + c.config['CONSTANTS']["D"] * derivativeError  # Finds the angle the boat should be going
-
-            # Translates the angle into lat and log so goToGPS won't ignore it
-            self.boat_RefObj.currentAngle = getCoordinateADistanceAlongAngle(1000, deltaAngle + self.boat_RefObj.compass.angle)
-
-            # Resets the variable
-            self.oldTime = time.time()
-            self.oldError = error
             
 class EventFinished(Exception):
     """Signals that the event is finished and that it is safe to return to manual control"""
     pass
 
-# TODO: Jonah explain? Can move outside class?
+"""
+def PID():  #hana
+    total_error = 0.0
+    oldError = 0.0
+    oldTime = time.time()
+    last_pnt_x, .last_pnt_y = None,None
+    gps_class = gps()
+    # New PID stuff
+    if (time.time() - oldTime < 100):  # Only runs every tenth of a second #new
+        # Finds the angle the boat should take
+        error = boat_RefObj.targetAngle - compass.angle  # Finds how far off the boat is from its goal
+        totalError += error  # Gets the total error to be used for the integral gain
+        derivativeError = (error - oldError) / (time.time() - oldtime)  # Gets the change in error for the derivative portion
+        deltaAngle = c.config['CONSTANTS']["P"] * error + c.config['CONSTANTS']["I"] * totalError + c.config['CONSTANTS']["D"] * derivativeError  # Finds the angle the boat should be going
+
+        # Translates the angle into lat and log so goToGPS won't ignore it
+        boat_RefObj.currentAngle = getCoordinateADistanceAlongAngle(1000, deltaAngle + self.boat_RefObj.compass.angle)
+
+        # Resets the variable
+        oldTime = time.time()
+        oldError = error
+"""
+
 def SK_f(self,x,a1,b1,a2,b2): return self.SK_m(a1,b1,a2,b2)*x + self.SK_v(a1,b1,a2,b2)  #f(x)=mx+b
 def SK_m(self,a1,b1,a2,b2): return (b2-b1)/(a2-a1)                                      #m: slope between two lines
 def SK_v(self,a1,b1,a2,b2): return b1-(self.SK_m(a1,b1,a2,b2)*a1)                       #b: +y between two lines
