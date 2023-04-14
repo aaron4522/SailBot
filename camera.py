@@ -20,12 +20,6 @@ except ImportError as e:
     print("Failed to import some modules, if this is not a simulation fix this before continuing")
     print(f"Exception raised: {e}")
     
-# TODO: 
-# Stabilize for wave disruption by centering horizon?
-    # Otherwise, try to account for in data?
-# Target lock: Alter pitch & yaw to keep target in focus
-
-
 class Frame():
     """
     Image with context metadata
@@ -61,7 +55,7 @@ class Camera():
         - capture(): Takes a picture
         - survey(): Takes a panorama
     """
-    def __init__(self, pi=False):
+    def __init__(self):
         self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
         self.servos = CameraServos
         self.obj_info = [0,0,0,0] #x,y,width,height
@@ -128,6 +122,10 @@ class Camera():
                 images.append(self.capture(context=context, show=show))
         
         return images
+
+    # TODO:
+    def track(self):
+        """Centers camera on a detected buoy and attempts to keep it in frame"""
     
     def __get_context(self):
         """Helper method to get and format metadata for images"""
@@ -143,55 +141,16 @@ class Camera():
         self._cap.release()
         cv2.destroyAllWindows()
     
-
-    #----------------------------------
-    #NOTE: NOT PRIORITY
-    #tracking camera postion to center on object (possibly move rudder)
-    #would detect be too computation heavy?
-    def track(self):
-        print("TODO")
-
-    #----------------------------------
-    #NOTE: PRIORITY[{!!!!!!!!!!!!!!!!!!!!}]
-    #look for buoy in capture taken
-    #aaron AI goku based code with capture()
-    #verbose for showing a picture of it on the capture, save as seperate self.__variable__ (demonstration purposes)
-    def detect(self, verbose=False):
-        print("TODO")
-        #set pixel width of object in self.obj_info object
-        #set other variables, [{!!!}]return if detected object[{!!!}]
-        return False
-
-    #----------------------------------
-    #NOTE: PRIORITY[{!!!!!!!!!!!!!!!!!!!!}]
-    #calculate gps coords of object based on distance formula and angle
-    #speculation:
-    #rework events to work on ever updating gps coords rather then fantom radius area?
-    #how would you differenciate them from eachother?
-    def coordcalc(self):
-        if c.config["OBJECTDETECTION"]["Width_Real"] == 0 or c.config["OBJECTDETECTION"]["Focal_Length"] == 0:
-            raise Exception("MISSING WIDTH REAL/FOCAL LENGTH INFO IN CONSTANTS")
-        dist = (c.config["OBJECTDETECTION"]["Width_Real"]*c.config["OBJECTDETECTION"]["Focal_Length"])/self.obj_info[2]
-        comp = compass()    #assume 0 is north(y pos)
-        geep = gps(); geep.updategps()
-
-        t = math.pi/180
-        return dist*math.cos(comp.angle*t)+geep.latitude, dist*math.sin(comp.angle*t)+geep.longitude
-
-    #----------------------------------
-    #NOTE: DEMONSTRATION PURPOSE
-    #for lamda demonstration purposes
-    def center(self):
-        self.pitch(0)
-        self.yaw(0)
     
-    #----------------------------------
-    #NOTE: DEMONSTRATION PURPOSE
-    #backburner: free control movement wise with continuous capture feed for demonstration purposes
+    
+class CameraTester(Camera):
+    def __init__(self):
+        super.__init__()
+        
     def freemove(self):
         while True:
             keyboard.on_press_key("enter", lambda _: self.detect(True))
-            keyboard.on_press_key("space", lambda _: self.center())
+            keyboard.on_press_key("space", lambda _: self.servos.reset())
 
             keyboard.on_press_key("up arrow", lambda _: self.yaw(self.yaw+1))
             keyboard.on_press_key("down arrow", lambda _: self.yaw(self.yaw-1))
@@ -201,29 +160,24 @@ class Camera():
             cv2.imshow('capture', self.cap)
             if cv2.waitKey(1) & 0xFF == ord('q'): break
 
-    #============================================================================================================================
-    #NOTE: DEMONSTRATION PURPOSE
-    def testloop(self):
+
+if __name__ == "__main__":
+    import keyboard #might be annoying to auto-bug checkers
+    cam = CameraTester()
+    while True:
         print('''
 =============================
 Accepted Command info:
 [0] freemove(): free control movement wise with continuous capture feed for demonstration purposes
-[1] scanTHIRDS(): go far left,right,center looking for buoy whole time detect() - 3 set points in x axis
+[1] survey(): go far left,right,center looking for buoy whole time detect() - 3 set points in x axis
 [2] track(): follow object
 -----------------------------''')
         inp = input("Command Test: ")
         
         if inp == "0":
-            self.freemove()
+            cam.freemove()
         if inp == "1":
-            self.scanTHIRDS()
+            cam.survey()
         else:
             print("nah...")
             raise Exception("invalid command selection")
-
-#============================================================================================================================
-
-if __name__ == "__main__":
-    import keyboard #might be annoying to auto-bug checkers
-    cam = Camera()
-    while True: cam.testloop()
