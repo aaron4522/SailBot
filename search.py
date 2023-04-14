@@ -51,7 +51,7 @@ class Search(Event):
     """
     Attributes:
         - event_info (array) - center and radius of search circle
-            event_info = [(center_long, center_lat), radius]
+            event_info = [(center_lat, center_long), radius]
     """
     
     def __init__(self, event_info):
@@ -97,7 +97,7 @@ class Search(Event):
         Generates a 5-point zig-zag search pattern to maximimize area coverage 
         
         Returns:
-            - 5 gps coordinates stored as an array of tuples [(pt1_long, pt1_lat), ...]
+            - 5 gps coordinates stored as an array of tuples [(pt1_lat, pt1_long), ...]
         """
         
         # Metrics used to fine-tune optimal coverage

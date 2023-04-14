@@ -40,7 +40,7 @@ class Station_Keeping(Event):
     """
     Attributes:
         - event_info (array) - 4 GPS coordinates forming a 40m^2 rectangle that the boat must remain in
-            event_info = [(b1_long, b1_lat),(b2_long, b2_lat),(b3_long, b3_lat),(b4_long, b4_lat)]
+            event_info = [(b1_lat, b1_long),(b2_lat, b2_long),(b3_lat, b3_long),(b4_lat, b4_long)]
     """
     def __init__(self, event_info):
         if (len(event_info) != REQUIRED_ARGS):

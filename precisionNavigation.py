@@ -33,7 +33,7 @@ class Precision_Navigation(Event):
     """
     Attributes:
         - event_info (array) - location of buoys to sail around
-            event_info = [(start_long, start_lat), (b1_long, b1_lat), (b2_long, b2_lat)]
+            event_info = [(start_lat, start_long), (b1_lat, b1_long), (b2_lat, b2_long)]
     """
     
     def __init__(self, event_info):

@@ -34,7 +34,7 @@ class CollisionAvoidance(Event):
     """
     Attributes:
         - event_info (array) - buoy coordinates of path to travel
-            event_info = [(start_long, start_lat), (b1_long, b1_lat)]
+            event_info = [(start_lat, start_long), (b1_lat, b1_long)]
     """
     
     def __init__(self, event_info):
