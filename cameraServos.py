@@ -39,8 +39,8 @@ class CameraServos():
     
     def __init__(self):
         self._kit = adafruit_servokit.ServoKit(channels=16)
-        self.pitch: property
-        self.yaw: property
+        self._pitch = DEFAULT_ANGLE
+        self._yaw = DEFAULT_ANGLE
         
         logging.info("Initializing camera servos")
         self.reset()
@@ -53,10 +53,13 @@ class CameraServos():
     # ============ HERE BE DRAGONS ============
     # Python boilerplate for creating implicit setters and getters
     # Instead of writing 'servos.set_pitch(90)' just write 'servos.pitch = 90'
-    def _get_pitch(self):
-        self._kit.servo[PITCH_PORT].angle
-        
-    def _set_pitch(self, angle):
+    @property
+    def pitch(self):
+        return self._kit.servo[PITCH_PORT].angle
+    
+    @pitch.setter
+    def pitch(self, angle):
+        print("Setting pitch {angle}")
         if angle < MIN_ANGLE:
             self._kit.servo[PITCH_PORT].angle = MIN_ANGLE
         elif angle > MAX_ANGLE:
@@ -64,24 +67,21 @@ class CameraServos():
         else:
             self._kit.servo[PITCH_PORT].angle = angle
             logging.debug("Moving camera pitch to {angle}")
+            
+    @property
+    def yaw(self):
+        return self._kit.servo[YAW_PORT].angle
     
-    pitch = property(fget=_get_pitch, fset=_set_pitch)
-    
-    
-    def _get_yaw(self):
-        self._kit.servo[YAW_PORT].angle
-        
-    def _set_yaw(self, angle):
+    @yaw.setter
+    def yaw(self, angle):
+        print("Setting yaw {angle}")
         if angle < MIN_ANGLE:
             self._kit.servo[YAW_PORT].angle = MIN_ANGLE
         elif angle > MAX_ANGLE:
             self._kit.servo[YAW_PORT].angle = MAX_ANGLE
         else:
             self._kit.servo[YAW_PORT].angle = angle
-            logging.debug("Moving camera yaw to {angle}")
-    
-    yaw = property(fget=_get_yaw, fset=_set_yaw)
-        
+            logging.debug("Moving camera yaw to {angle}")     
     
 if __name__ == "__main__":
     servos = CameraServos()
@@ -89,3 +89,6 @@ if __name__ == "__main__":
     while True:
         servos.pitch = int(input("Enter pitch: "))
         servos.yaw = int(input("Enter yaw: "))
+        
+        print(servos.pitch)
+        print(servos.yaw)

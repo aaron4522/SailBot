@@ -5,6 +5,7 @@ import cv2
 from time import time
 import logging
 import math
+import keyboard
 
 import constants as c
 try:
@@ -57,7 +58,9 @@ class Camera():
     """
     def __init__(self):
         self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
-        self.servos = CameraServos
+        self.servos = CameraServos()
+        #self.yaw = self.servos.yaw
+        #self.pitch = self.servos.pitch
         self.obj_info = [0,0,0,0] #x,y,width,height
         
     def capture(self, context=True, show=False) -> Frame:
@@ -110,16 +113,18 @@ class Camera():
         servo_step = servo_range / num_images
         
         # Move camera to desired pitch
-        self.servos.pitch = pitch
+        self.servos.set_pitch(pitch)
         
-        if self.yaw <= 90: 
+        if self.servos.yaw <= 90: 
             # Survey left -> right when camera is facing left or center
-            for self.yaw in range(CameraServos.MIN_ANGLE, CameraServos.MAX_ANGLE, servo_step):
+            for self.servos.yaw in range(CameraServos.MIN_ANGLE, CameraServos.MAX_ANGLE):
                 images.append(self.capture(context=context, show=show))
+                self.servos.set_yaw(self.servos.get_yaw() + servo_step)
         else:
             # Survey right -> left when camera is facing right
-            for self.yaw in range(CameraServos.MAX_ANGLE, CameraServos.MIN_ANGLE, -servo_step):
+            for self.servos.yaw in range(CameraServos.MAX_ANGLE, CameraServos.MIN_ANGLE):
                 images.append(self.capture(context=context, show=show))
+                self.servos.set_yaw(self.servos.get_yaw() - servo_step)
         
         return images
 
@@ -137,32 +142,29 @@ class Camera():
         
         return time, gps, pitch, yaw
     
-    def __del__(self):
-        self._cap.release()
-        cv2.destroyAllWindows()
-    
-    
-    
 class CameraTester(Camera):
     def __init__(self):
-        super.__init__()
+        super().__init__()
         
     def freemove(self):
+        print(type(self.servos.yaw))
+        print(self.servos.yaw)
         while True:
-            keyboard.on_press_key("enter", lambda _: self.detect(True))
-            keyboard.on_press_key("space", lambda _: self.servos.reset())
-
-            keyboard.on_press_key("up arrow", lambda _: self.yaw(self.yaw+1))
-            keyboard.on_press_key("down arrow", lambda _: self.yaw(self.yaw-1))
-            keyboard.on_press_key("left arrow", lambda _: self.pitch(self.pitch+1))
-            keyboard.on_press_key("right arrow", lambda _: self.pitch(self.pitch-1))
-
-            cv2.imshow('capture', self.cap)
-            if cv2.waitKey(1) & 0xFF == ord('q'): break
+            if keyboard.is_pressed("enter"):
+                self.capture(context=False, show=True)
+            elif keyboard.is_pressed("space"):
+                self.servos.reset()
+            elif keyboard.is_pressed("up arrow"):
+                self.servos.pitch = self.servos.pitch + 1
+            elif keyboard.is_pressed("down arrow"):
+                self.servos.pitch = self.servos.pitch - 1
+            elif keyboard.is_pressed("left arrow"):
+                self.servos.yaw = self.servos.yaw - 1
+            elif keyboard.is_pressed("right arrow"):
+                self.servos.yaw = self.servos.yaw + 1
 
 
 if __name__ == "__main__":
-    import keyboard #might be annoying to auto-bug checkers
     cam = CameraTester()
     while True:
         print('''
