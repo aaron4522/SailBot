@@ -113,18 +113,16 @@ class Camera():
         servo_step = servo_range / num_images
         
         # Move camera to desired pitch
-        self.servos.set_pitch(pitch)
+        self.servos.pitch = pitch
         
         if self.servos.yaw <= 90: 
             # Survey left -> right when camera is facing left or center
-            for self.servos.yaw in range(CameraServos.MIN_ANGLE, CameraServos.MAX_ANGLE):
+            for self.servos.yaw in range(CameraServos.MIN_ANGLE, CameraServos.MAX_ANGLE, servo_step):
                 images.append(self.capture(context=context, show=show))
-                self.servos.set_yaw(self.servos.get_yaw() + servo_step)
         else:
             # Survey right -> left when camera is facing right
-            for self.servos.yaw in range(CameraServos.MAX_ANGLE, CameraServos.MIN_ANGLE):
+            for self.servos.yaw in range(CameraServos.MAX_ANGLE, CameraServos.MIN_ANGLE, servo_step):
                 images.append(self.capture(context=context, show=show))
-                self.servos.set_yaw(self.servos.get_yaw() - servo_step)
         
         return images
 

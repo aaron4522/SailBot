@@ -59,7 +59,6 @@ class CameraServos():
     
     @pitch.setter
     def pitch(self, angle):
-        print("Setting pitch {angle}")
         if angle < MIN_ANGLE:
             self._kit.servo[PITCH_PORT].angle = MIN_ANGLE
         elif angle > MAX_ANGLE:
@@ -74,7 +73,6 @@ class CameraServos():
     
     @yaw.setter
     def yaw(self, angle):
-        print("Setting yaw {angle}")
         if angle < MIN_ANGLE:
             self._kit.servo[YAW_PORT].angle = MIN_ANGLE
         elif angle > MAX_ANGLE:
