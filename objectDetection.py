@@ -2,7 +2,7 @@
 Interface for detecting buoys
 """
 from ultralytics import YOLO # Documentation: https://docs.ultralytics.com/cfg/
-import supervision as sv
+#from supervision.tools.detections
 import cv2
 import numpy as np
 import torch
@@ -19,8 +19,8 @@ class Detection:
     """
     Object containing the confidence level, bounding box, and location of a buoy from a given image
     Attributes:
-        - x (int): - bottom left corner? pixel of bounding box rectangle
-        - y (int): - top right corner? pixel of bounding box rectangle
+        - x (int): - x coordinate for bottom left corner of bounding box
+        - y (int): - y coordinate for bottom left corner of bounding box
         - w (int): - width (in pixels) of bounding box rectangle
         - h (int): - height (in pixels) of bounding box rectangle
         - conf (float): - confidence level that detected object is a buoy [0-1]

@@ -20,7 +20,7 @@ pip install -r requirements.txt
 
 ## Scripts
 ### Logic
-- **boatMain** - dain loop controlling every aspect of the boat
+- **boatMain** - main loop controlling every aspect of the boat
 
 #### Events
 Direct boat behavior depending on which [competition challenge](https://www.sailbot.org/wp-content/uploads/2022/05/SailBot-2022-Events.pdf) the boat is participating in
