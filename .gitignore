@@ -9,3 +9,4 @@ __pycache__/
 # Settings
 .ipynb_checkpoints
 .idea/
+.vscode/

@@ -1,5 +1,7 @@
 # SailBot
-Main codebase for SailBot 2019-21
+Main codebase for the University of Pittsburgh's SailBot Club (2019-23)
+
+*[Competition info here](https://www.sailbot.org/)*
 
 ## Guide
 Onenote notebook containing boat startup steps, documentation and passwords can be found [here](https://pitt-my.sharepoint.com/:o:/r/personal/tad85_pitt_edu/Documents/Sailbot%20Stuff?d=w0d1afb3f4ab44df2b02186d8015ae380&csf=1&web=1&e=uvn9TV)
@@ -18,8 +20,16 @@ pip install -r requirements.txt
 
 ## Scripts
 ### Logic
-- **boatMain** - dain loop controlling every aspect of the boat
-- **events** - directs boat behavior depending on which [competition challenges](https://www.sailbot.org/wp-content/uploads/2022/05/SailBot-2022-Events.pdf) the boat is participating in
+- **boatMain** - main loop controlling every aspect of the boat
+
+#### Events
+Direct boat behavior depending on which [competition challenge](https://www.sailbot.org/wp-content/uploads/2022/05/SailBot-2022-Events.pdf) the boat is participating in
+- **manualControl** # TODO
+- **search** - 
+- **stationKeeping** - 
+- **endurance** - 
+- **precisionNavigation** - 
+- **collisionAvoidance** - 
 
 ### Sensors/Controls
 Scripts which interface with the mechanical parts of the boat and provide abstracted functions used by 
@@ -27,6 +37,7 @@ Scripts which interface with the mechanical parts of the boat and provide abstra
 - **compass** - boat heading
 - **windvane** - wind direction
 - **camera** - RGB optical camera
+- **cameraServos** - pitch and yaw servos controlling camera movement
 - **drivers** - controls motors for rudder and sail
 - **transceiver** - wireless communication to shore
 
@@ -36,6 +47,7 @@ Miscellaneous functions used by the boat
 - **boatMath** - common functions for converting between coordinates and angles
 - **objectDetection** - AI buoy detection from an image
 - **Odrive** - used to calibrate motor speed and limits
+- **eventUtils** - common functions used in events
 
 ### Debug
 Scripts used to test boat behavior
