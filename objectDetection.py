@@ -3,15 +3,12 @@ Interface for detecting buoys
 """
 from ultralytics import YOLO # Documentation: https://docs.ultralytics.com/cfg/
 #from supervision.tools.detections
-import cv2
 import numpy as np
 import torch
-from time import time
 import logging
 from dataclasses import dataclass
 
 import constants as c
-from camera import Camera, Frame
 #from GPS import gps # TODO: ROS subscriber
 
 @dataclass(order=True)
@@ -67,6 +64,7 @@ class ObjectDetection():
             - image (np.ndarray, .jpg, .png): The RGB image to search for buoys
         Returns:
             - A list buoys found (if any) stored as a list of Detection objects
+                - list is sorted by highest confidence, detections[0] is ALWAYS the highest confidence match
         """
         # TODO: test results.cpu() or results.to("cpu") for performance on Pi
         result = self.model.predict(source=image, conf=float(c.config["OBJECTDETECTION"]["conf_thresh"]), save=False, line_thickness=1)
@@ -77,64 +75,5 @@ class ObjectDetection():
         for detection in result:
             logging.info("Buoy ({detection.conf}): at ({detection.x},{detection.y})\n")
             detections.append(Detection(detection)) # Convert tensors into readable Detection class and append to list
+        detections.sort(descending=True)
         return detections
-            
-class ObjectDetectionTester(ObjectDetection):
-    """Debug class to test ObjectDetection functionality"""
-    # Basic model function can be tested by running `yolo predict model=CV/buoy_weights.pt source=0`
-    def __init__(self):
-        super().__init__()
-        
-    def cam_detect(self):
-        """Detects buoys from camera source specified in settings""" 
-        # TODO: Doesn't show detections on frame
-        cam = Camera()
-        while True:
-            start = time()
-            
-            frame: Frame = cam.capture(context=False)
-            Frame.detections = self.analyze(frame.img)
-            
-            end = time()
-            fps = 1/np.round(end - start, 2)
-            cv2.putText(frame.img, f'FPS: {int(fps)}', (20,50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,255,0), 2)
-            
-            cv2.imshow('YOLOv8 Detection', frame.img)
-            
-            if cv2.waitKey(5) == ord('q'):
-                break
-        
-    
-    def img_detect(self, img: str):
-        """Detects buoys from specified image path(s)
-        Args:
-            img (str): file path of selected image
-        """
-        self.model.predict(source=img, show=True, conf=float(c.config["OBJECTDETECTION"]["conf_thresh"]), save=False, line_thickness=1)
-        
-
-if __name__ == "__main__":
-    import sys
-    
-    object_det_tester = ObjectDetectionTester()
-    try: 
-        mode = sys.argv[1]
-    except (IndexError):
-        mode = input("Specifiy test mode (cam/img): ")
-    
-    if mode == "cam":
-        object_det_tester.cam_detect()
-    elif mode == "img":
-        import tkinter
-        from tkinter.filedialog import askopenfilenames
-        import keyboard
-        
-        tkinter.Tk().withdraw()
-        imgs = askopenfilenames()
-        
-        for img in imgs:
-            object_det_tester.img_detect(img)
-            keyboard.wait('enter')
-            cv2.destroyAllWindows()
-    else:
-        quit("No mode selected!")
