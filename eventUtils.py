@@ -23,7 +23,7 @@ class Waypoint:
     """
     
     lat: float
-    long: float
+    lon: float
     
 class Event():
     """
@@ -57,6 +57,7 @@ class EventFinished(Exception):
     """Signals that the event is finished and that it is safe to return to manual control"""
     pass
 
+
 """
 def PID():  #hana
     total_error = 0.0
@@ -88,7 +89,7 @@ def SK_d(self,a1,b1,a2,b2): return math.sqrt((a2-a1)**2 + (b2-b1)**2)           
 
 
 # TODO: Return multiple waypoints when multiple buoys (append onto Detection class?)
-def GPS_from_buoy(self, buoy):
+def GPS_from_buoy(buoy):
     """Approximates the location of a detected buoy
         - Compares the ratio of buoy_size/distance to a fixed measured ratio
     # Args:
@@ -115,3 +116,25 @@ def GPS_from_buoy(self, buoy):
     latitude = dist*math.cos(comp.angle*t)+geep.latitude
     longitude =  dist*math.sin(comp.angle*t)+geep.longitude
     return Waypoint(latitude, longitude)
+
+def distance_between(waypoint1, waypoint2):
+    """Calculates the distance between two GPS points using the Haversine formula
+    # Args:
+        - waypoint1 (eventUtils.Waypoint)
+        - waypoint2 (eventUtils.Waypoint)
+    # Returns:
+        - distance in meters between points (stored as eventUtils.Waypoint)
+    """
+    R = 6371  # Radius of the Earth in kilometers
+
+    # Convert latitude and longitude to radians
+    lat1, lon1, lat2, lon2 = map(math.radians, [waypoint1.lat, waypoint1.long, waypoint2.lat, waypoint2.long])
+
+    # Haversine formula
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    distance = R * c
+
+    return distance
