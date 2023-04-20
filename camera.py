@@ -6,6 +6,9 @@ from time import time
 import logging
 import math
 import keyboard
+import numpy as np
+import picamera
+import io
 
 import constants as c
 try:
@@ -21,6 +24,8 @@ except ImportError as e:
     print("Failed to import some modules, if this is not a simulation fix this before continuing")
     print(f"Exception raised: {e}")
     
+from objectDetection import ObjectDetection
+    
 class Frame():
     """
     Image with context metadata
@@ -34,13 +39,13 @@ class Frame():
         - detections: a list of buoy Detections
             - initially empty! must call objectDetection.analyze(Frame.img) to populate
     """
-    def __init__(self, img=None, time=None, gps=None, pitch=None, yaw=None):
+    def __init__(self, img=None, time=None, gps=None, pitch=None, yaw=None, detections=[]):
         self.img = img
         self.time = time
         self.gps = gps
         self.pitch = pitch
         self.yaw = yaw
-        self.detections = []
+        self.detections = detections
             
         
 class Camera():
@@ -57,22 +62,41 @@ class Camera():
         - survey(): Takes a panorama
     """
     def __init__(self):
-        self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
-        self.servos = CameraServos()
-        #self.yaw = self.servos.yaw
-        #self.pitch = self.servos.pitch
-        self.obj_info = [0,0,0,0] #x,y,width,height
         
-    def capture(self, context=True, show=False) -> Frame:
+        int(c.config["CAMERA"]["source"])
+        self._cap = cv2.VideoCapture("device=/dev/video0")
+        self.servos = CameraServos()
+    
+    def __del__(self):
+        self._cap.release()
+        
+    def capture(self, context=True, show=False, detect=False) -> Frame:
         """Takes a single picture from camera
         Args:
             - context (bool): whether to include time, gps, and camera angle in return Frame
             - show (bool): whether to show the image that is captured
+            - detect (bool): whether to detect buoys within the image
         Returns:
             - The captured image stored as a Frame object
         """
         
-        img, time, cords, pitch, yaw = None, None, None, None, None
+        ## TEST THIS V
+        stream = io.BytesIO()
+
+        #Get the picture (low resolution, so it should be quite fast)
+        #Here you can also specify other parameters (e.g.:rotate the image)
+        with picamera.PiCamera() as camera:
+            camera.resolution = (320, 240)
+            camera.capture(stream, format='jpeg')
+
+        #Convert the picture into a numpy array
+        buff = np.fromstring(stream.getvalue(), dtype=np.uint8)
+
+        #Now creates an OpenCV image
+        image = cv2.imdecode(buff, 1)
+        
+        ## TEST THIS ^
+        img, time, gps, pitch, yaw = None, None, None, None, None
         
         ret, img = self._cap.read()
         if not ret:
@@ -83,9 +107,12 @@ class Camera():
             
         if context:
             time, gps, pitch, yaw = self.__get_context()
-            return Frame(img=img, time=time, gps=gps, pitch=pitch, yaw=yaw)            
-        else:
-            return Frame(img=img)
+            
+        if detect:
+            object_detection = ObjectDetection()
+            detections = object_detection.analyze(img)
+        
+        return Frame(img=img, time=time, gps=gps, pitch=pitch, yaw=yaw, detections=detections)            
         
     def survey(self, num_images=3, pitch=70, servo_range=180, context=True, show=False) -> list[Frame]:
         """Takes a horizontal panaroma over the camera's field of view
@@ -111,17 +138,19 @@ class Camera():
         
         images: list[Frame] = []
         servo_step = servo_range / num_images
+        MIN_ANGLE = int(c.config(["CAMERASERVOS"]["min_angle"]))
+        MAX_ANGLE = int(c.config(["CAMERASERVOS"]["max_angle"]))
         
         # Move camera to desired pitch
         self.servos.pitch = pitch
         
         if self.servos.yaw <= 90: 
             # Survey left -> right when camera is facing left or center
-            for self.servos.yaw in range(CameraServos.MIN_ANGLE, CameraServos.MAX_ANGLE, servo_step):
+            for self.servos.yaw in range(MIN_ANGLE, MAX_ANGLE, servo_step):
                 images.append(self.capture(context=context, show=show))
         else:
             # Survey right -> left when camera is facing right
-            for self.servos.yaw in range(CameraServos.MAX_ANGLE, CameraServos.MIN_ANGLE, servo_step):
+            for self.servos.yaw in range(MAX_ANGLE, MIN_ANGLE, servo_step):
                 images.append(self.capture(context=context, show=show))
         
         return images
@@ -129,6 +158,7 @@ class Camera():
     # TODO:
     def track(self):
         """Centers camera on a detected buoy and attempts to keep it in frame"""
+        img = self.capture(context=True, )
     
     def __get_context(self):
         """Helper method to get and format metadata for images"""
@@ -145,9 +175,8 @@ class CameraTester(Camera):
         super().__init__()
         
     def freemove(self):
-        print(type(self.servos.yaw))
-        print(self.servos.yaw)
         while True:
+            print(f"Pitch: {self.servos.pitch} Yaw: {self.servos.yaw}\n")
             if keyboard.is_pressed("enter"):
                 self.capture(context=False, show=True)
             elif keyboard.is_pressed("space"):
