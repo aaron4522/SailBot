@@ -2,7 +2,7 @@ import logging
 import math
 import time
 
-from eventUtils import Event, EventFinished, Waypoint
+from eventUtils import Event, EventFinished, Waypoint, GPS_from_buoy, distance_between
 from camera import Camera, Frame
 from objectDetection import ObjectDetection, Detection
 
@@ -62,11 +62,9 @@ class Search(Event):
         logging.info("Search moment")
         self.object_detection = ObjectDetection()
         self.camera = Camera()
-
-
-        #make in boatMain along with mode switch, attach buoy coords and radius in ary
-        #will need to redo GUI then ://////
-        self.arr = self.SR_pattern()
+        
+        self.waypoint_queue = self.create_search_pattern()
+        self.tracking_buoy = False
     
     def next_gps(self):
         """
@@ -78,26 +76,41 @@ class Search(Event):
             - OR EventFinished exception to signal that the event has been completed
         """
         
-        imgs: list[Frame] = self.camera.survey(3) # (3, analyze=True?)
-        for i, img in enumerate(i, imgs):
-            self.object_detection.analyze(img)
-        imgs.sort(descending=True) # sort by confidence
-        # Datapoints:
-            # GPS pos of boat
-            # GPS pos of detections
-            # Confidence of detections
-        # Abstract:
-            # Create a heatmap of buoys which persists across surveys
-                # (lat, long, confidence)
-        
-        return Waypoint(0.0, 0.0)
+        if (self.tracking_buoy):
+            # move towards buoy and keep in frame
+            # if conf lowers
+            # if conf stays same and far away
+            # if nearby -> ram that shit & signal (unless accelerometer to detect?)
+            if (distance_between(gps, waypoint) < 3):
+                return
+            return
+        else:
+
+            imgs: list[Frame] = self.camera.survey(num_images=3) # (detect=True?)
+            
+            for img in imgs:
+                detections = self.object_detection.analyze(img)
+            
+            if len(detections) == 0:
+                logging.info("No buoys spotted!")
+                return None
+            else:
+                logging.info(f"{len(detections)} buoy(s) found!")
+                
+                #verify_detection(detections[0])
+                
+                waypoint = GPS_from_buoy(detections[0])
+                logging.info(f"Moving to buoy at ({waypoint.lat}, {waypoint.long})")
+                self.tracking_buoy = True
+            
+            return waypoint
     
     def create_search_pattern(self):
         """
         Generates a 5-point zig-zag search pattern to maximimize area coverage 
         
         Returns:
-            - 5 gps coordinates stored as an array of tuples [(pt1_lat, pt1_long), ...]
+            - 5 gps coordinates stored as a list of Waypoints [Waypoint(lat, long), ...]
         """
         
         # Metrics used to fine-tune optimal coverage
@@ -105,7 +118,7 @@ class Search(Event):
         # Camera cone of vision from 
         BOAT_FOV = 242
         # Furthest distance object detection can reliably spot a buoy (m)
-        MAX_DETECTION_DISTANCE = 40
+        MAX_DETECTION_DISTANCE = 20 # untested
         
         pattern = []
         
@@ -129,6 +142,13 @@ class Search(Event):
             tary[i] =  self.event_arr[1] + self.event_arr[2]*math.sin( tar_angs[i] * (math.pi/180) )
         
         return tarx,tary
+    
+    # TODO:
+    def verify_detection(self, detection):
+        """
+        Take a 2nd verification picture to counter false positive
+        """
+        return
     
 if __name__ == "__main__":
     pass
