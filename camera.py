@@ -159,6 +159,102 @@ class Camera():
     def track(self):
         """Centers camera on a detected buoy and attempts to keep it in frame"""
         img = self.capture(context=True, )
+
+    
+    #Centers camera on a survey to get a better, centered capture
+    def focus(self,detection):
+        Cx,Cy = detection.x+detection.w/2, detection.y+detection.h/2
+        Px,Py = Cx/c.config["OBJECTDETECTION"]["camera_width"], Cy/c.config["OBJECTDETECTION"]["camera_height"]
+        if Px<=c.config["OBJECTDETECTION"]["center_acceptance"] and Py<=c.config["OBJECTDETECTION"]["center_acceptance"]: return
+
+        '''
+        #find approriate amount turn based on pixels its behind by
+        Tx,Ty = self.coordcalc(detection.w) #bad dist but useful
+        if Cx < c.config["OBJECTDETECTION"]["camera_width"]/2: self.yaw(self.yaw)
+        '''
+        #find approriate amount turn based by turning by regressive amounts if its too much
+        turn_deg = 15
+        if Cx-detection.w/2<0: sign = -1#left side
+        else: sign=1
+        for i in range(5):  #after 5, fuck it
+            self.yaw(self.yaw+sign*turn_deg)
+            
+            #look (camera)
+            ret, frameT = self.cap.read()
+            if not ret: raise RuntimeError("No camera feed detected")
+            frame = self.ObjDet.analyze(frameT)
+            Cx,Cy = frame.detections[0].x+frame.detections[0].w/2, frame.detections[0].y+frame.detections[0].h/2
+            Px,Py = Cx/c.config["OBJECTDETECTION"]["camera_width"], Cy/c.config["OBJECTDETECTION"]["camera_height"]
+            if Px<=c.config["OBJECTDETECTION"]["center_acceptance"] and Py<=c.config["OBJECTDETECTION"]["center_acceptance"]: break
+
+            #TERRIBLE LOGIC
+            if Cx-detection.w/2<0: signT = -1
+            else: signT=1
+            if sign*signT==-1:turn_deg*0.8
+
+
+    #----------------------------------
+    #calculate gps coords of object based on distance formula and angle
+    #speculation:
+    #rework events to work on ever updating gps coords rather then fantom radius area?
+    #how would you differenciate them from eachother?
+    def coordcalc(self, obj_width):
+        if c.config["OBJECTDETECTION"]["Width_Real"] == 0 or c.config["OBJECTDETECTION"]["Focal_Length"] == 0:
+            raise Exception("MISSING WIDTH REAL/FOCAL LENGTH INFO IN CONSTANTS")
+        dist = (c.config["OBJECTDETECTION"]["Width_Real"]*c.config["OBJECTDETECTION"]["Focal_Length"])/obj_width
+        #TODO: either add angle its away from boat or focus boat at coord
+        comp = compass()    #assume 0 is north(y pos)
+        geep = gps(); geep.updategps()
+
+        t = math.pi/180
+        #intersection of a line coming from the front of the boat to a circle of with a radius the distance it is away
+        return dist*math.cos((comp.angle+self.yaw-90)*t)+geep.latitude, dist*math.sin((comp.angle+self.self.yaw-90)*t)+geep.longitude
+    
+
+    #----------------------------------
+    #search use: returns based on threshold if theres a buoy in frame
+    def SCAN_minor(self):
+        #take 3 images by steps
+        imgs = self.survey(3)
+        dets=[]
+        for i in imgs:  dets.append(self.ObjDet.analyze(i))
+        for i in dets:
+            if i.conf > c.config["OBJECTDETECTION"]["SCAN_minor_thresh"]: return True
+        return False
+
+        
+    #no real use (YET), but cool for presentation
+    #determine closest by widest in set of highest/threshold conf values, center camera to it(focus) , find distance away (coordcalc)
+    def SCAN_major(self):
+        #take 3 images by steps
+        imgs = self.survey(3)
+        dets=[]
+        for i in imgs:
+            dets.append(self.ObjDet.analyze(i))
+        #survey by groups of (1-thres)/steps
+        curr=[]; st = (1-c.config["OBJECTDETECTION"]["SCAN_minor_thresh"])/c.config["OBJECTDETECTION"]["SCAN_major_steps"]
+        for j in range(c.config["OBJECTDETECTION"]["SCAN_major_steps"]):
+            for i in dets:
+                if i.conf > 1-(st*j): curr.append(i)
+            if curr:break
+        if not(curr):return False
+        #sort by width
+        gainiest=0
+        for i in curr:
+            if i.w > gainiest: gainiest = i.w; index=i
+        
+        #focus on it
+        del imgs;del dets;del curr
+        self.focus(index)
+
+        #look (camera)
+        ret, frameT = self.cap.read()
+        if not ret: raise RuntimeError("No camera feed detected")
+        frame = self.ObjDet.analyze(frameT)
+        
+        return self.coordcalc(frame.detections[0].w)
+
+    
     
     def __get_context(self):
         """Helper method to get and format metadata for images"""
