@@ -4,7 +4,6 @@ Drivers and interface for camera servos
 # Code adapted from https://github.com/ArduCAM/PCA9685
 import logging
 from time import sleep
-from math import abs
 
 import constants as c
 try:
@@ -14,15 +13,15 @@ except ImportError as e:
     print(f"Exception raised: {e}")
    
 # Yaw and Pitch assumed to have same range limits
-MIN_ANGLE = int(c.config(["CAMERASERVOS"]["min_angle"]))
-MAX_ANGLE = int(c.config(["CAMERASERVOS"]["max_angle"]))
+MIN_ANGLE = int(c.config["CAMERASERVOS"]["min_angle"])
+MAX_ANGLE = int(c.config["CAMERASERVOS"]["max_angle"])
 
-DEFAULT_ANGLE = int(c.config(["CAMERASERVOS"]["default_angle"]))
+DEFAULT_ANGLE = int(c.config["CAMERASERVOS"]["default_angle"])
 
 # Servo connection ports, if inputs are reversed then switch
 # If servos don't move try setting ports to 2 and 3
-PITCH_PORT = int(c.config(["CAMERASERVOS"]["pitch_port"]))
-YAW_PORT = int(c.config(["CAMERASERVOS"]["yaw_port"]))
+PITCH_PORT = int(c.config["CAMERASERVOS"]["pitch_port"])
+YAW_PORT = int(c.config["CAMERASERVOS"]["yaw_port"])
 
 
 class CameraServos():

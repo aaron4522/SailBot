@@ -7,7 +7,7 @@ import logging
 import math
 import keyboard
 import numpy as np
-import picamera
+import picamera2
 import io
 
 import constants as c
@@ -45,7 +45,7 @@ class Frame():
         self.gps = gps
         self.pitch = pitch
         self.yaw = yaw
-        self.detections = detections
+        self.detections = detections # may share all detections across Frames? if so, detections=None and if None: -> detections = [])
             
         
 class Camera():
@@ -85,7 +85,7 @@ class Camera():
 
         #Get the picture (low resolution, so it should be quite fast)
         #Here you can also specify other parameters (e.g.:rotate the image)
-        with picamera.PiCamera() as camera:
+        with picamera2.PiCamera() as camera:
             camera.resolution = (320, 240)
             camera.capture(stream, format='jpeg')
 
@@ -138,8 +138,8 @@ class Camera():
         
         images: list[Frame] = []
         servo_step = servo_range / num_images
-        MIN_ANGLE = int(c.config(["CAMERASERVOS"]["min_angle"]))
-        MAX_ANGLE = int(c.config(["CAMERASERVOS"]["max_angle"]))
+        MIN_ANGLE = int(c.config["CAMERASERVOS"]["min_angle"])
+        MAX_ANGLE = int(c.config["CAMERASERVOS"]["max_angle"])
         
         # Move camera to desired pitch
         self.servos.pitch = pitch
