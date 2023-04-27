@@ -4,11 +4,9 @@ Interface for camera
 import cv2
 from time import time
 import logging
-import math
 import keyboard
 import numpy as np
-import picamera2
-import io
+import os
 
 import constants as c
 try:
@@ -62,13 +60,12 @@ class Camera():
         - survey(): Takes a panorama
     """
     def __init__(self):
-        
-        int(c.config["CAMERA"]["source"])
-        self._cap = cv2.VideoCapture("device=/dev/video0")
+        #self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
         self.servos = CameraServos()
+        self.path = os.getcwd()
     
-    def __del__(self):
-        self._cap.release()
+    #def __del__(self):
+        #self._cap.release()
         
     def capture(self, context=True, show=False, detect=False) -> Frame:
         """Takes a single picture from camera
@@ -80,30 +77,15 @@ class Camera():
             - The captured image stored as a Frame object
         """
         
-        ## TEST THIS V
-        stream = io.BytesIO()
-
-        #Get the picture (low resolution, so it should be quite fast)
-        #Here you can also specify other parameters (e.g.:rotate the image)
-        with picamera2.PiCamera() as camera:
-            camera.resolution = (320, 240)
-            camera.capture(stream, format='jpeg')
-
-        #Convert the picture into a numpy array
-        buff = np.fromstring(stream.getvalue(), dtype=np.uint8)
-
-        #Now creates an OpenCV image
-        image = cv2.imdecode(buff, 1)
+        img, time, gps, pitch, yaw, detections = None, None, None, None, None, None
         
-        ## TEST THIS ^
-        img, time, gps, pitch, yaw = None, None, None, None, None
+        cmd = fr"libcamera-still -t 1 -o '{self.path}/buffer0.jpg' --width 640 --height 640"
+        os.system(cmd)
         
-        ret, img = self._cap.read()
-        if not ret:
-            raise RuntimeError("No camera feed detected")
+        img = cv2.imread(f"{self.path}/buffer0.jpg")
         
         if show:
-            cv2.imshow(img)
+            cv2.imshow("Image", img)
             
         if context:
             time, gps, pitch, yaw = self.__get_context()

@@ -3,7 +3,6 @@ Drivers and interface for camera servos
 """
 # Code adapted from https://github.com/ArduCAM/PCA9685
 import logging
-from time import sleep
 
 import constants as c
 try:
@@ -66,10 +65,6 @@ class CameraServos():
             logging.debug(f"Moving camera pitch to {angle}")
             self._kit.servo[PITCH_PORT].angle = angle
             
-            while (abs(self.pitch - angle) < 0.1):
-                sleep(0.1)
-            logging.debug(f"Camera pitch set to {angle}")
-            
     @property
     def yaw(self):
         return self._kit.servo[YAW_PORT].angle
@@ -83,10 +78,6 @@ class CameraServos():
         else:
             logging.debug(f"Moving camera yaw to {angle}") 
             self._kit.servo[YAW_PORT].angle = angle
-            
-            while (abs(self.yaw - angle) < 0.1):
-                sleep(0.1)
-            logging.debug(f"Camera yaw set to {angle}")
     
 if __name__ == "__main__":
     servos = CameraServos()

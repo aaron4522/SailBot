@@ -9,7 +9,9 @@ numpy
 # objectDetection
 ultralytics
 opencv-python
-torch
+    # Required otherwise raspberry pi throws "Illegal Instruction"
+torch==1.12.0
+torchvision==0.13.0
 
 # Debug
 tkinter
