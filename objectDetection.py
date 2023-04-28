@@ -16,16 +16,18 @@ class Detection:
     """
     Object containing the confidence level, bounding box, and location of a buoy from a given image
     Attributes:
-        - x (int): - x coordinate for bottom left corner of bounding box
-        - y (int): - y coordinate for bottom left corner of bounding box
+        - x (int): - x coordinate for the center of the buoy
+        - y (int): - y coordinate for the center of the buoy
         - w (int): - width (in pixels) of bounding box rectangle
         - h (int): - height (in pixels) of bounding box rectangle
         - conf (float): - confidence level that detected object is a buoy [0-1]
+        - self.gps ()
     """
     
     def __init__(self, result: torch.tensor):
         _bbox: torch.tensor = result.boxes
-        _xywh: np.array = _bbox.xywh.numpy()[0]
+        _xywh: np.array[np.float32] = _bbox.xywh.numpy()[0]
+        _xywh = np.rint(_xywh).astype(int) # convert numpy floats to nearest numpy integer
         
         self.x = _xywh[0]
         self.y = _xywh[1]
@@ -33,7 +35,7 @@ class Detection:
         self.h = _xywh[3]
         self.conf = _bbox.conf.numpy()[0]
         #self.class_id: str = ObjectDetection.classes[int(_bbox.cls.numpy()[0])]
-        #self.pos = None
+        self.gps = None
         sort_index: int = self.conf
         
 
@@ -75,5 +77,5 @@ class ObjectDetection():
         for detection in result:
             logging.info("Buoy ({detection.conf}): at ({detection.x},{detection.y})\n")
             detections.append(Detection(detection)) # Convert tensors into readable Detection class and append to list
-        detections.sort(descending=True)
+        detections.sort(reverse=True)
         return detections

@@ -1,48 +1,42 @@
 """
 Interface for camera
 """
+import math
 import cv2
-from time import time
+import time
 import logging
-import keyboard
 import numpy as np
 import os
 
 import constants as c
-try:
+if (c.config["MAIN"]["device"] == "pi"):
+    from cameraServos import CameraServos
     from GPS import gps
     from compass import compass
-except ImportError as e:
-    print("Failed to import some modules, if this is not a simulation fix this before continuing")
-    print(f"Exception raised: {e}")
-    
-try:
-    from cameraServos import CameraServos
-except ImportError as e:
-    print("Failed to import some modules, if this is not a simulation fix this before continuing")
-    print(f"Exception raised: {e}")
-    
 from objectDetection import ObjectDetection
     
 class Frame():
     """
-    Image with context metadata
+    RGB image with sensor metadata frozen at the time of capture
     
     Attributes:
-        - img (np.ndarray): the RGB image taken
-        - time: the UTC time at which the image was captured
-        - gps: the position of the boat at time of capture
-        - pitch: the camera's pitch angle at time of capture
-        - yaw: the camera's yaw angle at time of capture
+        - img (np.ndarray): the RGB image captured
+        - time (float): time in seconds since 1970
+        - gps (Waypoint): the camera's GPS position
+        - heading: the camera's TRUE compass orientation
+            - camera and boat can face in different directions (this var corrects for that)
+        - pitch: the camera's pitch angle
         - detections: a list of buoy Detections
-            - initially empty! must call objectDetection.analyze(Frame.img) to populate
+            - initially empty!
+                - call objectDetection.analyze(Frame.img)
+                - OR pass 'detect=True' on capture() or survey()
     """
-    def __init__(self, img=None, time=None, gps=None, pitch=None, yaw=None, detections=[]):
+    def __init__(self, img=None, time=None, gps=None, heading=None, pitch=None, detections=[]):
         self.img = img
         self.time = time
         self.gps = gps
+        self.heading = heading
         self.pitch = pitch
-        self.yaw = yaw
         self.detections = detections # may share all detections across Frames? if so, detections=None and if None: -> detections = [])
             
         
@@ -60,43 +54,55 @@ class Camera():
         - survey(): Takes a panorama
     """
     def __init__(self):
-        #self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
-        self.servos = CameraServos()
-        self.path = os.getcwd()
+        if (c.config["MAIN"]["device"] == "pi"):
+            self.servos = CameraServos()
+            self.path = os.getcwd()
+        else:
+            self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
     
-    #def __del__(self):
-        #self._cap.release()
+    def __del__(self):
+        if (c.config["MAIN"]["device"] != "pi"):
+            self._cap.release()
         
     def capture(self, context=True, show=False, detect=False) -> Frame:
         """Takes a single picture from camera
         Args:
-            - context (bool): whether to include time, gps, and camera angle in return Frame
+            - context (bool): whether to include time, gps, heading, and camera angle
             - show (bool): whether to show the image that is captured
             - detect (bool): whether to detect buoys within the image
         Returns:
-            - The captured image stored as a Frame object
+            - (camera.Frame): The captured image stored as a Frame object
         """
         
-        img, time, gps, pitch, yaw, detections = None, None, None, None, None, None
+        frame = Frame()
         
-        cmd = fr"libcamera-still -t 1 -o '{self.path}/buffer0.jpg' --width 640 --height 640"
-        os.system(cmd)
-        
-        img = cv2.imread(f"{self.path}/buffer0.jpg")
+        if (c.config["MAIN"]["device"] == "pi"):
+            # Inefficient as FUCK
+            cmd = fr"libcamera-still -t 1 -o '{self.path}/buffer0.jpg' --width 640 --height 640"
+            os.system(cmd)
+            frame.img = cv2.imread(f"{self.path}/buffer0.jpg")
+            if (frame.img is None):
+                raise RuntimeError("No camera image detected!")
+        else:
+            _, frame.img = self._cap.read()
         
         if show:
-            cv2.imshow("Image", img)
+            cv2.imshow("Image", frame.img)
             
         if context:
-            time, gps, pitch, yaw = self.__get_context()
+            frame.time = time.time()
+            gps.updategps() # TODO: replace with ROS subscriber
+            frame.gps = (gps.longitude, gps.latitude)
+            frame.pitch = self.servos.pitch
+            frame.heading = (compass.angle + (self.servos.yaw - 90)) % 360
             
         if detect:
             object_detection = ObjectDetection()
-            detections = object_detection.analyze(img)
+            frame.detections = object_detection.analyze(frame.img)
         
-        return Frame(img=img, time=time, gps=gps, pitch=pitch, yaw=yaw, detections=detections)            
+        return frame       
         
-    def survey(self, num_images=3, pitch=70, servo_range=180, context=True, show=False) -> list[Frame]:
+    def survey(self, num_images=3, pitch=70, servo_range=180, context=True, show=False, detect=False) -> list[Frame]:
         """Takes a horizontal panaroma over the camera's field of view
             - Maximum boat FoV is ~242.2 degrees (not tested)
         # Args:
@@ -113,9 +119,9 @@ class Camera():
             - context (bool): whether to include time, gps and camera angle of captured images
             
             - show (bool): whether to show each image as captured
-            
+            - detect (bool): whether to detect buoys in each image
         # Returns:
-            - A list of the captured images stored as Frame objects
+            - list[camera.Frame]: A list of the captured images
         """
         
         images: list[Frame] = []
@@ -134,18 +140,21 @@ class Camera():
             # Survey right -> left when camera is facing right
             for self.servos.yaw in range(MAX_ANGLE, MIN_ANGLE, servo_step):
                 images.append(self.capture(context=context, show=show))
-        
+                
+        if detect:
+            object_detection = ObjectDetection()
+            for frame in images:
+                frame.detections = object_detection.analyze(frame.img)
+                
         return images
 
-    # TODO:
-    def track(self):
-        """Centers camera on a detected buoy and attempts to keep it in frame"""
-        img = self.capture(context=True, )
 
-    
-    #Centers camera on a survey to get a better, centered capture
     def focus(self,detection):
-        Cx,Cy = detection.x+detection.w/2, detection.y+detection.h/2
+        """Centers the camera on a detection to keep it in frame
+        Args:
+            - detection (objectDetection.Detection): the detection to focus on
+        """
+        Cx,Cy = detection.x, detection.y
         Px,Py = Cx/c.config["OBJECTDETECTION"]["camera_width"], Cy/c.config["OBJECTDETECTION"]["camera_height"]
         if Px<=c.config["OBJECTDETECTION"]["center_acceptance"] and Py<=c.config["OBJECTDETECTION"]["center_acceptance"]: return
 
@@ -159,13 +168,11 @@ class Camera():
         if Cx-detection.w/2<0: sign = -1#left side
         else: sign=1
         for i in range(5):  #after 5, fuck it
-            self.yaw(self.yaw+sign*turn_deg)
+            self.servos.yaw = self.servos.yaw+sign*turn_deg
             
             #look (camera)
-            ret, frameT = self.cap.read()
-            if not ret: raise RuntimeError("No camera feed detected")
-            frame = self.ObjDet.analyze(frameT)
-            Cx,Cy = frame.detections[0].x+frame.detections[0].w/2, frame.detections[0].y+frame.detections[0].h/2
+            frame = self.capture(detect=True, context=False)
+            Cx,Cy = frame.detections[0].x, frame.detections[0].y
             Px,Py = Cx/c.config["OBJECTDETECTION"]["camera_width"], Cy/c.config["OBJECTDETECTION"]["camera_height"]
             if Px<=c.config["OBJECTDETECTION"]["center_acceptance"] and Py<=c.config["OBJECTDETECTION"]["center_acceptance"]: break
 
@@ -190,18 +197,18 @@ class Camera():
 
         t = math.pi/180
         #intersection of a line coming from the front of the boat to a circle of with a radius the distance it is away
-        return dist*math.cos((comp.angle+self.yaw-90)*t)+geep.latitude, dist*math.sin((comp.angle+self.self.yaw-90)*t)+geep.longitude
+        return dist*math.cos((comp.angle+self.servos.yaw-90)*t)+geep.latitude, dist*math.sin((comp.angle+self.servos.yaw-90)*t)+geep.longitude
     
 
     #----------------------------------
     #search use: returns based on threshold if theres a buoy in frame
     def SCAN_minor(self):
         #take 3 images by steps
-        imgs = self.survey(3)
+        imgs = self.survey(3, detect=True)
         dets=[]
-        for i in imgs:  dets.append(self.ObjDet.analyze(i))
-        for i in dets:
-            if i.conf > c.config["OBJECTDETECTION"]["SCAN_minor_thresh"]: return True
+        for img in imgs:  dets.extend(img.detections)
+        for det in dets:
+            if det.conf > c.config["OBJECTDETECTION"]["SCAN_minor_thresh"]: return True
         return False
 
         
@@ -209,10 +216,10 @@ class Camera():
     #determine closest by widest in set of highest/threshold conf values, center camera to it(focus) , find distance away (coordcalc)
     def SCAN_major(self):
         #take 3 images by steps
-        imgs = self.survey(3)
-        dets=[]
-        for i in imgs:
-            dets.append(self.ObjDet.analyze(i))
+        imgs = self.survey(num_images=3, detect=True)
+        dets = []
+        for img in imgs:
+            dets.extend(img.detections)
         #survey by groups of (1-thres)/steps
         curr=[]; st = (1-c.config["OBJECTDETECTION"]["SCAN_minor_thresh"])/c.config["OBJECTDETECTION"]["SCAN_major_steps"]
         for j in range(c.config["OBJECTDETECTION"]["SCAN_major_steps"]):
@@ -230,61 +237,8 @@ class Camera():
         self.focus(index)
 
         #look (camera)
-        ret, frameT = self.cap.read()
-        if not ret: raise RuntimeError("No camera feed detected")
-        frame = self.ObjDet.analyze(frameT)
+        frame = self.capture(detect=True, context=True)
         
         return self.coordcalc(frame.detections[0].w)
 
-    
-    
-    def __get_context(self):
-        """Helper method to get and format metadata for images"""
-        time = time()
-        gps.updategps() # TODO: replace with ROS subscriber
-        gps = (gps.longitude, gps.latitude)
-        pitch = self.servos.pitch
-        yaw = self.servos.yaw
-        
-        return time, gps, pitch, yaw
-    
-class CameraTester(Camera):
-    def __init__(self):
-        super().__init__()
-        
-    def freemove(self):
-        while True:
-            print(f"Pitch: {self.servos.pitch} Yaw: {self.servos.yaw}\n")
-            if keyboard.is_pressed("enter"):
-                self.capture(context=False, show=True)
-            elif keyboard.is_pressed("space"):
-                self.servos.reset()
-            elif keyboard.is_pressed("up arrow"):
-                self.servos.pitch = self.servos.pitch + 1
-            elif keyboard.is_pressed("down arrow"):
-                self.servos.pitch = self.servos.pitch - 1
-            elif keyboard.is_pressed("left arrow"):
-                self.servos.yaw = self.servos.yaw - 1
-            elif keyboard.is_pressed("right arrow"):
-                self.servos.yaw = self.servos.yaw + 1
 
-
-if __name__ == "__main__":
-    cam = CameraTester()
-    while True:
-        print('''
-=============================
-Accepted Command info:
-[0] freemove(): free control movement wise with continuous capture feed for demonstration purposes
-[1] survey(): go far left,right,center looking for buoy whole time detect() - 3 set points in x axis
-[2] track(): follow object
------------------------------''')
-        inp = input("Command Test: ")
-        
-        if inp == "0":
-            cam.freemove()
-        if inp == "1":
-            cam.survey()
-        else:
-            print("nah...")
-            raise Exception("invalid command selection")

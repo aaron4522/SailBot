@@ -21,12 +21,16 @@ def test_cam_detect():
     while True:
         start = time()
         
-        frame = cam.capture(context=False)
-        frame.detections = object_detection.analyze(frame.img)
+        frame = cam.capture(context=False, detect=True)
         
+        for detection in frame.detections:
+            x,y,w,h = detection.x, detection.y, detection.w, detection.h
+            cv2.rectangle(frame.img,(x,y),(x+w,y+h),(0,255,0),2)
+            cv2.putText(frame.img,f'Buoy ({detection.conf})',(x+w+10,y+h),0,0.3,(0,255,0))
+            
         end = time()
         fps = 1/np.round(end - start, 2)
-        cv2.putText(frame.img, f'FPS: {int(fps)}', (20,50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,255,0), 2)
+        cv2.putText(frame.img, f'FPS: {fps}', (20,50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0,255,255), 2)
         
         cv2.imshow('YOLOv8 Detection', frame.img)
         
@@ -38,7 +42,11 @@ def test_img_detect(img: str):
     Args:
         img (str): file path of selected image
     """
-    object_detection.model.predict(source=img, show=True, conf=float(c.config["OBJECTDETECTION"]["conf_thresh"]), save=False, line_thickness=1)
+    object_detection.model.predict(source=img, 
+                                   show=True, 
+                                   conf=float(c.config["OBJECTDETECTION"]["conf_thresh"]), 
+                                   save=False, 
+                                   line_thickness=1)
         
 
 if __name__ == "__main__":
