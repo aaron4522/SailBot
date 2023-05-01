@@ -5,11 +5,7 @@ Drivers and interface for camera servos
 import logging
 
 import constants as c
-try:
-    import adafruit_servokit
-except ImportError as e:
-    print("Failed to import some modules, if this is not a simulation fix this before continuing")
-    print(f"Exception raised: {e}")
+import adafruit_servokit
    
 # Yaw and Pitch assumed to have same range limits
 MIN_ANGLE = int(c.config["CAMERASERVOS"]["min_angle"])
@@ -34,7 +30,12 @@ class CameraServos():
     Functions:
         - reset(): returns camera servos to center
     """
-    
+    _instance = None
+    def __new__(cls, *args, **kwargs):
+        """Prevent duplicate classes from being created"""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls, *args, **kwargs)
+        return cls._instance
     def __init__(self):
         self._kit = adafruit_servokit.ServoKit(channels=16)
         self._pitch = DEFAULT_ANGLE

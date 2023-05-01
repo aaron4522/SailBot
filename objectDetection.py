@@ -1,8 +1,9 @@
 """
 Interface for detecting buoys
 """
-from ultralytics import YOLO # Documentation: https://docs.ultralytics.com/cfg/
-#from supervision.tools.detections
+from ultralytics import YOLO  # Documentation: https://docs.ultralytics.com/cfg/
+# from supervision.tools.detections
+import cv2
 import numpy as np
 import torch
 import logging
@@ -79,3 +80,24 @@ class ObjectDetection():
             detections.append(Detection(detection)) # Convert tensors into readable Detection class and append to list
         detections.sort(reverse=True)
         return detections
+
+
+def draw_bbox(frame):
+    """Draws bounding boxes around each detection in a frame
+    Args:
+        - frame (camera.Frame)
+    """
+    for detections in frame.detections:
+        for detection in detections:
+            x, y, w, h = detection.x, detection.y, detection.w, detection.h
+            cv2.rectangle(img=frame.img,
+                          pt1=(int(x - w / 2), int(y + h / 2)),
+                          pt2=(int(x + w / 2), int(y - h / 2)),
+                          color=(0, 255, 0),
+                          thickness=2)
+            cv2.putText(img=frame.img,
+                        text=f'Buoy ({detection.conf})',
+                        org=(int(x - w / 2), int(y + h / 2) + 15),
+                        fontFace=0,
+                        fontScale=0.4,
+                        color=(0, 255, 0))

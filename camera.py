@@ -13,7 +13,7 @@ if (c.config["MAIN"]["device"] == "pi"):
     from cameraServos import CameraServos
     from GPS import gps
     from compass import compass
-from objectDetection import ObjectDetection
+from objectDetection import ObjectDetection, draw_bbox
     
 class Frame():
     """
@@ -64,12 +64,12 @@ class Camera():
         if (c.config["MAIN"]["device"] != "pi"):
             self._cap.release()
         
-    def capture(self, context=True, show=False, detect=False) -> Frame:
+    def capture(self, context=True, detect=False, annotate=False) -> Frame:
         """Takes a single picture from camera
         Args:
             - context (bool): whether to include time, gps, heading, and camera angle
-            - show (bool): whether to show the image that is captured
             - detect (bool): whether to detect buoys within the image
+            - annotate (bool): whether to draw detection boxes around the image
         Returns:
             - (camera.Frame): The captured image stored as a Frame object
         """
@@ -85,9 +85,6 @@ class Camera():
                 raise RuntimeError("No camera image detected!")
         else:
             _, frame.img = self._cap.read()
-        
-        if show:
-            cv2.imshow("Image", frame.img)
             
         if context:
             frame.time = time.time()
@@ -99,10 +96,12 @@ class Camera():
         if detect:
             object_detection = ObjectDetection()
             frame.detections = object_detection.analyze(frame.img)
-        
+            if annotate:
+                draw_bbox(frame)
+
         return frame       
         
-    def survey(self, num_images=3, pitch=70, servo_range=180, context=True, show=False, detect=False) -> list[Frame]:
+    def survey(self, num_images=3, pitch=70, servo_range=180, context=True, detect=False, annotate=False) -> list[Frame]:
         """Takes a horizontal panaroma over the camera's field of view
             - Maximum boat FoV is ~242.2 degrees (not tested)
         # Args:
@@ -117,9 +116,8 @@ class Camera():
                 - ex. a range of 90 degrees limits servo movement to between 45-135 degrees for a total boat FoV of 152.2 degrees
                 
             - context (bool): whether to include time, gps and camera angle of captured images
-            
-            - show (bool): whether to show each image as captured
             - detect (bool): whether to detect buoys in each image
+            - annotate (bool): whether to draw bounding boxes around each detection
         # Returns:
             - list[camera.Frame]: A list of the captured images
         """
@@ -135,11 +133,11 @@ class Camera():
         if self.servos.yaw <= 90: 
             # Survey left -> right when camera is facing left or center
             for self.servos.yaw in range(MIN_ANGLE, MAX_ANGLE, servo_step):
-                images.append(self.capture(context=context, show=show))
+                images.append(self.capture(context=context, annotate=annotate))
         else:
             # Survey right -> left when camera is facing right
             for self.servos.yaw in range(MAX_ANGLE, MIN_ANGLE, servo_step):
-                images.append(self.capture(context=context, show=show))
+                images.append(self.capture(context=context, annotate=annotate))
                 
         if detect:
             object_detection = ObjectDetection()
@@ -169,7 +167,7 @@ class Camera():
         else: sign=1
         for i in range(5):  #after 5, fuck it
             self.servos.yaw = self.servos.yaw+sign*turn_deg
-            
+
             #look (camera)
             frame = self.capture(detect=True, context=False)
             Cx,Cy = frame.detections[0].x, frame.detections[0].y
@@ -198,7 +196,7 @@ class Camera():
         t = math.pi/180
         #intersection of a line coming from the front of the boat to a circle of with a radius the distance it is away
         return dist*math.cos((comp.angle+self.servos.yaw-90)*t)+geep.latitude, dist*math.sin((comp.angle+self.servos.yaw-90)*t)+geep.longitude
-    
+
 
     #----------------------------------
     #search use: returns based on threshold if theres a buoy in frame
@@ -211,7 +209,7 @@ class Camera():
             if det.conf > c.config["OBJECTDETECTION"]["SCAN_minor_thresh"]: return True
         return False
 
-        
+
     #no real use (YET), but cool for presentation
     #determine closest by widest in set of highest/threshold conf values, center camera to it(focus) , find distance away (coordcalc)
     def SCAN_major(self):
@@ -231,14 +229,14 @@ class Camera():
         gainiest=0
         for i in curr:
             if i.w > gainiest: gainiest = i.w; index=i
-        
+
         #focus on it
         del imgs;del dets;del curr
         self.focus(index)
 
         #look (camera)
         frame = self.capture(detect=True, context=True)
-        
+
         return self.coordcalc(frame.detections[0].w)
 
 
