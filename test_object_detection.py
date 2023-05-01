@@ -25,8 +25,8 @@ def test_cam_detect():
         
         for detection in frame.detections:
             x,y,w,h = detection.x, detection.y, detection.w, detection.h
-            cv2.rectangle(frame.img,(x,y),(x+w,y+h),(0,255,0),2)
-            cv2.putText(frame.img,f'Buoy ({detection.conf})',(x+w+10,y+h),0,0.3,(0,255,0))
+            cv2.rectangle(frame.img,(x-.5*w,y-.5*h),(x+.5*w,y+.5*h),(0,255,0),2)
+            cv2.putText(frame.img,f'Buoy ({detection.conf})',(x+.5*w+10,y+.5*h),0,0.3,(0,255,0))
             
         end = time()
         fps = 1/np.round(end - start, 2)
