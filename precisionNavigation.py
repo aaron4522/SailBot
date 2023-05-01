@@ -1,5 +1,5 @@
 from time import time
-from logging import logging
+import logging
 import math
 
 from eventUtils import Event, EventFinished, Waypoint

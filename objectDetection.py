@@ -27,15 +27,14 @@ class Detection:
     
     def __init__(self, result: torch.tensor):
         _bbox: torch.tensor = result.boxes
-        _xywh: np.array[np.float32] = _bbox.xywh.numpy()[0]
-        _xywh = np.rint(_xywh).astype(int) # convert numpy floats to nearest numpy integer
-        
-        self.x = _xywh[0]
-        self.y = _xywh[1]
-        self.w = _xywh[2]
-        self.h = _xywh[3]
-        self.conf = _bbox.conf.numpy()[0]
-        #self.class_id: str = ObjectDetection.classes[int(_bbox.cls.numpy()[0])]
+        _xywh: list[float] = np.rint(_bbox.xywh[0]).tolist()
+
+        self.x = int(_xywh[0])
+        self.y = int(_xywh[1])
+        self.w = int(_xywh[2])
+        self.h = int(_xywh[3])
+        self.conf = round(_bbox.conf.item(), 2)
+        # self.class_id: str = ObjectDetection.classes[int(_bbox.cls.numpy()[0])]
         self.gps = None
         sort_index: int = self.conf
         

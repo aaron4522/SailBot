@@ -31,7 +31,9 @@ class Frame():
                 - call objectDetection.analyze(Frame.img)
                 - OR pass 'detect=True' on capture() or survey()
     """
-    def __init__(self, img=None, time=None, gps=None, heading=None, pitch=None, detections=[]):
+    def __init__(self, img=None, time=None, gps=None, heading=None, pitch=None, detections=None):
+        if detections is None:
+            self.detections = []
         self.img = img
         self.time = time
         self.gps = gps
