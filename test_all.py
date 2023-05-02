@@ -144,3 +144,4 @@ def manual_test_cam_detect():
         fps = 1 / np.round(end - start, 2)
         cv2.putText(frame.img, f'FPS: {fps}', (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 2)
         cv2.imshow('YOLOv8 Detection', frame.img)
+        cv2.waitKey(1)

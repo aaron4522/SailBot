@@ -131,7 +131,7 @@ class Camera():
         """
 
         images: list[Frame] = []
-        servo_step = servo_range / num_images
+        servo_step = int(servo_range / num_images)
         MIN_ANGLE = int(c.config["CAMERASERVOS"]["min_angle"])
         MAX_ANGLE = int(c.config["CAMERASERVOS"]["max_angle"])
 
