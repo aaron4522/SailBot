@@ -120,6 +120,7 @@ def manual_test_camera():
         if keyboard.is_pressed("enter"):
             frame = cam.capture(context=True, detect=True, annotate=True)
             print(f"Captured: {repr(frame)}")
+            print(f"Width: {frame.detections[0].w}")
         elif keyboard.is_pressed("space"):
             cam.servos.reset()
         elif keyboard.is_pressed("up arrow"):
