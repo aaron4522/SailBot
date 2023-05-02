@@ -86,17 +86,16 @@ def draw_bbox(frame):
     Args:
         - frame (camera.Frame)
     """
-    for detections in frame.detections:
-        for detection in detections:
-            x, y, w, h = detection.x, detection.y, detection.w, detection.h
-            cv2.rectangle(img=frame.img,
-                          pt1=(int(x - w / 2), int(y + h / 2)),
-                          pt2=(int(x + w / 2), int(y - h / 2)),
-                          color=(0, 255, 0),
-                          thickness=2)
-            cv2.putText(img=frame.img,
-                        text=f'Buoy ({detection.conf})',
-                        org=(int(x - w / 2), int(y + h / 2) + 15),
-                        fontFace=0,
-                        fontScale=0.4,
-                        color=(0, 255, 0))
+    for detection in frame.detections:
+        x, y, w, h = detection.x, detection.y, detection.w, detection.h
+        cv2.rectangle(img=frame.img,
+                      pt1=(int(x - w / 2), int(y + h / 2)),
+                      pt2=(int(x + w / 2), int(y - h / 2)),
+                      color=(0, 255, 0),
+                      thickness=2)
+        cv2.putText(img=frame.img,
+                    text=f'Buoy ({detection.conf})',
+                    org=(int(x - w / 2), int(y + h / 2) + 15),
+                    fontFace=0,
+                    fontScale=0.4,
+                    color=(0, 255, 0))

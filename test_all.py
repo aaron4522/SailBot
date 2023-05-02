@@ -1,6 +1,10 @@
 """
 Tests all necessary sensors and functionality of the boat
 """
+import sys
+import os
+sys.path.append(os.getcwd())  # Bootleg fix for imports until repo is packaged
+
 import pytest
 import warnings
 import cv2
@@ -39,9 +43,6 @@ def test_windvane():
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
 def test_transceiver():
     pass
-
-
-
 
 
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
@@ -117,7 +118,8 @@ def manual_test_camera():
     while True:
         print(f"Pitch: {cam.servos.pitch} Yaw: {cam.servos.yaw}\n")
         if keyboard.is_pressed("enter"):
-            cam.capture(context=False, detect=True, annotate=True)
+            frame = cam.capture(context=True, detect=True, annotate=True)
+            print(f"Captured: {repr(frame)}")
         elif keyboard.is_pressed("space"):
             cam.servos.reset()
         elif keyboard.is_pressed("up arrow"):
