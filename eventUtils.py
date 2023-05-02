@@ -123,10 +123,10 @@ def distance_between(waypoint1, waypoint2):
         - waypoint1 (eventUtils.Waypoint)
         - waypoint2 (eventUtils.Waypoint)
     # Returns:
-        - distance in meters between points (stored as eventUtils.Waypoint)
+        - distance in meters between points (float)
     """
-    R = 6371  # Radius of the Earth in kilometers
-
+    EARTH_RADIUS = 6371 # Km
+    
     # Convert latitude and longitude to radians
     lat1, lon1, lat2, lon2 = map(math.radians, [waypoint1.lat, waypoint1.long, waypoint2.lat, waypoint2.long])
 
@@ -135,6 +135,7 @@ def distance_between(waypoint1, waypoint2):
     dlon = lon2 - lon1
     a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    distance = R * c
+    
+    distance = EARTH_RADIUS * c
 
     return distance
