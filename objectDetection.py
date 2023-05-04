@@ -37,6 +37,9 @@ class Detection:
         # self.class_id: str = ObjectDetection.classes[int(_bbox.cls.numpy()[0])]
         self.gps = None
         sort_index: int = self.conf
+
+    def __str__(self):
+        return f"Detection ({self.conf}%) at ({self.x}, {self.y}) with width {self.w}px and height {self.h}px"
         
 
 class ObjectDetection():

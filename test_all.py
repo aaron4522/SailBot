@@ -3,6 +3,7 @@ Tests all necessary sensors and functionality of the boat
 """
 import sys
 import os
+
 sys.path.append(os.getcwd())  # Bootleg fix for imports until repo is packaged
 
 import pytest
@@ -18,31 +19,88 @@ import objectDetection
 
 DEVICE = c.config["MAIN"]["device"]
 
+if DEVICE == "pi":
+    import rclpy
+    import GPS
+    import compass
+    import windvane
+    import transceiver
+
 
 # ---------------------------------- SENSORS ----------------------------------
 
-@pytest.mark.skip(reason="Not implemented")
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
-def test_gps():
-    pass
+def test_gps_ROS():
+    # TODO: idk if this works? Input from Tom pls.
+    rclpy.init(args=None)
+    gps = GPS.gps()
+    rclpy.spin(gps)
+
+    for i in range(0, 3):
+        results = (gps.latitude, gps.longitude)
+        print(f"GPS: ({results[0]}, {results[1]})")
+        assert results is not None
+
+    gps.destroy_node()
+    rclpy.shutdown()
 
 
-@pytest.mark.skip(reason="Not implemented")
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
-def test_compass():
-    pass
+def test_gps_deprecated():
+    gps = GPS.gps()
+
+    for i in range(0, 3):
+        gps.updategps()
+        results = (gps.latitude, gps.longitude)
+        print(f"GPS: ({results[0]}, {results[1]})")
+        assert results is not None
 
 
-@pytest.mark.skip(reason="Not implemented")
+@pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
+def test_compass_ROS():
+    rclpy.init(args=None)
+    comp = compass.compass()
+    rclpy.spin(comp)
+
+    for i in range(0, 3):
+        results = comp.angle
+        print(f"Compass: {results})")
+        assert results is not None
+
+    comp.destroy_node()
+    rclpy.shutdown()
+
+
+@pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
+def test_compass_deprecated():
+    comp = compass.compass()
+
+    for i in range(0, 3):
+        results = comp.angle
+        print(f"Compass: {results})")
+        comp.printAccel()
+        comp.printMag()
+        assert comp.angle is not None
+
+
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
 def test_windvane():
-    pass
+    wv = windvane.windVane()
+
+    for i in range(0, 3):
+        results = wv.position
+        print(f"Windvane: {results}")
+        assert results is not None
 
 
-@pytest.mark.skip(reason="Not implemented")
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
 def test_transceiver():
-    pass
+    ardu = transceiver.arduino(c.config['MAIN']['ardu_port'])
+
+    for i in range(0, 3):
+        results = ardu.readData()
+        print(f"Transceiver: {results}")
+        assert results is not None
 
 
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
@@ -118,9 +176,17 @@ def manual_test_camera():
     while True:
         print(f"Pitch: {cam.servos.pitch} Yaw: {cam.servos.yaw}\n")
         if keyboard.is_pressed("enter"):
-            frame = cam.capture(context=True, detect=True, annotate=True)
+            try:
+                frame = cam.capture(context=True, detect=True, annotate=True)
+            except Exception as e:
+                warnings.warn(f"""
+                Failed to capture frame with context
+                Exception Raised: {e}
+                Attempting capture without context""")
+                frame = cam.capture(context=False, detect=True, annotate=True)
             print(f"Captured: {repr(frame)}")
-            print(f"Width: {frame.detections[0].w}")
+            for detection in frame.detections:
+                print(f"  {detection}")
         elif keyboard.is_pressed("space"):
             cam.servos.reset()
         elif keyboard.is_pressed("up arrow"):
