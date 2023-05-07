@@ -15,6 +15,7 @@ if c.config["MAIN"]["device"] == "pi":
     from GPS import gps
     from compass import compass
 from objectDetection import ObjectDetection, draw_bbox
+from eventUtils import Waypoint
 
 
 class Frame():
@@ -103,6 +104,9 @@ class Camera():
         if detect:
             object_detection = ObjectDetection()
             frame.detections = object_detection.analyze(frame.img)
+            if context:
+                estimate_all_buoy_gps(frame)
+
             if annotate:
                 draw_bbox(frame)
 
@@ -253,3 +257,35 @@ class Camera():
         frame = self.capture(detect=True, context=True)
 
         return self.coordcalc(frame.detections[0].w)
+
+
+def estimate_all_buoy_gps(frame):
+    """Approximates the locations of all detected buoys in a frame
+        - Compares the ratio of buoy_size/distance to a fixed measured ratio
+        - Uses camera angle and pixels from center to create a ray from the boat's current position
+            - This ray is used to estimate the GPS point of each buoy
+    # Args:
+        - frame (camera.Frame):
+    # Returns:
+        - None
+            - all frame.detections[].gps are updated
+    """
+    tested_width = c.config["OBJECTDETECTION"]["apparent_buoy_width_px"]
+    tested_distance = c.config["OBJECTDETECTION"]["distance_from_buoy"]
+
+    real_width = c.config["OBJECTDETECTION"]["real_buoy_width"]
+    cam_center = c.config["CAMERA"]["resolution_width"] / 2
+
+    earth_radius = 6378000
+
+    for detection in frame.detections:
+        dy = (tested_width / detection.w) * tested_distance
+        dy *= math.sin(frame.heading) # IDK IF WORKS
+
+        dx = (abs(detection.x - cam_center) / detection.w) * real_width
+        dx *= math.cos(frame.heading)
+
+        lat = frame.gps.lat + (dy / earth_radius) * (180 / math.pi)
+        lon = frame.gps.lon + (dx / earth_radius) * (180 / math.pi) / math.cos(frame.gps.lat * math.pi / 180)
+
+        detection.gps = Waypoint(lat, lon)
