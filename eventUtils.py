@@ -88,35 +88,6 @@ def SK_I(self,M1,V1,M2,V2): return (V2-V1)/(M1-M2)                              
 def SK_d(self,a1,b1,a2,b2): return math.sqrt((a2-a1)**2 + (b2-b1)**2)                   #find distance between two points
 
 
-# TODO: Return multiple waypoints when multiple buoys (append onto Detection class?)
-def GPS_from_buoy(buoy):
-    """Approximates the location of a detected buoy
-        - Compares the ratio of buoy_size/distance to a fixed measured ratio
-    # Args:
-        - buoy (objectDetection.Detection): 
-    # Returns:
-        - eventUtils.Waypoint(Latitude, Longitude) object
-    """
-    # buoy_size_in_pixels = buoy.w * buoy.h
-    #buoy_distance = None # What we want to find
-    
-    # measured_buoy_size_in_pixels = c.config["OBJECTDETECTION"]["Buoy_Width"] * c.config["OBJECTDETECTION"]["Buoy_Height"]
-    # measured_buoy_distance = c.config["OBJECTDETECTION"]["Measured_distance"]
-    # boat_gps = 0
-    
-    
-    if c.config["OBJECTDETECTION"]["Width_Real"] == 0 or c.config["OBJECTDETECTION"]["Focal_Length"] == 0:
-        raise Exception("MISSING WIDTH REAL/FOCAL LENGTH INFO IN CONSTANTS")
-    dist = (c.config["OBJECTDETECTION"]["Width_Real"]*c.config["OBJECTDETECTION"]["Focal_Length"])/self.obj_info[2]
-    comp = compass()    #assume 0 is north(y pos)
-    geep = gps(); geep.updategps()
-
-    t = math.pi/180
-    
-    latitude = dist*math.cos(comp.angle*t)+geep.latitude
-    longitude =  dist*math.sin(comp.angle*t)+geep.longitude
-    return Waypoint(latitude, longitude)
-
 def distance_between(waypoint1, waypoint2):
     """Calculates the distance between two GPS points using the Haversine formula
     # Args:
