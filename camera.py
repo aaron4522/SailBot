@@ -159,9 +159,17 @@ class Camera():
         return images
 
     def focus(self, detection):
+        # TODO:
+        #  - Bugfix code
+        #  - Error check to raise Runtime exception when focusing is impossible
+        #  - Overload to support focusing on GPS
         """Centers the camera on a detection to keep it in frame
         Args:
-            - detection (objectDetection.Detection): the detection to focus on
+            - detection (Detection, Waypoint): the object to focus on
+
+        Raises:
+            - RuntimeError: when the camera cannot keep the object in frame using servos alone
+                - NOTE: Should be pretty rare but occurs when trying to focus on something behind the boat
         """
         Cx, Cy = detection.x, detection.y
         Px, Py = Cx / c.config["OBJECTDETECTION"]["camera_width"], Cy / c.config["OBJECTDETECTION"]["camera_height"]
@@ -259,6 +267,8 @@ class Camera():
         return self.coordcalc(frame.detections[0].w)
 
 
+# TODO: Currently ignores camera height and pitch so estimated gps is based off of the triangle's leg vs hypotenuse
+    # Fix if estimated gps positions are innacurate
 def estimate_all_buoy_gps(frame):
     """Approximates the locations of all detected buoys in a frame
         - Compares the ratio of buoy_size/distance to a fixed measured ratio
