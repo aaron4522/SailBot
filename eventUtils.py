@@ -99,10 +99,10 @@ def distance_between(waypoint1, waypoint2):
     # Returns:
         - distance in meters between points (float)
     """
-    EARTH_RADIUS = 6371 # Km
-    
+    EARTH_RADIUS = 6371000
+
     # Convert latitude and longitude to radians
-    lat1, lon1, lat2, lon2 = map(math.radians, [waypoint1.lat, waypoint1.long, waypoint2.lat, waypoint2.long])
+    lat1, lon1, lat2, lon2 = map(math.radians, [waypoint1.lat, waypoint1.lon, waypoint2.lat, waypoint2.lon])
 
     # Haversine formula
     dlat = lat2 - lat1
