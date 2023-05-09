@@ -8,13 +8,12 @@ from dataclasses import dataclass
 import math
 import time
 
-try:
-    from GPS import gps
-    import constants as c
+import constants as c
 
-except Exception as e:
-    from sailbot.GPS import gps
-    import sailbot.constants as c
+if c.config["MAIN"]["DEVICE"] == "pi":
+    from GPS import gps
+
+
 @dataclass(slots=True)
 class Waypoint:
     """
@@ -24,8 +23,12 @@ class Waypoint:
     
     lat: float
     lon: float
-    
-class Event():
+
+    def __str__(self):
+        return f"({self.lat}, {self.lon})"
+
+
+class Event:
     """
     Basic blueprint for creating new events
     
