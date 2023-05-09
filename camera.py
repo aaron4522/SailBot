@@ -16,6 +16,7 @@ if c.config["MAIN"]["device"] == "pi":
     from compass import compass
 from objectDetection import ObjectDetection, draw_bbox
 from eventUtils import Waypoint
+from utils import singleton
 
 
 class Frame():
@@ -47,7 +48,8 @@ class Frame():
         return f"Frame({self.img, self.time, self.gps, self.heading, self.pitch, self.detections})"
 
 
-class Camera():
+@singleton
+class Camera:
     """
     Drivers and interface for camera
     
