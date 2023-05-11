@@ -27,6 +27,9 @@ class Waypoint:
     def __str__(self):
         return f"({self.lat}, {self.lon})"
 
+    def __repr__(self):
+        return f"Waypoint({self.lat, self.lon})"
+
 
 class Event:
     """
