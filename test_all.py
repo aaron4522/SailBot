@@ -19,6 +19,9 @@ import objectDetection
 
 DEVICE = c.config["MAIN"]["device"]
 
+print(f"Running tests in {DEVICE} mode. "
+      f"If this is not intended, set device in config.ini to either 'pi' or 'pc'")
+
 if DEVICE == "pi":
     import rclpy
     import GPS
