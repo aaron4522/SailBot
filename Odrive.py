@@ -1,67 +1,90 @@
 """
 calibrates and default values for Odrive and handles interfacing between Odrive and python code
 """
-
+from time import sleep
+import sys
+import logging
 import odrive
 import odrive.utils as ut
+
 try:
     import constants as c
 except:
     import sailbot.constants as c
-from time import sleep
-import sys
 
 
-class Odrive():
-    def __init__(self, calibrate = False):
-        print("Start")
+class Odrive:
+    # TODO: (TOM) fill in documentation (I'm only including public facing vars so delete anything if the user doesn't need to know about it)
+    """
+    Controls the ODrive motors which move the sails and rudder
+    Attributes:
+        - pos (type): desc
+        - vel (type): desc
+        - torque (type): desc
+        - current (type): desc
+    Functions:
+        - reboot(): desc
+        - calibrate(): desc
+    """
+    def __init__(self, preset=None):
+        """
+        Args:
+            preset (str): pre-defined configurations for 2023's competition
+                - Supports either 'sail' or 'rudder'
+        """
+        logging.info(f"Initializing ODrive with preset: {preset}")
         self.od = odrive.find_any()
-        self.setConstants()
-        
 
-        if calibrate:
-            print("calibrating")
-            self.reboot()
-            self.axis0.requested_state = 3
-            self.axis1.requested_state = 3
-            sleep(15)
-            ut.dump_errors(self.od)
-            #CALIBRATION = 3, can be avoided, see how to in list of axisStates
-            
-            # self.axis0.motor.config.pre_calibrated = False
-            # sleep(.1)
-            # self.axis0.requested_state = 4
-            # sleep(10)
-            # ut.dump_errors(self.od)
-            # self.axis0.motor.config.pre_calibrated = True
-            # try:
-            #     self.od.save_configuration()
-            # except:
-            #     #an exception will be thrown, this is expected
-            #     pass
+        self.axis = self.od.axis
+        self.mo = self.axis.motor
+        self.enc = self.axis.encoder
 
-            # self.od = odrive.find_any()
-            # self.setConstants()
-            
-            # self.axis0.requested_state = 2
-            # ut.dump_errors(self.od)
-            # sleep(1)
-            # self.axis0.requested_state = 7
-            # sleep(15)
+        # TODO: (TOM) if any of these constants are unique for the sail/rudder then add them inside the if/else
+        self.KVRating = c.config['ODRIVE']['motorKV']
+        # self.od.config.brake_resistance = c.config['CONSTANTS']['odrivebreakresistor']
+        self.axis.controller.config.enable_overspeed_error = False
+        self.current = c.config['ODRIVE']['currentLimit']
 
-        
+        # TODO: (TOM) move whichever presets are the same for sail and rudder outside of the if/else
+        if preset == "sail":
+            self.enc.config.cpr = c.config['ODRIVE_SAIL']['odriveEncoderCPR']
+            self.od.axis.motor.config.pole_pairs = c.config['ODRIVE_SAIL']['odrivepolepairs']
+            self.od.axis.motor.config.torque_constant = 1  # read the getting started guide on this, to be changed later
+            self.od.axis.motor.config.motor_type = 0
 
-        #self.reboot()
+            self.axis.controller.config.vel_limit = c.config['ODRIVE']['velLimit']
+            self.axis.controller.config.pos_gain = c.config['ODRIVE']['posGain']
+            self.axis.controller.config.vel_gain = c.config['ODRIVE']['velGain']
+            self.axis.controller.config.vel_integrator_gain = c.config['ODRIVE']['velIntegratorGain']
 
-        self.axis0.requested_state = 8
-        self.axis1.requested_state = 8 
+        elif preset == "rudder":
+            self.enc.config.cpr = c.config['ODRIVE_RUDDER']['odriveEncoderCPR']
+            self.od.axis.motor.config.pole_pairs = c.config['ODRIVE_RUDDER']['odrivepolepairs']
+            self.od.axis.motor.config.torque_constant = 1  # read the getting started guide on this, to be changed later
+            self.od.axis.motor.config.motor_type = 0
+
+            self.axis.controller.config.vel_limit = c.config['ODRIVE']['velLimit']
+            self.axis.controller.config.pos_gain = c.config['ODRIVE']['posGain']
+            self.axis.controller.config.vel_gain = c.config['ODRIVE']['velGain']
+            self.axis.controller.config.vel_integrator_gain = c.config['ODRIVE']['velIntegratorGain']
+
+        elif preset is not None:
+            raise ValueError("Trying to load an undefined preset!")
+
+        else:
+            # Default fallback values when no preset is defined
+            # TODO: (Aaron) add __init__ args to have the user define odrive values
+            raise NotImplementedError("Non-preset fallback values haven't been coded yet")
+
+        self.axis.requested_state = 8
         ut.dump_errors(self.od)
         sleep(.1)
 
     def reboot(self):
+        # TODO: (TOM) reboot won't work with new implementation (no more setConstants())
+            # is this ok?
         try:
             self.od.reboot()
-            pass
         except:
             #error is expected
             pass
@@ -69,210 +92,72 @@ class Odrive():
         self.od = odrive.find_any()
         self.setConstants()
 
-    def setConstants(self):
-        self.KVRating = c.config['ODRIVE']['motorKV']
-        #self.od.config.brake_resistance = c.config['CONSTANTS']['odrivebreakresistor']
-
-        self.axis0 = self.od.axis0
-        self.mo0 = self.axis0.motor
-        self.enc0 = self.axis0.encoder
-
-        self.axis0.controller.config.enable_overspeed_error = False
-        self.enc0.config.cpr = c.config['ODRIVE']['odriveEncoderCPR0']
-        self.od.axis0.motor.config.pole_pairs = c.config['ODRIVE']['odrivepolepairs0']
-        self.od.axis0.motor.config.torque_constant = 1 # read the getting started guide on this, to be changed later
-        self.od.axis0.motor.config.motor_type = 0
-        
-        self.axis0.controller.config.vel_limit = c.config['ODRIVE']['velLimit']
-        self.axis0.controller.config.pos_gain = c.config['ODRIVE']['posGain']
-        self.axis0.controller.config.vel_gain = c.config['ODRIVE']['velGain']
-        self.axis0.controller.config.vel_integrator_gain = c.config['ODRIVE']['velIntegratorGain']
-        self.current0 = c.config['ODRIVE']['currentLimit']
-        
-        
-
-        self.axis1 = self.od.axis1
-        self.mo1 = self.axis1.motor
-        self.enc1 = self.axis1.encoder
-
-        self.axis1.controller.config.enable_overspeed_error = False
-        self.enc1.config.cpr = c.config['ODRIVE']['odriveEncoderCPR1']
-        self.od.axis1.motor.config.pole_pairs = c.config['ODRIVE']['odrivepolepairs1']
-        self.od.axis1.motor.config.torque_constant = 1 # read the getting started guide on this, to be changed later
-        self.od.axis1.motor.config.motor_type = 0
-        
-        self.axis1.controller.config.vel_limit = c.config['ODRIVE']['velLimit']
-        self.axis1.controller.config.pos_gain = c.config['ODRIVE']['posGain']
-        self.axis1.controller.config.vel_gain = c.config['ODRIVE']['velGain']
-        self.axis1.controller.config.vel_integrator_gain = c.config['ODRIVE']['velIntegratorGain']
-        self.current1 = c.config['ODRIVE']['currentLimit']
-        
-        
-
-
+    def calibrate(self):
+        print("Calibrating")
+        self.reboot()
+        self.axis.requested_state = 3
+        sleep(15)
+        ut.dump_errors(self.od)
 
     @property
     def pos(self):
-        return (self.pos0, self.pos1)
+        return self.axis.encoder.pos_estimate
 
     @pos.setter
     def pos(self, value):
-        # sets both motor's position to value
-        self.pos0 = value
-        self.pos1 = value
-
-    def posSet(self, axis, value):
-        # sets 'axis' motor to value
-        # 'axis' is axis0 or axis1 object
-        #print(F"odrive posSet {value}")
-        if axis == self.axis0:
-            try:
-                self.axis0.controller.input_pos = value
-            except Exception as e:
-                print(F"Error setting axis0 to {value}")
-            #print(F"set axis 0 to {value}")
-        elif axis == self.axis1:
-            try:
-                self.axis1.controller.input_pos = value
-            except Exception as e:
-                print(F"Error setting axis1 to {value}")
-            #print(F"set axis 1 to {value}")
+        # TODO: (TOM) is try except needed? why not let error get raised?
+            # Do exceptions occur during normal behavior?
+        try:
+            self.axis.controller.input_pos = value
+        except Exception as e:
+            print(F"Error setting axis0 to {value}")
+        self.pos = value
 
     @property
     def vel(self):
-        return (self.vel0, self.vel1)
+        return self.axis.controller.config.vel_limit
+        # return self.axis0.controller.input_vel
 
     @vel.setter
     def vel(self, value):
-        self.vel0 = value
-        self.vel1 = value
-
-    def velSet(self, axis, value):
-        if axis == self.axis0:
-            self.vel0 = value
-        elif axis == self.axis1:
-            self.vel1 = value
+        self.axis.controller.config.vel_limit = value
 
     @property
     def torque(self):
         #this will change current drawn
-        return 8.27 * getDrawnCurrent / self.KVRating
+        # TODO: (TOM) which return statement?
+            # getDrawnCurrent typo? or different from getDemandedCurrent()?
+        return 8.27 * getDrawnCurrent / self.KVRating # Used by torque and torque0
+        return self.axis.controller.input_torque # Used by torque1
 
-    def torqueSet(self, axis, value):
-        if axis == self.axis0:
-            self.torque0 = value
-        elif axis == self.axis1:
-            self.torque1 = value
+    @torque.setter
+    def torque(self, value):
+        self.axis.controller.input_torque = value
 
     @property
     def current(self):
-        return (self.current0, self.current1)
+        return self.mo.config.current_lim
 
     @current.setter
     def current(self, value):
-        self.current0 = value
-        self.current1 = value
-
-    def currentSet(self, axis, value):
-        #this will change torque!!!
-        if axis == self.axis0:
-            self.current0 = value
-        elif axis == self.axis1:
-            self.current1 = value
+        # this will change torque!!!
+        # self.torque = (8.27 * value / self.KVRAting)
+        if value > 65:
+            raise Exception("Motor current limit should not be raised this high without verifying the motor can handle it")
+        else:
+            self.mo.config.current_lim = value
 
     def getDemandedCurrent(self):
-        return (self.getDemandedCurrent0(), self.getDemandedCurrent1())
-        
-    @property
-    def pos0(self):
-        return self.axis0.encoder.pos_estimate
+        return self.axis.motor.current_control.Iq_setpoint
 
-    @pos0.setter
-    def pos0(self, value):
-        self.axis0.controller.input_pos = value
-
-    @property
-    def vel0(self):
-        return self.axis0.controller.config.vel_limit
-        #return self.axis0.controller.input_vel
-
-    @vel0.setter
-    def vel0(self, value):
-        self.axis0.controller.config.vel_limit = value
-
-    @property
-    def torque0(self):
-        #this will change current drawn
-        return self.axis0.controller.input_torque
-
-    @torque0.setter
-    def torque0(self, value):
-        self.axis0.controller.input_torque = value
-
-    @property
-    def current0(self):
-        return self.mo0.config.current_lim
-
-    @current0.setter
-    def current0(self, value):
-        #this will change torque!!!
-        #self.torque = (8.27 * value / self.KVRAting)
-        #print(F"Warning: Changing the current limit will affect the torque")
-        if float(value) > 65:
-            raise Exception("Motor current limit should not be raised this high without verifying the motor can handle it")
-        self.mo0.config.current_lim = value
-
-    def getDemandedCurrent0(self):
-        return self.axis0.motor.current_control.Iq_setpoint
-
-
-
-    @property
-    def pos1(self):
-        return self.axis1.encoder.pos_estimate
-
-    @pos1.setter
-    def pos1(self, value):
-        self.axis1.controller.input_pos = value
-
-    @property
-    def vel1(self):
-        return self.axis0.controller.config.vel_limit
-
-    @vel1.setter
-    def vel1(self, value):
-        self.axis1.controller.config.vel_limit =  value
-
-    @property
-    def torque1(self):
-        #this will change current drawn
-        return 8.27 * getDrawnCurrent / self.KVRating
-
-    @torque1.setter
-    def torque1(self, value):
-        self.axis1.controller.input_torque = value
-
-    @property
-    def current1(self):
-        return self.mo1.config.current_lim
-
-    @current1.setter
-    def current1(self, value):
-        #this will change torque!!!
-        #self.torque = (8.27 * value / self.KVRAting)
-        #print(F"Warning: Changing the current limit will affect the torque")
-        if float(value) > 65:
-            raise Exception("Motor current limit should not be raised this high without verifying the motor can handle it")
-        self.mo1.config.current_lim = value
-
-    def getDemandedCurrent1(self):
-        return self.axis1.motor.current_control.Iq_setpoint
 
 def printCurrent(drv):
     while True:
-        print(abs(drv.getDemandedCurrent0()))
+        print(abs(drv.getDemandedCurrent()))
         sleep(.5)
 
+
+# TODO: (Aaron) Update
 if __name__ == '__main__':
     #print(c.config.keys())
     #print(sys.argv)
@@ -304,25 +189,17 @@ if __name__ == '__main__':
     ut.dump_errors(drv.od)
 
 
-
-
-
-
-    # from threading import Thread
-    # from time import sleep
-    # pump_thread = Thread(target=printCurrent, args=[drv])
-    # pump_thread.start()
     try:
         while True:
             string = input("  > Enter Input:")
 
             if string.startswith("pi") or string.startswith("PI"):
                 if len(string) == 2:
-                    print(drv.axis0.controller.config.pos_gain)
+                    print(drv.axis.controller.config.pos_gain)
                 else:
                     val = float(string[2:])
-                    print(drv.axis0.controller.config.pos_gain, "->", val)
-                    drv.axis0.controller.config.pos_gain = val
+                    print(drv.axis.controller.config.pos_gain, "->", val)
+                    drv.axis.controller.config.pos_gain = val
             
             elif string[0] == "p" or string[0] == 'P':
                 if len(string) == 1:
@@ -350,11 +227,11 @@ if __name__ == '__main__':
 
             elif string[0] == "d" or string[0] == 'D':
                 if len(string) == 1:
-                    print(drv.axis0.controller.config.vel_integrator_gain)
+                    print(drv.axis.controller.config.vel_integrator_gain)
                 else:
                     val = float(string[1:])
-                    print(drv.axis0.controller.config.vel_integrator_gain, "->", val)
-                    drv.axis0.controller.config.vel_integrator_gain = val
+                    print(drv.axis.controller.config.vel_integrator_gain, "->", val)
+                    drv.axis.controller.config.vel_integrator_gain = val
                     drv.axis1.controller.config.vel_integrator_gain = val
 
             elif string[0] == "i" or string[0] == 'I':
@@ -362,8 +239,8 @@ if __name__ == '__main__':
                     print(drv.axis1.controller.config.vel_gain)
                 else:
                     val = float(string[1:])
-                    print(drv.axis0.controller.config.vel_gain, "->", val)
-                    drv.axis0.controller.config.vel_gain = val
+                    print(drv.axis.controller.config.vel_gain, "->", val)
+                    drv.axis.controller.config.vel_gain = val
                     drv.axis1.controller.config.vel_gain = val
 
             elif string[0] == "r" or string[0] == 'R':
