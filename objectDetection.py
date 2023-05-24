@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass
 
 import constants as c
-#from GPS import gps # TODO: ROS subscriber
+
 
 @dataclass(order=True)
 class Detection:

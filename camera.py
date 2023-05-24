@@ -67,6 +67,8 @@ class Camera:
         if (c.config["MAIN"]["device"] == "pi"):
             self.servos = CameraServos()
             self.path = os.getcwd()
+            self.gps = gps()
+            self.compass = compass()
         else:
             self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
 
@@ -98,10 +100,9 @@ class Camera:
 
         if context:
             frame.time = time.time()
-            gps.updategps()  # TODO: replace with ROS subscriber
-            frame.gps = (gps.longitude, gps.latitude)
+            frame.gps = Waypoint(gps.longitude, gps.latitude)
             frame.pitch = self.servos.pitch
-            frame.heading = (compass.angle + (self.servos.yaw - 90)) % 360
+            frame.heading = (self.compass.angle + (self.servos.yaw - 90)) % 360
 
         if detect:
             object_detection = ObjectDetection()

@@ -33,19 +33,13 @@ if DEVICE == "pi":
 # ---------------------------------- SENSORS ----------------------------------
 
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
-def test_gps_ROS():
-    # TODO: idk if this works? Input from Tom pls.
-    rclpy.init(args=None)
+def test_gps():
     gps = GPS.gps()
-    rclpy.spin(gps)
 
     for i in range(0, 3):
         results = (gps.latitude, gps.longitude)
         print(f"GPS: ({results[0]}, {results[1]})")
         assert results is not None
-
-    gps.destroy_node()
-    rclpy.shutdown()
 
 
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
@@ -60,18 +54,13 @@ def test_gps_deprecated():
 
 
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
-def test_compass_ROS():
-    rclpy.init(args=None)
+def test_compass():
     comp = compass.compass()
-    rclpy.spin(comp)
 
     for i in range(0, 3):
         results = comp.angle
         print(f"Compass: {results})")
         assert results is not None
-
-    comp.destroy_node()
-    rclpy.shutdown()
 
 
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import constants as c
 from eventUtils import Event, EventFinished, Waypoint, distance_between
 from camera import Camera, Frame
+from GPS import gps
 
 """
 # Challenge	Goal:
@@ -86,7 +87,7 @@ class Search(Event):
         self.tracking_abandon_threshold = int(c.config["SEARCH"]["tracking_abandon_threshold"])
 
         self.camera = Camera()
-        self.gps = self.create_subscription(String, 'GPS', self.ROS_GPSCallback, 10) # TODO: Fix this
+        self.gps = gps()
 
     def next_gps(self):
         """
@@ -219,18 +220,6 @@ class Search(Event):
             )
 
         return pattern
-
-    def ROS_GPSCallback(self, string):
-        if string == "None, None, None":
-            self.gps.latitude = None
-            self.gps.longitude = None
-            self.gps.track_angle_deg = None
-            return
-
-        lat, long, trackangle = string.replace("(", "").replace(")", "").split(",")
-        self.gps.latitude = float(lat)
-        self.gps.longitude = float(long)
-        self.gps.track_angle_deg = float(trackangle)
 
 
 class Heatmap:

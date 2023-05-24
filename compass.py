@@ -19,8 +19,15 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
+from utils import singleton
 
+
+@singleton
 class compass(Node):
+    """
+    Attributes:
+        angle (float): the boat's angle to north (smoothed)
+    """
     def __init__(self):
         # Setup I2C connections
         i2c = busio.I2C(board.SCL, board.SDA)
