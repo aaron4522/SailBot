@@ -1,6 +1,7 @@
 """
 Tests all necessary sensors and functionality of the boat
 """
+# TODO: Package repo and split into individual files
 import sys
 import os
 
@@ -16,6 +17,7 @@ import keyboard
 import constants as c
 import camera
 import objectDetection
+from eventUtils import Waypoint, distance_between
 
 DEVICE = c.config["MAIN"]["device"]
 
@@ -100,7 +102,7 @@ def test_servos():
     servos = camera.CameraServos()
 
     servos.pitch = 70
-    assert 69 < servos.pitch < 71, f"Camera servo pitch outside of acceptable error: expected 70, got: {servos.pitch}"
+    assert 69 < servos.pitch < 71, f"Camera servo pitch outside of acceptable error, expected 70, got: {servos.pitch}"
 
     servos.yaw = 2000
     assert 179 < servos.yaw < 181, f"Camera servo yaw unprotected from impossible range, expected 180, got: {servos.yaw}"
@@ -113,7 +115,7 @@ def test_cam_detect():
     test_start = time()
 
     for i in range(0, NUM_CAPTURES):
-        frame = cam.capture(context=False, detect=True)
+        frame = cam.capture(context=False, detect=True, save=True)
         assert frame is not None and frame.img is not None, f"Camera capture returned {frame}, expected image"
 
     test_end = time()
@@ -140,18 +142,39 @@ def test_img_detect(img="CV/test_buoy.jpg"):
                                    line_thickness=1)
 
 
+#@pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
+def test_gps_estimation():
+    """Prints out simulated gps locations for test_buoy.jpg"""
+    object_detection = objectDetection.ObjectDetection()
+
+    sim_frame = camera.Frame(gps=Waypoint(0, 0),
+                             heading=90,
+                             pitch=45,
+                             detections=object_detection.analyze("CV/test_buoy.jpg"))
+
+    camera.estimate_all_buoy_gps(sim_frame)
+    for detection in sim_frame.detections:
+        print(f"Detection at {detection.gps}, {distance_between(Waypoint(0,0), detection.gps)}")
+
+
 @pytest.mark.skip(reason="Not implemented")
+@pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
 def test_survey():
-    pass
+    cam = camera.Camera()
+
+    images = cam.survey(context=True, detect=True, annotate=True)
 
 
 # ---------------------------------- CONTROLS ----------------------------------
+
 @pytest.mark.skip(reason="Not implemented")
+@pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
 def test_rudder():
     pass
 
 
 @pytest.mark.skip(reason="Not implemented")
+@pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
 def test_sail():
     pass
 

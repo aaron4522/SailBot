@@ -3,7 +3,7 @@ import math
 import time
 
 import sailbot.constants as c
-from sailbot.eventUtils import Event, EventFinished, Waypoint, distance_between
+from sailbot.eventUtils import Event, EventFinished, Waypoint, distance_between, has_reached_waypoint
 from sailbot.camera import Camera
 from sailbot.GPS import gps
 from sailbot.transceiver import arduino
@@ -136,7 +136,7 @@ class Search(Event):
             if detections == 0:
                 # No detections, continue along preset search path
                 logging.info("SEARCHING: No buoys spotted! Continuing along search path")
-                if distance_between(self.gps, self.waypoint_queue[0]) < 1:
+                if has_reached_waypoint(self.waypoint_queue[0], distance=2):
                     self.waypoint_queue.pop(0)
                 return self.waypoint_queue[0]
             else:

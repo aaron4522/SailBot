@@ -30,6 +30,13 @@ class Waypoint:
     def __repr__(self):
         return f"Waypoint({self.lat, self.lon})"
 
+    def add_meters(self, dx, dy):
+        """Updates the waypoint gps by adding meters to the latitude and longitude"""
+        EARTH_RADIUS = 6371000
+
+        self.lat += (dy / EARTH_RADIUS) * (180 / math.pi)
+        self.lon += (dx / EARTH_RADIUS) * (180 / math.pi) / math.cos(self.lat * math.pi / 180)
+
 
 class Event:
     """
@@ -116,3 +123,8 @@ def distance_between(waypoint1, waypoint2):
     distance = EARTH_RADIUS * c
 
     return distance
+
+
+def has_reached_waypoint(waypoint, distance=float(c.config["CONSTANTS"]["reached_waypoint_distance"])):
+    """Returns true/false if the boat is close enough to the waypoint"""
+    return distance_between(gps.GPS, waypoint) < distance

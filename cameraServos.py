@@ -31,6 +31,8 @@ class CameraServos:
     PITCH_PORT = int(c.config["CAMERASERVOS"]["pitch_port"])
     YAW_PORT = int(c.config["CAMERASERVOS"]["yaw_port"])
 
+    IS_FLIPPED_PITCH = bool(c.config["CAMERA"]["reverse_pitch"])
+
     def __init__(self):
         self._kit = adafruit_servokit.ServoKit(channels=16)
         self._pitch = self.DEFAULT_ANGLE
@@ -60,6 +62,9 @@ class CameraServos:
             angle = self.MIN_ANGLE
         elif angle > self.MAX_ANGLE:
             angle = self.MAX_ANGLE
+
+        if self.IS_FLIPPED_PITCH:
+            angle = 180 - angle
         logging.debug(f"Moving camera pitch to {angle}")
         self._kit.servo[self.PITCH_PORT].angle = angle
 
