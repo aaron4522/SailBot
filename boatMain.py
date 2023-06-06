@@ -20,17 +20,20 @@ try:
         from compass import compass
         import GPS
         #from camera import camera
-        import events #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
-
+        #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
+        from endurance import Endurance
         from drivers import driver
         from transceiver import arduino
+        from eventUtils import Waypoint, EventFinished
     else:
         from sailbot.windvane import windVane
         from sailbot.GPS import gps
         from sailbot.compass import compass
         import sailbot.GPS as GPS
         #from camera import camera
-        import sailbot.events as events #import event,Collision_Avoidance,Percision_Navigation,Endurance,Station_Keeping,Search
+        from sailbot.endurance import Endurance
+        #import Percision_Navigation,Endurance,Station_Keeping,Search
+        from sailbot.eventUtils import Waypoint, EventFinished
 
         from sailbot.drivers import driver
         from sailbot.transceiver import arduino
@@ -49,6 +52,13 @@ import numpy
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+
+events = {"RC": 0,
+          "CA": 1,
+          "PN": 2,
+          "ED": 3,
+          "SK": 4,
+          "SE": 5}
 
 class dummyObject(object):
     pass
@@ -113,6 +123,24 @@ class boat(Node):
         self.MODE_SETTING = c.config['MODES']['MOD_RC']
         #pump_thread = Thread(target=self.pumpMessages)
         #pump_thread.start()
+
+        if not self.manualControl:  # set mode for automation
+            # if self.MODE_SETTING == events["PN"]:
+            # logging.info("Received message to Automate: PRECISION_NAVIGATE")
+            # self.eevee = events.Percision_Navigation(self.event_arr)
+
+            if self.MODE_SETTING == events["ED"]:
+                logging.info("Received message to Automate: ENDURANCE")
+                self.eevee = Endurance(self.event_arr)
+
+            # elif self.MODE_SETTING == events["SK"]:
+            # logging.info("Received message to Automate: STATION_KEEPING")
+            # self.eevee = events.Station_Keeping(self.event_arr)
+
+            # elif self.MODE_SETTING == events["SE"]:
+            # logging.info("Received message to Automate: SEARCH")
+            # self.eevee = Search(self.event_arr)
+
         self.mainLoop()
         
     def ROS_GPSCallback(self, string):
@@ -214,28 +242,6 @@ class boat(Node):
                 # set sail and rudder to values read from readMessages
                 self.adjustSail(self.targetSail)
                 self.adjustRudder(self.targetRudder)
-                    
-
-            if not self.manualControl:  # set mode for automation
-                if self.MODE_SETTING == c.config['MODES']['MOD_COLLISION_AVOID']:
-                    logging.info("Received message to Automate: COLLISION_AVOIDANCE")
-                    self.eevee = events.Collision_Avoidance(self.event_arr)
-
-                elif self.MODE_SETTING == c.config['MODES']['MOD_PRECISION_NAVIGATE']:
-                    logging.info("Received message to Automate: PRECISION_NAVIGATE")
-                    self.eevee = events.Percision_Navigation(self.event_arr)
-
-                elif self.MODE_SETTING == c.config['MODES']['MOD_ENDURANCE']:
-                    logging.info("Received message to Automate: ENDURANCE")
-                    self.eevee = events.Endurance(self.event_arr)
-
-                elif self.MODE_SETTING == c.config['MODES']['MOD_STATION_KEEPING']:
-                    logging.info("Received message to Automate: STATION_KEEPING")
-                    self.eevee = events.Station_Keeping(self.event_arr)
-
-                elif self.MODE_SETTING == c.config['MODES']['MOD_SEARCH']:
-                    logging.info("Received message to Automate: SEARCH")
-                    self.eevee = events.Search(self.event_arr)
 
                 '''if not self.currentTarget:
                     # if we dont have a target GPS load the next target from the targets list
@@ -247,18 +253,22 @@ class boat(Node):
                     # go to target if we have one
                     self.goToGPS(self.currentTarget[0], self.currentTarget[1])'''
                 try:
-                    targ_x,targ_y = self.eevee.next_gps()
-                    if targ_x:  #__number__,__number__
-                        self.currentTarget[0], self.currentTarget[1] = targ_x,targ_y
-                        self.goToGPS(targ_x,targ_y)
-                    else:   #None,None
+                    waypoint = self.eevee.next_gps()
+                    if waypoint is not None:
+                        self.currentTarget[0], self.currentTarget[1] = waypoint.lat, waypoint.lon
+                        self.goToGPS(self.currentTarget[0], self.currentTarget[1])
+                    else:
+                        # Stop the boat
                         self.adjustSail(90)
-                except events.eventFinished:
-                    #end of event
+                except EventFinished:
+                    # End of event
                     self.eevee = None
-                    logging.info("OVERRIDE: Switching to RC")
+                    logging.info("OVERRIDE: Switching to RC. Event Finished!")
                     self.MODE_SETTING = c.config['MODES']['MOD_RC']
                     self.manualControl = True
+                except Exception as ex:
+                    logging.critical("Unhandled exception occured! Setting to RC!")
+                    logging.critical(ex)
 
 
 
