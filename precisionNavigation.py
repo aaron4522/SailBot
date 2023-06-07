@@ -90,8 +90,8 @@ class Precision_Navigation(Event):
     def PN_coords(self):
 
         #adjustable values
-        rad1 = 4    #inner rad
-        rad2 = 8    #outer rad
+        rad1 = (4/6371000) * (180 / math.pi)    #inner rad
+        rad2 = (8/6371000) * (180 / math.pi)    #outer rad
         m1= 45; m2= -15 #rad offset from 90 and 225/-45 points
                         #see desmos: https://www.desmos.com/calculator/2fjqthukuf
 

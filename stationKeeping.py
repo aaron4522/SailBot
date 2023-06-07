@@ -337,10 +337,11 @@ class Station_Keeping(Event):
         lat = gps.latitude; long = gps.longitude
         t = math.pi/180
         o = windVane.position
-        lx = 5*math.cos( 135*t+o*t)+lat     #left side run point
-        ly = 5*math.sin( 135*t+o*t)+long
-        rx = 5*math.cos(-135*t+o*t)+lat     #right side run point
-        ry = 5*math.sin(-135*t+o*t)+long
+        r=(5/6371000) * (180 / math.pi)
+        lx = r*math.cos( 135*t+o*t)+lat     #left side run point
+        ly = r*math.sin( 135*t+o*t)+long
+        rx = r*math.cos(-135*t+o*t)+lat     #right side run point
+        ry = r*math.sin(-135*t+o*t)+long
             #into m,b's
         lm = self.SK_m(lx,ly,lat,long)
         lb = self.SK_v(lx,ly,lat,long)
@@ -376,13 +377,14 @@ class Station_Keeping(Event):
         lat = gps.latitude; long = gps.longitude
         t = math.pi/180
         o = windVane.position
+        r=(5/6371000) * (180 / math.pi)
 
         if case == "L":
-            x = 5*math.cos( 55*t+o*t)+lat   #+35 from windvane
-            y = 5*math.sin( 55*t+o*t)+long
+            x = r*math.cos( 55*t+o*t)+lat   #+35 from windvane
+            y = r*math.sin( 55*t+o*t)+long
         elif case == "R":
-            x = 5*math.cos(125*t+o*t)+lat   #-35
-            y = 5*math.sin(125*t+o*t)+long
+            x = r*math.cos(125*t+o*t)+lat   #-35
+            y = r*math.sin(125*t+o*t)+long
         else:
             raise TypeError("mini_cart_perimiter_scan ERROR")
 

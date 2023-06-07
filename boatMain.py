@@ -282,7 +282,8 @@ class boat(Node):
                     waypoint = self.eevee.next_gps()
                     if waypoint is not None:
                         self.currentTarget[0], self.currentTarget[1] = waypoint.lat, waypoint.lon
-                        self.goToGPS(self.currentTarget[0], self.currentTarget[1])
+                        if self.DEBUG_main: print(self.currentTarget)
+                        else: self.goToGPS(self.currentTarget[0], self.currentTarget[1])
                     else:
                         # Stop the boat
                         self.adjustSail(90)
@@ -427,9 +428,8 @@ class boat(Node):
 
                                 logging.info(F'Setting event array')
                                 self.event_arr = []
-                                for i in range(len(ary)-2):
-                                    self.event_arr.append(ary[i+2])
-
+                                for i in range((len(ary)-2)/2):
+                                    self.event_arr.append(Waypoint(ary[(2*i)+2],ary[(2*i)+3]))
                                 processed = True
                         except Exception as e:
                             print(F"Error changing mode: {e}")
