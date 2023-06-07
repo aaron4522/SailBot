@@ -50,8 +50,9 @@ class Event:
         - next_gps() - event logic which determines where to sail to next
     """
     
-    def __init__(self, event_info):        
+    def __init__(self, event_info, debugInp=False):        
         self.event_info = event_info
+        self.DEBUG=debugInp
         
     @abstractmethod
     def next_gps(self):
@@ -64,7 +65,12 @@ class Event:
             - OR EventFinished exception to signal that the event has been completed
         """
 
-        raise NotImplementedError
+        raise 
+    
+    def gps_spoof(self):
+        inp = input("GPS: ")
+        gps.latitude = inp.split(" ")[0]
+        gps.longitude = inp.split(" ")[1]
             
 class EventFinished(Exception):
     """Signals that the event is finished and that it is safe to return to manual control"""

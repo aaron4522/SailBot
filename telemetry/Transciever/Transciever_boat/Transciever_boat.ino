@@ -75,6 +75,8 @@ int sailVal = 0;
 
 byte PWM_PIN_1 = 6;
 byte PWM_PIN_2 = 9;
+byte PWM_PIN_3 = 10;
+byte PWM_PIN_4 = 12;
  
 void setup() 
 {
@@ -214,8 +216,13 @@ int map(int x, int min1, int max1, int min2, int max2){
 void returnData(){
   int readRudderVal = map(pulseIn(PWM_PIN_1, HIGH), 990, 1965, 0, 90);
   int readSailVal = map(pulseIn(PWM_PIN_2, HIGH), 980, 1910, 0, 90); 
+  int readRudderOffsetVal = pulseIn(PWM_PIN_3, HIGH);
+  int readSailOffsetVal = pulseIn(PWM_PIN_4, HIGH); 
   Serial.print("R "); Serial.print(readRudderVal);
-  Serial.print(" S "); Serial.println(readSailVal);
+  Serial.print(" S "); Serial.print(readSailVal);
+  Serial.print(" RO "); Serial.print(readRudderOffsetVal);
+  Serial.print(" SO "); Serial.print(readSailOffsetVal);
+
   // Serial.print("R "); Serial.print(rudderVal);
   // Serial.print(" S "); Serial.println(sailVal);
   Serial.flush();

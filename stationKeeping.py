@@ -4,6 +4,9 @@ import time
 
 from eventUtils import Event, EventFinished, Waypoint
 from windvane import windVane
+import constants as c
+if c.config["MAIN"]["DEVICE"] == "pi":
+    from GPS import gps
 
 """
 # Challenge	Goal:
@@ -65,7 +68,7 @@ class Station_Keeping(Event):
         #send in wanted %s in desmos calculation, and return what they are (m,b in y=mx+b; or x,y cord of center of box on %'s line)
         type_inpArr = [ 0, 0, 0, 1]  #m,b or x,y
         perc_inpArr = [80,75,90,90]  #%'s
-        self.cool_arr = self.SK_perc_guide(perc_inpArr,type_inpArr,self.event_arr)
+        self.cool_arr = self.SK_perc_guide(perc_inpArr,type_inpArr,self.event_info)
         del type_inpArr, perc_inpArr
         #whats contained in cool_arr:
         #(0,1)80-line,      (2,3)75-line,
@@ -95,7 +98,7 @@ class Station_Keeping(Event):
                 self.skip = True #faster if statement
                 self.escape_x, self.escape_y = self.cart_perimiter_scan(self.cool_arr[-7:-1])    #i thought the func name sounded cool
             self.last_pnt_x, self.last_pnt_y = self.escape_x,self.escape_y
-            return self.escape_x,self.escape_y
+            return Waypoint(self.escape_x,self.escape_y)
         
         #if not in box========================================
         #ordered in certain way of most importance, handle up/down first before too left or right
@@ -107,14 +110,14 @@ class Station_Keeping(Event):
             #loosen sail, do nuthin; drift
             #.adjustSail(90)
             self.last_pnt_x, self.last_pnt_y = None,None
-            return None,None
+            return None
         
         #past bottom line of box
         elif not( self.SK_line_check(self.cool_arr[-3:-1], self.cool_arr[-9:-7],self.cool_arr[-1]) ):
             logging.info("too back")
             #go to 90deg line
             self.last_pnt_x, self.last_pnt_y = self.cool_arr[6],self.cool_arr[7]
-            return self.cool_arr[6],self.cool_arr[7]
+            return Waypoint(self.cool_arr[6],self.cool_arr[7])
         
         #past left line of box
         elif not( self.SK_line_check(self.cool_arr[-7:-5], self.cool_arr[-5:-3],self.cool_arr[-1]) ):
@@ -123,7 +126,7 @@ class Station_Keeping(Event):
             #mini cart scan
             t_x, t_y = self.mini_cart_perimiter_scan(self.cool_arr[-7:-5],"L")
             self.last_pnt_x, self.last_pnt_y = t_x, t_y
-            return t_x, t_y
+            return Waypoint(t_x, t_y)
 
         #past right line of box
         elif not( self.SK_line_check(self.cool_arr[-5:-3], self.cool_arr[-7:-5],self.cool_arr[-1]) ):
@@ -132,7 +135,7 @@ class Station_Keeping(Event):
             #mini cart scan
             t_x, t_y = self.mini_cart_perimiter_scan(self.cool_arr[-5:-3],"R")
             self.last_pnt_x, self.last_pnt_y = t_x, t_y
-            return t_x, t_y
+            return Waypoint(t_x, t_y)
 
 
         #passed checks: SAILING; DOING THE EVENT========================================
@@ -144,7 +147,7 @@ class Station_Keeping(Event):
                 logging.info("start: behind 80%; ending start")
                 self.start = False
                 self.last_pnt_x, self.last_pnt_y = self.cool_arr[6],self.cool_arr[7]
-                return self.cool_arr[6],self.cool_arr[7]    #go to 90deg line
+                return Waypoint(self.cool_arr[6],self.cool_arr[7])    #go to 90deg line
             #if this doesnt pass, its WITHIN BOX but is ahead of 80; so it returns init'd last_pnt which is to loosen sail and drift (WHAT WE WANT)
             else:   logging.info("start: ahead 80%")
 
@@ -153,14 +156,14 @@ class Station_Keeping(Event):
             #if behind 75%:sail back
             if self.SK_line_check(self.cool_arr[2:4], self.cool_arr[-3:-1],self.cool_arr[-1]):
                 self.last_pnt_x, self.last_pnt_y = self.cool_arr[6],self.cool_arr[7]
-                return self.cool_arr[6],self.cool_arr[7]    #go to 90deg line
+                return Waypoint(self.cool_arr[6],self.cool_arr[7])    #go to 90deg line
         
             #if past or at 90% (redundence reduction)
             elif not(self.SK_line_check(self.cool_arr[4:6], self.cool_arr[-3:-1],self.cool_arr[-1])):
                 self.last_pnt_x, self.last_pnt_y = None,None
-                return None,None  #loosen sail, do nuthin
+                return None  #loosen sail, do nuthin
         
-        return self.last_pnt_x, self.last_pnt_y #fall back return if nested if's dont pass
+        return Waypoint(self.last_pnt_x, self.last_pnt_y) #fall back return if nested if's dont pass
 
     #give %-line of box and other lines(details in SK) used in algo
     def SK_perc_guide(self,inp_arr,type_arr,buoy_arr):
@@ -274,7 +277,7 @@ class Station_Keeping(Event):
         #FALSE: AT OR PAST LINE
 
         #Ix/y:  current location of boat
-        #       self.gps_class.longitude, self.gps_class.latitude
+        #       gps.longitude, gps.latitude
         #Tarr:  m/b compare line
         #arr:   m/b Back line,
         
@@ -285,19 +288,20 @@ class Station_Keeping(Event):
         Fa=0;Fb=0;Fc=0  #temp sets
         #check if sideways =========================
         #input x/y as Buoy x/y's to func
-        self.gps_class.updategps()
+        gps.updategps()
+        if self.DEBUG: self.gps_spoof()
         if abs(mid_m) < 1: #Barr is secretly the mid m line shhhhhhh (LOOK AT ME)
             #sideways  -------------------
             #x=(y-b)/m
-            Fa= (self.gps_class.latitude-Tarr[1])/Tarr[0]
-            Fb= self.gps_class.longitude
-            Fc= (self.gps_class.latitude-Barr[1])/Barr[0]
+            Fa= (gps.latitude-Tarr[1])/Tarr[0]
+            Fb= gps.longitude
+            Fc= (gps.latitude-Barr[1])/Barr[0]
         else:
             #rightways  -------------------
             #y=mx+b
-            Fa= Tarr[0]*self.gps_class.longitude +Tarr[1]
-            Fb= self.gps_class.latitude
-            Fc= Barr[0]*self.gps_class.longitude +Barr[1]
+            Fa= Tarr[0]*gps.longitude +Tarr[1]
+            Fb= gps.latitude
+            Fc= Barr[0]*gps.longitude +Barr[1]
 
         if Fa > Fc: #upright
             if Fa >= Fb: return False   #past or equal
@@ -328,8 +332,9 @@ class Station_Keeping(Event):
         #find intersection of those two lines and the boat
         #determine with intersection is closest
             
-        self.gps_class.updategps()
-        lat = self.gps_class.latitude; long = self.gps_class.longitude
+        gps.updategps()
+        if self.DEBUG: self.gps_spoof()
+        lat = gps.latitude; long = gps.longitude
         t = math.pi/180
         o = windVane.position
         lx = 5*math.cos( 135*t+o*t)+lat     #left side run point
@@ -366,8 +371,9 @@ class Station_Keeping(Event):
     #used when OUTSIDE BOX to find best line to attack INTO BOX
     #just for when left/right of box
     def mini_cart_perimiter_scan(self,arr,case):
-        self.gps_class.updategps()
-        lat = self.gps_class.latitude; long = self.gps_class.longitude
+        gps.updategps()
+        if self.DEBUG: self.gps_spoof()
+        lat = gps.latitude; long = gps.longitude
         t = math.pi/180
         o = windVane.position
 

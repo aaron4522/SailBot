@@ -43,6 +43,18 @@ def test_gps():
         print(f"GPS: ({results[0]}, {results[1]})")
         assert results is not None
 
+@pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
+def test_gps_spoof():
+    gps = GPS.gps()
+
+    for i in range(0, 3):
+        results = (gps.latitude, gps.longitude)
+        print(f"GPS: ({results[0]}, {results[1]})")
+        gps.latitude = 3.14
+        gps.longitude = 4.13
+        print(f"GPS: ({results[0]}, {results[1]})")
+        assert results is not None
+
 
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
 def test_gps_deprecated():
