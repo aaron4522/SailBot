@@ -1,18 +1,65 @@
-import time
+from eventUtils import Event, EventFinished, Waypoint
+
+import constants as c
+if c.config["MAIN"]["DEVICE"] == "pi":
+    from GPS import gps
+
+import sys
+ROS = None
+try:
+    import constants as c
+    import boatMath
+    ROS = False
+except:
+    import sailbot.constants as c
+    import sailbot.boatMath as boatMath
+    ROS = True
 import logging
+
 import math
 
 try:
-    import constants as c
-except ImportError:
-    import sailbot.constants as c
-    
-if c.config["MAIN"]["DEVICE"] == "pi":
-    from sailbot.eventUtils import EventFinished, Waypoint
-    from sailbot.GPS import gps
-else:
-    from eventUtils import EventFinished, Waypoint
-    from GPS import gps
+    # try and load all the sensor libraries
+    if not ROS:
+        from windvane import windVane
+        from GPS import gps
+        from compass import compass
+        import GPS
+        #from camera import camera
+        #import event,Collision_Avoidance,Precision_Navigation,Endurance,Station_Keeping,Search
+        from endurance import Endurance
+        from stationKeeping import Station_Keeping
+        from precisionNavigation import Precision_Navigation
+        from drivers import driver
+        from transceiver import arduino
+        from eventUtils import Waypoint, EventFinished
+    else:
+        from sailbot.windvane import windVane
+        from sailbot.GPS import gps
+        from sailbot.compass import compass
+        import sailbot.GPS as GPS
+        #from camera import camera
+        from sailbot.endurance import Endurance
+        from sailbot.stationKeeping import Station_Keeping
+        #import Precision_Navigation,Endurance,Station_Keeping,Search
+        from sailbot.eventUtils import Waypoint, EventFinished
+
+        from sailbot.drivers import driver
+        from sailbot.transceiver import arduino
+except Exception as e:
+    # if libraries fail give error message, and exit if this file is being run directly
+    print("Failed to import some modules, if this is not a simulation fix this before continuing")
+    print(F"Exception raised: {e}")
+    if __name__ == '__main__':
+        sys.exit(1)
+
+from datetime import date, datetime
+from threading import Thread
+from time import sleep,time
+import numpy
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
 
 """
 # Challenge	Goal:
@@ -39,25 +86,25 @@ else:
 
 REQUIRED_ARGS = 4
 
-class Precision_Navigation:
+class dummyObject(object):
+    pass
+
+class Precision_Navigation():
     """
     Attributes:
         - event_info (array) - location of buoys to sail around
-            event_info = [(Waypoint(start_left_lat, start_right_long), ...]
+            event_info = [(start_lat, start_long), (b1_lat, b1_long), (b2_lat, b2_long)]
     """
     
-    def __init__(self, event_info):
-        if len(event_info) != REQUIRED_ARGS:
-            raise TypeError(f"Expected {REQUIRED_ARGS} arguments, got {len(event_info)}")
-        logging.info("Precision Navigation moment")
-
-        # EVENT INFO
-        self.event_info = event_info
-        self.start_left = event_info[0]
-        self.start_right = event_info[1]
-        self.buoy1 = event_info[2]
-        self.buoy2 = event_info[3]
-        self.start_time = time.time()
+    def __init__(self, event_info_inp):
+        if (len(event_info_inp) != REQUIRED_ARGS):
+            raise TypeError(f"Expected {REQUIRED_ARGS} arguments, got {len(event_info_inp)}")
+        
+        logging.info("Percision Navigation moment")
+        self.event_info = event_info_inp
+        
+        
+        self.ifsideways = None; self.ifupsidedown = None    #set up for later PN_checkwayside
 
         self.PN_arr = []
         self.PN_arr = self.PN_coords()
@@ -65,6 +112,134 @@ class Precision_Navigation:
         self.rev_bool = False
         self.target_set = 1
         self.start_time = time.time()
+        self.manualControl = False
+
+    def adjustRudder(self, angleTo):
+        """
+        Move the rudder to 'angle', angle is value between -45 and 45
+        """
+        dataStr = String()
+        if self.currentTarget or self.manualControl == True:
+            # adjust rudder for best wind
+            # angleTo = gps.angleTo(self.currentTarget)
+
+            d_angle = angleTo - gps.track_angle_deg
+
+            if d_angle > 180: d_angle -= 180
+
+            dataStr.data = F"(driver:rudder:{d_angle})"
+            self.get_logger().info(dataStr.data)
+            self.pub.publish(dataStr)
+
+            self.currentRudder = d_angle
+            logging.info('Adjusted rudder to: %d', d_angle)
+
+        else:
+            # move rudder to home position
+            dataStr.data = F"(driver:rudder:{0})"
+            self.get_logger().info(dataStr.data)
+            self.pub.publish(dataStr)
+
+            self.currentRudder = 0
+            logging.info('Adjusted rudder to home position')
+
+    def adjustSail(self, angle=None):
+        """
+        Move the sail to 'angle', angle is value between 0 and 90, 0 being all the way in
+        """
+        dataStr = String()
+        if self.manualControl and angle != None:
+            # set sail to angle
+            dataStr.data = F"(driver:sail:{angle})"
+            self.get_logger().info(dataStr.data)
+            self.pub.publish(dataStr)
+
+        elif self.currentTarget or self.manualControl:
+            # set sail to optimal angle based on windvane readings
+            windDir = windVane.angle
+            targetAngle = windDir + 35
+            dataStr.data = F"(driver:sail:{targetAngle})"
+            self.get_logger().info(dataStr.data)
+            self.pub.publish(dataStr)
+            self.currentSail = targetAngle
+
+        else:
+            # move sail to home position
+            dataStr.data = F"(driver:sail:{0})"
+            self.get_logger().info(dataStr.data)
+            self.pub.publish(dataStr)
+            self.currentSail = 0
+            logging.info('Adjusted sail to home position')
+
+    def goToGPS(self, lat, long):
+        """  
+        Go to GPS coordinates lat, long
+        """
+
+        # Get current GPS coordinates, if we can't load info from GPS wait until we can and print error message
+        #gps.updategps()
+        while gps.latitude == None or gps.longitude == None:
+            print("no gps")
+            #gps.updategps()
+            sleep(.1)
+
+        # determine angle we need to turn
+        compassAngle = compass.angle
+        deltaAngle = boatMath.angleToPoint(compassAngle, gps.latitude, gps.longitude, lat, long)
+        targetAngle = (compassAngle + deltaAngle) % 360
+        windAngle = windVane.angle
+
+        
+        if (deltaAngle + windAngle) % 360 < windVane.noGoMin and (
+                deltaAngle + windAngle) % 360 > windVane.noGoMax: # angle is not in no go zone
+            self.turnToAngle(targetAngle)
+        else: # angle is in no go zone, go to the nearest edge of no go zone
+            if (targetAngle - compassAngle) % 360 <= 180:
+                # turn left
+                self.turnToAngle(windVane.noGoMin)
+            else:
+                # turn right
+                self.turnToAngle(windVane.noGoMax)
+
+        if abs(boatMath.distanceInMBetweenEarthCoordinates(lat, long, gps.latitude, gps.longitude)) < int(c.config['CONSTANTS']['reachedGPSThreshhold']):
+            # if we are very close to GPS coord
+            if self.cycleTargets:
+                self.targets.append((lat, long))
+            self.currentTarget = None
+            self.adjustRudder(0)
+
+    def turnToAngle(self, angle, wait_until_finished = False):
+        """
+        adjust rudder until the boat is facing compass angle 'angle'
+        if wait_until_finished is True the boat will continue to adjust rudder until the boat is facing the right direction
+        if wait_until_finished is False the boat will adjust the rudder to an appropriate angle and then return
+        """
+        leftPositive = -1  # change to negative one if boat is rotating the wrong way
+        
+        logging.info("starting turnToAngle")
+        compassAngle = compass.angle
+        while abs(compassAngle - angle) > int(c.config['CONSTANTS']['angle_margin_of_error']): # while not facing the right angle
+            compassAngle = compass.angle
+
+            if ((angle - compassAngle) % 360 <= 180):  # turn Left
+                # move rudder to at most 45 degrees
+                rudderPos = leftPositive * min(45, 3 * abs(compassAngle - angle))  # /c.rotationSmoothingConst)
+                logging.info(F'turning to angle: {angle} from angle: {compassAngle} by turning rudder to {rudderPos}')
+                self.adjustRudder(int(rudderPos))
+            else: 
+                # move rudder to at most -45 degrees
+                rudderPos = -1 * leftPositive * min(45, 3 * abs(compassAngle - angle))  # /c.rotationSmoothingConst)
+                logging.info(F'turning to angle: {angle} from angle: {compassAngle} by turning rudder to {rudderPos}')
+                self.adjustRudder(int(rudderPos))
+
+            if not wait_until_finished:
+                break
+
+        #print(compassAngle)
+        logging.info("finished turnToAngle")
+
+
+    #########################################
         
     def next_gps(self):
         """
@@ -159,7 +334,6 @@ class Precision_Navigation:
         '''
 
         gps.updategps()
-        if self.DEBUG: self.gps_spoof()
         #gps.longitude
         #gps.latitude
 
@@ -376,4 +550,20 @@ class Precision_Navigation:
         return b,a  #changed for bool table reasons to b,a
     
 if __name__ == "__main__":
-    pass
+    w1=Waypoint(42.845608,-70.977037)
+    w2=Waypoint(42.845640,-70.977002)
+    w3=Waypoint(42.845159,-70.976700)
+    w4=Waypoint(42.845775,-70.976357)
+    coords = [w1,w2,w3,w4]
+    eevee = Precision_Navigation(coords)
+    run=True
+    while run:
+        try:
+            waypoint = eevee.next_gps()
+            if waypoint is not None:
+                eevee.goToGPS(waypoint.lat, waypoint.lon)
+            else:
+                eevee.adjustSail(90)
+        except EventFinished:
+            eevee = None
+            run=False
