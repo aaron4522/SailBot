@@ -188,38 +188,43 @@ class Camera:
             - RuntimeError: when the camera cannot keep the object in frame using servos alone
                 - NOTE: Should be pretty rare but occurs when trying to focus on something behind the boat
         """
-        Cx, Cy = detection.x, detection.y
-        Px, Py = Cx / c.config["OBJECTDETECTION"]["camera_width"], Cy / c.config["OBJECTDETECTION"]["camera_height"]
-        if Px <= c.config["OBJECTDETECTION"]["center_acceptance"] and Py <= c.config["OBJECTDETECTION"][
-            "center_acceptance"]: return
-
-        '''
-        #find approriate amount turn based on pixels its behind by
-        Tx,Ty = self.coordcalc(detection.w) #bad dist but useful
-        if Cx < c.config["OBJECTDETECTION"]["camera_width"]/2: self.yaw(self.yaw)
-        '''
-        # find approriate amount turn based by turning by regressive amounts if its too much
-        turn_deg = 15
-        if Cx - detection.w / 2 < 0:
-            sign = -1  # left side
+        if type(detection) == Waypoint:
+            logging.info(f"Focusing on GPS position: {detection}")
+            # TODO
         else:
-            sign = 1
-        for i in range(5):  # after 5, fuck it
-            self.servos.yaw = self.servos.yaw + sign * turn_deg
-
-            # look (camera)
-            frame = self.capture(detect=True, context=False)
-            Cx, Cy = frame.detections[0].x, frame.detections[0].y
+            logging.info(f"Focusing on camera pixel detection")
+            Cx, Cy = detection.x, detection.y
             Px, Py = Cx / c.config["OBJECTDETECTION"]["camera_width"], Cy / c.config["OBJECTDETECTION"]["camera_height"]
             if Px <= c.config["OBJECTDETECTION"]["center_acceptance"] and Py <= c.config["OBJECTDETECTION"][
-                "center_acceptance"]: break
+                "center_acceptance"]: return
 
-            # TERRIBLE LOGIC
+            '''
+            #find approriate amount turn based on pixels its behind by
+            Tx,Ty = self.coordcalc(detection.w) #bad dist but useful
+            if Cx < c.config["OBJECTDETECTION"]["camera_width"]/2: self.yaw(self.yaw)
+            '''
+            # find approriate amount turn based by turning by regressive amounts if its too much
+            turn_deg = 15
             if Cx - detection.w / 2 < 0:
-                signT = -1
+                sign = -1  # left side
             else:
-                signT = 1
-            if sign * signT == -1: turn_deg * 0.8
+                sign = 1
+            for i in range(5):  # after 5, fuck it
+                self.servos.yaw = self.servos.yaw + sign * turn_deg
+
+                # look (camera)
+                frame = self.capture(detect=True, context=False)
+                Cx, Cy = frame.detections[0].x, frame.detections[0].y
+                Px, Py = Cx / c.config["OBJECTDETECTION"]["camera_width"], Cy / c.config["OBJECTDETECTION"]["camera_height"]
+                if Px <= c.config["OBJECTDETECTION"]["center_acceptance"] and Py <= c.config["OBJECTDETECTION"][
+                    "center_acceptance"]: break
+
+                # TERRIBLE LOGIC
+                if Cx - detection.w / 2 < 0:
+                    signT = -1
+                else:
+                    signT = 1
+                if sign * signT == -1: turn_deg * 0.8
 
     # ----------------------------------
     # calculate gps coords of object based on distance formula and angle

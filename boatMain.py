@@ -229,8 +229,6 @@ class boat(Node):
         """
         Main loop that will run until boat is stopped 
         """
-        sailStep = 90
-        rudderStep = 90
         while True:
             self.readMessages() # read messages from transceiver   
 
@@ -239,41 +237,15 @@ class boat(Node):
                 self.adjustSail(self.targetSail)
                 self.adjustRudder(self.targetRudder)
 
-                '''if not self.currentTarget:
-                    # if we dont have a target GPS load the next target from the targets list
-                    if self.targets != []:
-                        self.currentTarget = self.targets.pop(0)
-                    else:
-                        print('no targets')
-                if self.currentTarget: 
-                    # go to target if we have one
-                    self.goToGPS(self.currentTarget[0], self.currentTarget[1])'''
             else:
-                #check for state to make new event obj
-                if self.eevee == None:
-                    if self.MODE_SETTING == events["ED"]:
-                        logging.info("Received message to Automate: ENDURANCE")
-                        self.eevee = Endurance(self.event_arr,self.DEBUG_main)
-
-                    elif self.MODE_SETTING == events["SK"]:
-                        logging.info("Received message to Automate: STATION_KEEPING")
-                        self.eevee = Station_Keeping(self.event_arr,self.DEBUG_main)
-
-                    
-                    elif self.MODE_SETTING == events["PN"]:
-                        logging.info("Received message to Automate: PRECISION_NAVIGATE")
-                        self.eevee = Precision_Navigation(self.event_arr,self.DEBUG_main)
-                    '''
-                    elif self.MODE_SETTING == events["SE"]:
-                        logging.info("Received message to Automate: SEARCH")
-                        self.eevee = Search(self.event_arr,self.DEBUG_main)
-                    '''
                 try:
                     waypoint = self.eevee.next_gps()
                     if waypoint is not None:
                         self.currentTarget[0], self.currentTarget[1] = waypoint.lat, waypoint.lon
-                        if self.DEBUG_main: print(self.currentTarget)
-                        else: self.goToGPS(self.currentTarget[0], self.currentTarget[1])
+                        if self.DEBUG_main:
+                            print(self.currentTarget)
+                        else:
+                            self.goToGPS(self.currentTarget[0], self.currentTarget[1])
                     else:
                         # Stop the boat
                         self.adjustSail(90)
