@@ -73,12 +73,16 @@ class Station_Keeping(Event):
                 logging.info("Boat has entered the station keeping bounds!")
                 self.event_started = True
                 self.start_time = time.time()
+            else:
+                logging.debug("Moving to event bounds")
+                return self.bounds.center
 
         # Stay inside center of bounds
         if time.time() < self.leave_time:
             return self.bounds.center
 
         # Turn to downwind and gtfo
+        logging.debug("Leaving event bounds")
         downwind_angle = math.radians(abs(self.windvane.angle + 180) % 360)
 
         escape_point = self.gps.gps
@@ -87,6 +91,7 @@ class Station_Keeping(Event):
 
 
 class Bounds:
+    """Rectangular bounding box for the station keeping event"""
     def __init__(self, event_info):
         self.top_left = event_info[0]
         self.top_right = event_info[1]
