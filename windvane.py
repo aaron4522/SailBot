@@ -7,13 +7,23 @@ from queue import Queue
 import board
 from RPi import GPIO
 from adafruit_seesaw import seesaw, rotaryio, digitalio
+
 try:
     import sailbot.constants as c
 except:
     import constants as c
+from utils import singleton
 
+
+@singleton
 class windVane():
-
+    """
+    Attributes:
+        angle (float): the angle of the wind (pointing towards the wind)
+            - angle is relative to boat's heading, not angle to north?
+        noGoMin (int): the lower range where the boat can't sail (irons)
+        noGoMax (int): the upper range where the boat can't sail (irons)
+    """
     def __init__(self):
 
         self.stepsPerRev = 256

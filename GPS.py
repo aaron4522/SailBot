@@ -23,11 +23,18 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 
+from utils import singleton
 
 
 
 
+@singleton
 class gps(Node):
+    """
+    Attributes:
+        latitude (float)
+        longitude (float)
+    """
 
     def __init__(self):
 

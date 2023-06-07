@@ -8,13 +8,12 @@ from dataclasses import dataclass
 import math
 import time
 
-try:
-    from GPS import gps
-    import constants as c
+import constants as c
 
-except Exception as e:
-    from sailbot.GPS import gps
-    import sailbot.constants as c
+if c.config["MAIN"]["DEVICE"] == "pi":
+    from GPS import gps
+
+
 @dataclass(slots=True)
 class Waypoint:
     """
@@ -24,8 +23,22 @@ class Waypoint:
     
     lat: float
     lon: float
-    
-class Event():
+
+    def __str__(self):
+        return f"({self.lat}, {self.lon})"
+
+    def __repr__(self):
+        return f"Waypoint({self.lat, self.lon})"
+
+    def add_meters(self, dx, dy):
+        """Updates the waypoint gps by adding meters to the latitude and longitude"""
+        EARTH_RADIUS = 6371000
+
+        self.lat += (dy / EARTH_RADIUS) * (180 / math.pi)
+        self.lon += (dx / EARTH_RADIUS) * (180 / math.pi) / math.cos(self.lat * math.pi / 180)
+
+
+class Event:
     """
     Basic blueprint for creating new events
     
@@ -88,35 +101,6 @@ def SK_I(self,M1,V1,M2,V2): return (V2-V1)/(M1-M2)                              
 def SK_d(self,a1,b1,a2,b2): return math.sqrt((a2-a1)**2 + (b2-b1)**2)                   #find distance between two points
 
 
-# TODO: Return multiple waypoints when multiple buoys (append onto Detection class?)
-def GPS_from_buoy(buoy):
-    """Approximates the location of a detected buoy
-        - Compares the ratio of buoy_size/distance to a fixed measured ratio
-    # Args:
-        - buoy (objectDetection.Detection): 
-    # Returns:
-        - eventUtils.Waypoint(Latitude, Longitude) object
-    """
-    # buoy_size_in_pixels = buoy.w * buoy.h
-    #buoy_distance = None # What we want to find
-    
-    # measured_buoy_size_in_pixels = c.config["OBJECTDETECTION"]["Buoy_Width"] * c.config["OBJECTDETECTION"]["Buoy_Height"]
-    # measured_buoy_distance = c.config["OBJECTDETECTION"]["Measured_distance"]
-    # boat_gps = 0
-    
-    
-    if c.config["OBJECTDETECTION"]["Width_Real"] == 0 or c.config["OBJECTDETECTION"]["Focal_Length"] == 0:
-        raise Exception("MISSING WIDTH REAL/FOCAL LENGTH INFO IN CONSTANTS")
-    dist = (c.config["OBJECTDETECTION"]["Width_Real"]*c.config["OBJECTDETECTION"]["Focal_Length"])/self.obj_info[2]
-    comp = compass()    #assume 0 is north(y pos)
-    geep = gps(); geep.updategps()
-
-    t = math.pi/180
-    
-    latitude = dist*math.cos(comp.angle*t)+geep.latitude
-    longitude =  dist*math.sin(comp.angle*t)+geep.longitude
-    return Waypoint(latitude, longitude)
-
 def distance_between(waypoint1, waypoint2):
     """Calculates the distance between two GPS points using the Haversine formula
     # Args:
@@ -125,10 +109,10 @@ def distance_between(waypoint1, waypoint2):
     # Returns:
         - distance in meters between points (float)
     """
-    EARTH_RADIUS = 6371 # Km
-    
+    EARTH_RADIUS = 6371000
+
     # Convert latitude and longitude to radians
-    lat1, lon1, lat2, lon2 = map(math.radians, [waypoint1.lat, waypoint1.long, waypoint2.lat, waypoint2.long])
+    lat1, lon1, lat2, lon2 = map(math.radians, [waypoint1.lat, waypoint1.lon, waypoint2.lat, waypoint2.lon])
 
     # Haversine formula
     dlat = lat2 - lat1
@@ -139,3 +123,8 @@ def distance_between(waypoint1, waypoint2):
     distance = EARTH_RADIUS * c
 
     return distance
+
+
+def has_reached_waypoint(waypoint, distance=float(c.config["CONSTANTS"]["reached_waypoint_distance"])):
+    """Returns true/false if the boat is close enough to the waypoint"""
+    return distance_between(gps.GPS, waypoint) < distance

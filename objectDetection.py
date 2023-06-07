@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass
 
 import constants as c
-#from GPS import gps # TODO: ROS subscriber
+
 
 @dataclass(order=True)
 class Detection:
@@ -22,7 +22,7 @@ class Detection:
         - w (int): - width (in pixels) of bounding box rectangle
         - h (int): - height (in pixels) of bounding box rectangle
         - conf (float): - confidence level that detected object is a buoy [0-1]
-        - self.gps ()
+        - self.gps (Waypoint) - approximate gps position of buoy
     """
     
     def __init__(self, result: torch.tensor):
@@ -42,22 +42,13 @@ class Detection:
         return f"Detection ({self.conf}%) at ({self.x}, {self.y}) with width {self.w}px and height {self.h}px"
         
 
-class ObjectDetection():
+class ObjectDetection:
     """
     AI object detection model
     
     Functions: 
         - analyze() - checks image for buoys
     """
-    
-    _instance = None
-    
-    def __new__(cls, *args, **kwargs):
-        """Prevent duplicate classes from being created"""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls, *args, **kwargs)
-        return cls._instance
-    
     def __init__(self):
         self.model = YOLO(c.config["OBJECTDETECTION"]["weights"])  # Initialize model for analysis
             # TODO: test performance after export to .onnx
