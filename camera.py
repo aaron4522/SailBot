@@ -14,6 +14,7 @@ if c.config["MAIN"]["device"] == "pi":
     from cameraServos import CameraServos
     from GPS import gps
     from compass import compass
+    from boatMath import calculate_compass_angle
 from objectDetection import ObjectDetection, draw_bbox
 from eventUtils import Waypoint
 from utils import singleton
@@ -177,9 +178,7 @@ class Camera:
 
     def focus(self, detection):
         # TODO:
-        #  - Bugfix code
         #  - Error check to raise Runtime exception when focusing is impossible
-        #  - Overload to support focusing on GPS
         """Centers the camera on a detection to keep it in frame
         Args:
             - detection (Detection, Waypoint): the object to focus on
@@ -293,27 +292,30 @@ class Camera:
     # Fix if estimated gps positions are innacurate
 def estimate_all_buoy_gps(frame):
     """Approximates the locations of all detected buoys in a frame
-        - Compares the ratio of buoy_size/distance to a fixed measured ratio
-        - Uses camera angle and pixels from center to create a ray from the boat's current position
+        - Compares the ratio of buoy_size/distance to a fixed measured ratio to determine distance
+        - Uses camera angle and pixels from center to determine the angle relative to the boat
+            # Note: this may be innacurate if the boat is tilted from waves
             - This ray is used to estimate the GPS point of each buoy
     # Args:
         - frame (camera.Frame):
     # Returns:
-        - None
-            - all frame.detections[].gps are updated
+        - None (all frame.detections[].gps are updated)
     """
     tested_width = float(c.config["OBJECTDETECTION"]["apparent_buoy_width_px"])
     tested_distance = float(c.config["OBJECTDETECTION"]["distance_from_buoy"])
-
     real_width = float(c.config["OBJECTDETECTION"]["real_buoy_width"])
+
     cam_center = int(c.config["CAMERA"]["resolution_width"]) / 2
 
     earth_radius = 6378000
 
     for detection in frame.detections:
-        hypotenuse_distance = (tested_width / detection.w) * tested_distance
-        dz = hypotenuse_distance * math.sin(frame.heading) # IDK IF WORKS
+        distance = (tested_width / detection.w) * tested_distance
+        # Calc d_latitude from camera's heading at capture
+        dz = distance * math.sin(frame.heading)  # IDK IF WORKS
 
+        # Calculate d_longitude from # of buoy lengths from center line of picture
+        # Also combines cos component of camera's heading at time of capture
         dx = (abs(detection.x - cam_center) / detection.w) * real_width
         dx *= math.cos(frame.heading)
 

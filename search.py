@@ -1,12 +1,14 @@
 import logging
 import math
 import time
+import matplotlib.pyplot as plt
+
 
 import sailbot.constants as c
 from sailbot.eventUtils import Event, EventFinished, Waypoint, distance_between, has_reached_waypoint
-from sailbot.camera import Camera
-from sailbot.GPS import gps
-from sailbot.transceiver import arduino
+from camera import Camera
+from GPS import gps
+# from sailbot.transceiver import arduino
 
 """
 # Challenge	Goal:
@@ -62,7 +64,7 @@ class Search(Event):
             - Either 'SEARCHING', 'TRACKING', or 'RAMMING' the buoy
     """
 
-    def __init__(self, event_info):
+    def __init__(self, event_info=[Waypoint(0, 0), 100]):
         """
         Args:
             event_info (list[Waypoint(center_lat, center_long), radius]): center and radius of search circle
@@ -104,7 +106,7 @@ class Search(Event):
         # SENSORS
         self.camera = Camera()
         self.gps = gps()
-        self.transceiver = arduino(c.config['MAIN']['ardu_port'])
+        # self.transceiver = arduino(c.config['MAIN']['ardu_port']) TODO: unbug
 
     def next_gps(self):
         """

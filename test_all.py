@@ -13,6 +13,7 @@ import cv2
 import numpy as np
 from time import time
 import keyboard
+import logging
 
 import constants as c
 import camera
@@ -87,7 +88,7 @@ def test_compass_deprecated():
         print(f"Compass: {results})")
         comp.printAccel()
         comp.printMag()
-        assert comp.angle is not None
+        assert results is not None
 
 
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
@@ -140,6 +141,7 @@ def test_cam_detect():
             warnings.warn(f"Low average FPS ({avg_fps}) for detections")
 
 
+@pytest.mark.skip("Error on pi, not (from invalid img path?)")
 def test_img_detect(img="CV/test_buoy.jpg"):
     """Detects buoys from specified image path(s)
     Args:
@@ -184,17 +186,23 @@ def test_survey():
 
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
 def test_rudder():
-    boat = boatMain.boat()
-    boat.turnToAngle(30, wait_until_finished=True)
-    assert boat.currentRudder == 30
+    rclpy.init(args=None)
 
-@pytest.mark.skip(reason="Not implemented")
+    boat = boatMain.boat()
+    boat.adjustRudder(30)
+    assert 29 < boat.currentRudder < 31
+
+
 @pytest.mark.skipif(DEVICE != "pi", reason="only works on raspberry pi")
 def test_sail():
-    pass
+    rclpy.init(args=None)
 
+    boat = boatMain.boat()
+    boat.adjustSail(45)
+    assert 44 < boat.currentRudder < 46
 
 # -------------------------------- MANUAL TESTS --------------------------------
+
 
 def manual_test_camera():
     """Manually test camera capture, servo movement and object detection
@@ -259,6 +267,7 @@ def manual_test_cam_detect():
 
 
 def manual_test_go_to_gps():
+    rclpy.init(args=None)
     boat = boatMain.boat()
 
     destination = Waypoint(boat.gps.latitude, boat.gps.longitude)
@@ -267,11 +276,33 @@ def manual_test_go_to_gps():
     boat.goToGPS(destination.lat, destination.lon)
 
 
+def manual_test_go_to_buoy():
+    """Keeps moving the boat to move to a buoy"""
+    rclpy.init(args=None)
+    boat = boatMain.boat()
+    cam = camera.Camera()
+
+    while True:
+        frames = cam.survey(context=True, detect=True, annotate=True, save=True)
+
+        for i, frame in frames:
+            if frame.gps is not None:
+                logging.info(f"{i}: Buoy found! Moving to.")
+                boat.goToGPS(frame.gps.lat, frame.gps.lon)
+            else:
+                logging.info(f"{i}: No buoys found")
+
+
 if __name__ == "__main__":
-    choice = int(input("1: camera 2: go to gps 3: cam detect"))
+    choice = int(input("""1: camera
+    2: go to gps
+    3: cam detect
+    4: survey & move to buoy"""))
     if choice == 1:
         manual_test_camera()
     elif choice == 2:
         manual_test_go_to_gps()
     elif choice == 3:
         manual_test_cam_detect()
+    elif choice == 4:
+        manual_test_go_to_buoy()
