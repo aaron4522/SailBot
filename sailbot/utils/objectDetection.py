@@ -12,8 +12,6 @@ from dataclasses import dataclass
 from sailbot import constants as c
 
 
-#from GPS import gps # TODO: ROS subscriber
-
 @dataclass(order=True)
 class Detection:
     """

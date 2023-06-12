@@ -4,21 +4,22 @@ Interface for camera
 import math
 import cv2
 import time
+import logging
+import numpy as np
 import os
 
 from sailbot import constants as c
 from sailbot.utils.objectDetection import ObjectDetection, draw_bbox
-from sailbot.utils.eventUtils import Waypoint
+from sailbot.utils.eventUtils import Waypoint, distance_between
 from sailbot.utils.utils import singleton
 
 if c.config["MAIN"]["device"] == "pi":
     from sailbot.controls.cameraServos import CameraServos
-    from GPS import gps
-    from compass import compass
+    from sailbot.sensors.GPS import gps
+    from sailbot.sensors.compass import compass
 
 
-
-class Frame():
+class Frame:
     """
     RGB image with sensor metadata frozen at the time of capture
     
@@ -63,22 +64,21 @@ class Camera:
     """
 
     def __init__(self):
+        self.path = os.getcwd()
         if (c.config["MAIN"]["device"] == "pi"):
             self.servos = CameraServos()
-            self.path = os.getcwd()
+            self.gps = gps()
+            self.compass = compass()
         else:
             self._cap = cv2.VideoCapture(int(c.config["CAMERA"]["source"]))
 
-    def __del__(self):
-        if (c.config["MAIN"]["device"] != "pi"):
-            self._cap.release()
-
-    def capture(self, context=True, detect=False, annotate=False) -> Frame:
+    def capture(self, context=True, detect=False, annotate=False, save=False) -> Frame:
         """Takes a single picture from camera
         Args:
             - context (bool): whether to include time, gps, heading, and camera angle
             - detect (bool): whether to detect buoys within the image
             - annotate (bool): whether to draw detection boxes around the image
+            - save (bool): whether to save the captured image
         Returns:
             - (camera.Frame): The captured image stored as a Frame object
         """
@@ -97,10 +97,9 @@ class Camera:
 
         if context:
             frame.time = time.time()
-            gps.updategps()  # TODO: replace with ROS subscriber
-            frame.gps = (gps.longitude, gps.latitude)
+            frame.gps = Waypoint(gps.longitude, gps.latitude)
             frame.pitch = self.servos.pitch
-            frame.heading = (compass.angle + (self.servos.yaw - 90)) % 360
+            frame.heading = (self.compass.angle + (self.servos.yaw - 90)) % 360
 
         if detect:
             object_detection = ObjectDetection()
@@ -111,10 +110,22 @@ class Camera:
             if annotate:
                 draw_bbox(frame)
 
+        if save:
+            img_path = fr"{os.getcwd()}{c.config['MAIN']['log_path']}"
+            filename = time.strftime("%m-%d %H-%M-%S", time.localtime(frame.time))
+            full_path = fr"{img_path}\{filename}.png"
+
+            i = 1
+            while os.path.isfile(full_path):
+                full_path = fr"{img_path}\{filename} {i}.png"
+                i += 1
+
+            print(full_path)
+            cv2.imwrite(full_path, frame.img)
+
         return frame
 
-    def survey(self, num_images=3, pitch=70, servo_range=180, context=True, detect=False, annotate=False) -> list[
-        Frame]:
+    def survey(self, num_images=3, pitch=70, servo_range=180, context=True, detect=False, annotate=False) -> list[Frame]:
         """Takes a horizontal panaroma over the camera's field of view
             - Maximum boat FoV is ~242.2 degrees (not tested)
         # Args:
@@ -281,22 +292,25 @@ def estimate_all_buoy_gps(frame):
         - None
             - all frame.detections[].gps are updated
     """
-    tested_width = c.config["OBJECTDETECTION"]["apparent_buoy_width_px"]
-    tested_distance = c.config["OBJECTDETECTION"]["distance_from_buoy"]
+    tested_width = float(c.config["OBJECTDETECTION"]["apparent_buoy_width_px"])
+    tested_distance = float(c.config["OBJECTDETECTION"]["distance_from_buoy"])
 
-    real_width = c.config["OBJECTDETECTION"]["real_buoy_width"]
-    cam_center = c.config["CAMERA"]["resolution_width"] / 2
+    real_width = float(c.config["OBJECTDETECTION"]["real_buoy_width"])
+    cam_center = int(c.config["CAMERA"]["resolution_width"]) / 2
 
     earth_radius = 6378000
 
     for detection in frame.detections:
-        dy = (tested_width / detection.w) * tested_distance
-        dy *= math.sin(frame.heading) # IDK IF WORKS
+        hypotenuse_distance = (tested_width / detection.w) * tested_distance
+        dz = hypotenuse_distance * math.sin(frame.heading) # IDK IF WORKS
 
         dx = (abs(detection.x - cam_center) / detection.w) * real_width
         dx *= math.cos(frame.heading)
 
-        lat = frame.gps.lat + (dy / earth_radius) * (180 / math.pi)
-        lon = frame.gps.lon + (dx / earth_radius) * (180 / math.pi) / math.cos(frame.gps.lat * math.pi / 180)
+        d_lat = (dz / earth_radius) * (180 / math.pi)
+        d_lon = (dx / earth_radius) * (180 / math.pi) / math.cos(frame.gps.lat * math.pi / 180)
+
+        lat = frame.gps.lat + d_lat
+        lon = frame.gps.lon + d_lon
 
         detection.gps = Waypoint(lat, lon)

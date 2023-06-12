@@ -1,6 +1,7 @@
 """
 calibrates and default values for Odrive and handles interfacing between Odrive and python code
 """
+# TODO: Finish merging
 from time import sleep
 import sys
 import logging
@@ -36,41 +37,39 @@ class Odrive:
         self.mo = self.axis.motor
         self.enc = self.axis.encoder
 
-        # TODO: (TOM) if any of these constants are unique for the sail/rudder then add them inside the if/else
-        self.KVRating = c.config['ODRIVE']['motorKV']
-        # self.od.config.brake_resistance = c.config['CONSTANTS']['odrivebreakresistor']
+        self.enc.config.cpr = c.config['ODRIVE_SAIL']['odriveEncoderCPR']
+        self.od.axis.motor.config.pole_pairs = c.config['ODRIVE_SAIL']['odrivepolepairs']
+
+        self.od.axis.motor.config.torque_constant = 1  # read the getting started guide on this, to be changed later
+        self.od.axis.motor.config.motor_type = 0
+
+        self.KVRating = int(c.config['ODRIVE']['motorKV'])
+        self.current_limit = int(c.config['ODRIVE']['currentLimit'])
+
         self.axis.controller.config.enable_overspeed_error = False
-        self.current = c.config['ODRIVE']['currentLimit']
+        self.od.config.brake_resistance = float(c.config['CONSTANTS']['odrivebreakresistor'])
 
-        # TODO: (TOM) move whichever presets are the same for sail and rudder outside of the if/else
         if preset == "sail":
-            self.enc.config.cpr = c.config['ODRIVE_SAIL']['odriveEncoderCPR']
-            self.od.axis.motor.config.pole_pairs = c.config['ODRIVE_SAIL']['odrivepolepairs']
-            self.od.axis.motor.config.torque_constant = 1  # read the getting started guide on this, to be changed later
-            self.od.axis.motor.config.motor_type = 0
+            self.axis.controller.config.pos_gain = int(c.config['ODRIVE_SAIL']['posGain'])
 
-            self.axis.controller.config.vel_limit = c.config['ODRIVE']['velLimit']
-            self.axis.controller.config.pos_gain = c.config['ODRIVE']['posGain']
-            self.axis.controller.config.vel_gain = c.config['ODRIVE']['velGain']
-            self.axis.controller.config.vel_integrator_gain = c.config['ODRIVE']['velIntegratorGain']
+            self.axis.controller.config.vel_gain = float(c.config['ODRIVE_SAIL']['velGain'])
+            self.axis.controller.config.vel_limit = float(c.config['ODRIVE_SAIL']['velLimit'])
+            self.axis.controller.config.vel_integrator_gain = int(c.config['ODRIVE_SAIL']['velIntegratorGain'])
+
+            # TODO: Add odrive rotations float(c.config['ODRIVE_SAIL']['odriveRotations'])
 
         elif preset == "rudder":
-            self.enc.config.cpr = c.config['ODRIVE_RUDDER']['odriveEncoderCPR']
-            self.od.axis.motor.config.pole_pairs = c.config['ODRIVE_RUDDER']['odrivepolepairs']
-            self.od.axis.motor.config.torque_constant = 1  # read the getting started guide on this, to be changed later
-            self.od.axis.motor.config.motor_type = 0
+            self.axis.controller.config.pos_gain = int(c.config['ODRIVE_SAIL']['posGain'])
 
-            self.axis.controller.config.vel_limit = c.config['ODRIVE']['velLimit']
-            self.axis.controller.config.pos_gain = c.config['ODRIVE']['posGain']
-            self.axis.controller.config.vel_gain = c.config['ODRIVE']['velGain']
-            self.axis.controller.config.vel_integrator_gain = c.config['ODRIVE']['velIntegratorGain']
+            self.axis.controller.config.vel_gain = float(c.config['ODRIVE_RUDDER']['velGain'])
+            self.axis.controller.config.vel_limit = float(c.config['ODRIVE_RUDDER']['velLimit'])
+            self.axis.controller.config.vel_integrator_gain = int(c.config['ODRIVE_RUDDER']['velIntegratorGain'])
 
         elif preset is not None:
             raise ValueError("Trying to load an undefined preset!")
 
         else:
             # Default fallback values when no preset is defined
-            # TODO: (Aaron) add __init__ args to have the user define odrive values
             raise NotImplementedError("Non-preset fallback values haven't been coded yet")
 
         self.axis.requested_state = 8
@@ -132,15 +131,15 @@ class Odrive:
         self.axis.controller.input_torque = value
 
     @property
-    def current(self):
+    def current_limit(self):
         return self.mo.config.current_lim
 
-    @current.setter
-    def current(self, value):
+    @current_limit.setter
+    def current_limit(self, value):
         # this will change torque!!!
         # self.torque = (8.27 * value / self.KVRAting)
         if value > 65:
-            raise Exception("Motor current limit should not be raised this high without verifying the motor can handle it")
+            raise ValueError("Motor current limit should not be raised this high without verifying the motor can handle it")
         else:
             self.mo.config.current_lim = value
 
@@ -156,108 +155,163 @@ def printCurrent(drv):
 
 # TODO: (Aaron) Update
 if __name__ == '__main__':
-    #print(c.config.keys())
-    #print(sys.argv)
     print("Run as sudo if on rasp pi, will otherwise not work")
     if len(sys.argv) < 2 or sys.argv[1] != '0':
-        try:
-            #odrive.find_any().reboot()
-            #sleep(2)
-            pass
-        except:
-            pass
-        
-        
         drv = Odrive(calibrate=True)
-    
-        
-
     else:
         drv = Odrive()
 
-    
-    for i in range(1):
-        drv.pos0 = 5
-        drv.pos1 = 5
-        sleep(3)
-        drv.pos0 = 0
-        drv.pos1 = 0
-        sleep(3)
-    ut.dump_errors(drv.od)
+    p0_offset = 0
+    p1_offset = 0
+    while True:
+        try:
+            while True:
+                string = input("  > Enter Input:")
+
+                if string == "calibrate":
+                    # print("rebooting")
+                    # drv.reboot()
+                    drv = Odrive(calibrate=True)
+
+                elif string.startswith("pi0") or string.startswith("PI0"):
+                    if len(string.split(' ')) == 1:
+                        print(drv.axis0.controller.config.pos_gain)
+                    else:
+                        val = float(string.split(' ')[1])
+                        print(drv.axis0.controller.config.pos_gain, "->", val)
+                        drv.axis0.controller.config.pos_gain = val
+
+                elif string.startswith("pi1") or string.startswith("PI1"):
+                    if len(string.split(' ')) == 1:
+                        print(drv.axis1.controller.config.pos_gain)
+                    else:
+                        val = float(string.split(' ')[1])
+                        print(drv.axis1.controller.config.pos_gain, "->", val)
+                        drv.axis1.controller.config.pos_gain = val
+
+                elif string.lower().startswith("p0"):
+                    if len(string.split(' ')) == 1:
+                        print(drv.pos0 + p0_offset)
+                    else:
+                        val = float(string.split(' ')[1])
+                        print(drv.pos0 + p0_offset, "->", val)
+                        drv.pos0 = val + p0_offset
+
+                elif string.lower().startswith("pr"):
+                    if len(string.split(' ')) == 1:
+                        print(drv.pos0 + p0_offset)
+                    else:
+                        val = float(string.split(' ')[1])
+                        print(drv.pos0 + p0_offset, "->", val, "(resetting to 0 in 1 sec)")
+                        drv.pos0 = val + p0_offset
+                        lastRudderMoveVal = val
+
+                        def rudderReset(*args):
+                            sleep(1)
+                            drv.pos0 = p0_offset
+
+                        threading.Thread(target=rudderReset).start()
+
+                elif string.lower().startswith("z"):
+                    print(drv.pos0 + p0_offset, "->", lastRudderMoveVal, "(resetting to 0 in 1 sec)")
+                    drv.pos0 = lastRudderMoveVal + p0_offset
+
+                    def rudderReset(*args):
+                            sleep(1)
+                            drv.pos0 = p0_offset
+
+                    threading.Thread(target=rudderReset).start()
+
+                elif string.lower().startswith("ps"):
+                    if len(string.split(' ')) == 1:
+                        print(drv.pos1 + p1_offset)
+                    else:
+                        val = float(string.split(' ')[1])
+                        print(drv.pos1 + p1_offset, "->", val)
+                        drv.pos1 = val + p1_offset
+
+                elif string.lower().startswith("or"):
+                    # val = float(string.split(' ')[1])
+                    p0_offset = drv.pos0 + p0_offset
+                    print("offset is", p0_offset)
+
+                elif string.lower().startswith("os"):
+                    # val = float(string.split(' ')[1])
+                    p1_offset = drv.pos0 + p0_offset
+                    print("offset is", p0_offset)
+
+                elif string[0] == "v" or string[0] == 'V':
+                    if len(string) == 1:
+                        print(drv.vel)
+                    else:
+                        val = float(string[1:])
+                        print(drv.vel, "->", val)
+                        drv.vel = val
+
+                elif string[0] == "c" or string[0] == 'C':
+                    if len(string) == 1:
+                        print(F"{drv.getDemandedCurrent()} [{drv.current}]")
+                    else:
+                        val = float(string[1:])
+                        print(drv.current, "->", val)
+                        drv.current = val
+
+                elif string.lower().startswith("d0"):
+                    if len(string.split(' ')) == 1:
+                        print(drv.axis0.controller.config.vel_integrator_gain)
+                    else:
+                        val = float(string.split(' ')[1])
+                        print(drv.axis0.controller.config.vel_integrator_gain, "->", val)
+                        drv.axis0.controller.config.vel_integrator_gain = val
+
+                elif string.lower().startswith("d1"):
+                    if len(string.split(' ')) == 1:
+                        print(drv.axis1.controller.config.vel_integrator_gain)
+                    else:
+                        val = float(string.split(' ')[1])
+                        print(drv.axis1.controller.config.vel_integrator_gain, "->", val)
+                        drv.axis1.controller.config.vel_integrator_gain = val
+
+                elif string.lower().startswith("i0"):
+                    if len(string.split(' ')) == 1:
+                        print(drv.axis0.controller.config.vel_gain)
+                    else:
+                        val = float(string.split(' ')[1])
+                        print(drv.axis0.controller.config.vel_gain, "->", val)
+                        drv.axis0.controller.config.vel_gain = val
+
+                elif string.lower().startswith("i1"):
+                    if len(string.split(' ')) == 1:
+                        print(drv.axis1.controller.config.vel_gain)
+                    else:
+                        val = float(string.split(' ')[1])
+                        print(drv.axis1.controller.config.vel_gain, "->", val)
+                        drv.axis1.controller.config.vel_gain = val
+
+                elif string == "reset":
+                    print("rebooting")
+                    drv.reboot()
+                    drv = Odrive(calibrate=False)
 
 
-    try:
-        while True:
-            string = input("  > Enter Input:")
 
-            if string.startswith("pi") or string.startswith("PI"):
-                if len(string) == 2:
-                    print(drv.axis.controller.config.pos_gain)
+                elif string[0] == "e" or string[0] == 'E':
+                    ut.dump_errors(drv.od)
+
+
+
+
+
                 else:
-                    val = float(string[2:])
-                    print(drv.axis.controller.config.pos_gain, "->", val)
-                    drv.axis.controller.config.pos_gain = val
-            
-            elif string[0] == "p" or string[0] == 'P':
-                if len(string) == 1:
-                    print(drv.pos)
-                else:
-                    val = float(string[1:])
-                    print(drv.pos, "->", val)
-                    drv.pos = val
-
-            elif string[0] == "v" or string[0] == 'V':
-                if len(string) == 1:
-                    print(drv.vel)
-                else:
-                    val = float(string[1:])
-                    print(drv.vel, "->", val)
-                    drv.vel = val
-
-            elif string[0] == "c" or string[0] == 'C':
-                if len(string) == 1:
-                    print(F"{drv.getDemandedCurrent()} [{drv.current}]")
-                else:
-                    val = float(string[1:])
-                    print(drv.current, "->", val)
-                    drv.current = val
-
-            elif string[0] == "d" or string[0] == 'D':
-                if len(string) == 1:
-                    print(drv.axis.controller.config.vel_integrator_gain)
-                else:
-                    val = float(string[1:])
-                    print(drv.axis.controller.config.vel_integrator_gain, "->", val)
-                    drv.axis.controller.config.vel_integrator_gain = val
-                    drv.axis1.controller.config.vel_integrator_gain = val
-
-            elif string[0] == "i" or string[0] == 'I':
-                if len(string) == 1:
-                    print(drv.axis1.controller.config.vel_gain)
-                else:
-                    val = float(string[1:])
-                    print(drv.axis.controller.config.vel_gain, "->", val)
-                    drv.axis.controller.config.vel_gain = val
-                    drv.axis1.controller.config.vel_gain = val
-
-            elif string[0] == "r" or string[0] == 'R':
-                print("rebooting")
-                drv.reboot()
-                drv = Odrive(calibrate=True)
-
-            elif string[0] == "e" or string[0] == 'E':
-                ut.dump_errors(drv.od)
-
-
-            
-
-
-            else:
-                val = float(string)
-                drv.pos0 = val
-                drv.pos1 = val
-    except KeyboardInterrupt as e:
-        ut.dump_errors(drv.od)
+                    val = float(string)
+                    drv.pos0 = val
+                    drv.pos1 = val
+        except KeyboardInterrupt as e:
+            ut.dump_errors(drv.od)
+            break
+        except Exception as e:
+            print(F"Error: {e}")
+            print(traceback.format_exc())
 
     print('done')
        

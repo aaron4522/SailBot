@@ -4,12 +4,11 @@ import argparse
 from sailbot.utils.utils import singleton
 from sailbot.controls import boatMovement
 from sailbot.sensors import transceiver
-from sailbot.events import stationKeeping, manualControl, collisionAvoidance, search, endurance, precisionNavigation
+from sailbot.events import stationKeeping, manualControl, search, endurance, precisionNavigation
 from sailbot.utils import eventUtils
 
 # TODO: move to config
 events = {"RC": manualControl.ManualControl,
-          "CA": collisionAvoidance.CollisionAvoidance,
           "ED": endurance.Endurance,
           "PN": precisionNavigation.Precision_Navigation,
           "SE": search.Search,

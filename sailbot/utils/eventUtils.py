@@ -6,11 +6,12 @@ Event blueprint class and common utility functions used in events
 from abc import abstractmethod
 from dataclasses import dataclass
 import math
+import time
 
 from sailbot import constants as c
 
 if c.config["MAIN"]["DEVICE"] == "pi":
-    pass
+    from sailbot.sensors.GPS import gps
 
 
 @dataclass(slots=True)
@@ -28,6 +29,13 @@ class Waypoint:
 
     def __repr__(self):
         return f"Waypoint({self.lat, self.lon})"
+
+    def add_meters(self, dx, dy):
+        """Updates the waypoint gps by adding meters to the latitude and longitude"""
+        EARTH_RADIUS = 6371000
+
+        self.lat += (dy / EARTH_RADIUS) * (180 / math.pi)
+        self.lon += (dx / EARTH_RADIUS) * (180 / math.pi) / math.cos(self.lat * math.pi / 180)
 
 
 class Event:
@@ -115,3 +123,10 @@ def distance_between(waypoint1, waypoint2):
     distance = EARTH_RADIUS * c
 
     return distance
+
+
+def has_reached_waypoint(waypoint, distance=float(c.config["CONSTANTS"]["reached_waypoint_distance"])):
+    """Returns true/false if the boat is close enough to the waypoint"""
+    a = gps()
+    boat_gps = Waypoint(a.latitude, a.longitude)
+    return distance_between(boat_gps, waypoint) < distance

@@ -1,11 +1,13 @@
 import logging
 import math
 import time
-from std_msgs.msg import String
+import matplotlib.pyplot as plt
 
 from sailbot import constants as c
-from sailbot.utils.eventUtils import Event, EventFinished, Waypoint, distance_between
+from sailbot.utils.eventUtils import Event, EventFinished, Waypoint, distance_between, has_reached_waypoint
 from sailbot.sensors.camera import Camera
+from sailbot.GPS import gps
+from sailbot.transceiver import arduino
 
 """
 # Challenge	Goal:
@@ -29,19 +31,21 @@ from sailbot.sensors.camera import Camera
     # Strategy:
         - Define a Z-shaped search pattern
         - Travel along the search path while taking panoramas to detect buoys
+        
+            - If x% buoy detected AND its estimated position is within search bounds:
+                - Add to heatmap (combines detections that are near each other for greater accuracy)
+                    
             - If heatmap has a high confidence point of interest:
-                - Save current position and divert course towards buoy
+                - Bookmark current position and divert course towards buoy
                 - Focus camera on expected buoy position and take pictures
-                - If that buoy still be a buoy:
-                    - Keep moving towards buoy and ram that shit
+                
+                - If that buoy is still a buoy:
+                    - Keep moving towards the buoy and ram that shit
+                    - Signal that boat touched the buoy when it stops getting closer
+                        - NOTE: Use accelerometer instead?
                 - Else:
                     - False positive (hopefully VERY rare)! PANIC! Return to previous search course
                     - Blacklist location (NOT IMPLEMENTED)
-                    
-            - If x% buoy match:
-                - Ignore if estimated position is outside of bounds + buffer
-                - Add to heatmap
-                
 """
 
 REQUIRED_ARGS = 2
@@ -52,12 +56,11 @@ class Search(Event):
     Attributes:
         - search_center (Waypoint): the center of the search bounds
         - search_radius (float): the radius of the search bounds
-        - start_time (float): the start time of the event
+        - event_duration (int): the length of the event in seconds
+        - start_time (float): the start time of the event (seconds since 1970)
 
-        - waypoint_queue (list[Waypoint]): the path for the boat to follow
-        - heatmap (list[HeatmapChunk]): pools detections together
-        - divert_conf_thresh (float): the required pooled confidence level of an area for the boat to move towards it
-        - is_tracking_buoy (bool): whether the boat is deviating from search course to reach a potential buoy
+        - state (str): the search event state
+            - Either 'SEARCHING', 'TRACKING', or 'RAMMING' the buoy
     """
 
     def __init__(self, event_info):
@@ -70,176 +73,203 @@ class Search(Event):
         super().__init__(event_info)
         logging.info("Search moment")
 
+        # EVENT INFO
         self.search_center = event_info[0]
         self.search_radius = event_info[1]
-        self.search_radius_tolerance = float(c.config["SEARCH"]["search_radius_tolerance"])
+        self.event_duration = 600
         self.start_time = time.time()
+        self.event_started = False
 
-        self.heatmap = Heatmap(chunk_radius=float(c.config["SEARCH"]["heatmap_chunk_radius"]))
+        # BOAT STATE
         self.waypoint_queue = self.create_search_pattern()
-        self.divert_confidence_threshold = float(c.config["SEARCH"]["pooled_heatmap_confidence_threshold"])
-        self.is_tracking_buoy = False
+
+        # Boat is either SEARCHING, TRACKING or RAMMING a buoy
+        self.state = "SEARCHING"
+
+        # Used to pool together nearby detections for higher accuracy
+        self.heatmap = Heatmap(chunk_radius=float(c.config["SEARCH"]["heatmap_chunk_radius"]))
         self.best_chunk = None
+        self.divert_confidence_threshold = float(c.config["SEARCH"]["pooled_heatmap_confidence_threshold"])
+
+        # Buffers for buoys that are near the edge of the search radius to account for gps estimation error
+        self.search_bounds = self.search_radius + float(c.config["SEARCH"]["search_radius_tolerance"])
+
+        # When to give up on a buoy if its no longer detected
+        self.missed_consecutive_detections = 0
         self.tracking_abandon_threshold = int(c.config["SEARCH"]["tracking_abandon_threshold"])
 
+        # When to switch from tracking to ramming mode and when to signal that the boat hit a buoy
+        self.ramming_distance = int(c.config["SEARCH"]["ramming_distance"])
+        self.collision_sensitivity = float(c.config["SEARCH"]["collision_sensitivity"])
+
+        # SENSORS
         self.camera = Camera()
-        self.gps = self.create_subscription(String, 'GPS', self.ROS_GPSCallback, 10) # TODO: Fix this
+        self.gps = gps()
+        self.transceiver = arduino(c.config['MAIN']['ardu_port']) # TODO: fix transceiver ref
 
     def next_gps(self):
         """
         Main event script logic. Executed continuously by boatMain.
         
         Returns either:
-            - The next GPS point that the boat should sail to stored as a Waypoint object
-            - OR None to signal the boat to drop sails and clear waypoint queue
-            - OR EventFinished exception to signal that the event has been completed
+            - Waypoint object: The next GPS point that the boat should sail to
+            - EventFinished Exception: signals that the event has been completed
         """
 
-        # TRACKING STATE
+        # Either no buoys found yet or boat is gathering more confidence before diverting course
+        if not self.event_started:
+            if has_reached_waypoint(self.search_center, distance=self.search_radius):
+                logging.info("Search event started!")
+                self.start_time = time.time()
+                self.waypoint_queue.pop(0)
+                self.state = "SEARCHING"
+            else:
+                return self.waypoint_queue[0]
+
+        if self.state == "SEARCHING":
+            # Capture panorama of surroundings
+            frame = self.camera.capture(context=True, detect=True)
+
+            # Error check detections & add to heatmap
+            for detection in frame.detections:
+                distance_from_center = distance_between(self.search_center, detection.gps)
+
+                if distance_from_center > self.search_bounds:
+                    logging.info(f"SEARCHING: Dropped buoy at: {detection.gps}, {distance_from_center}m from center")
+                    continue
+
+                logging.info(f"SEARCHING: Buoy ({detection.conf}%) found at: {detection.gps}")
+                self.heatmap.append(detection)
+
+            if len(frame.detections) == 0:
+                # No detections, continue along preset search path
+                logging.info("SEARCHING: No buoys spotted! Continuing along search path")
+                if has_reached_waypoint(self.waypoint_queue[0], distance=2):
+                    self.waypoint_queue.pop(0)
+                return self.waypoint_queue[0]
+            else:
+                # Detection! Check if boat is confident enough to move to the buoy
+                self.best_chunk = self.heatmap.get_highest_confidence_chunk()
+
+                if self.best_chunk.sum_confidence > self.divert_confidence_threshold:
+                    logging.info(f"""SEARCHING: This bitch definitely a buoy! 
+                            Bookmarking position and moving towards buoy at {self.best_chunk.average_gps}.""")
+                    self.state = "TRACKING"
+                    self.waypoint_queue.insert(0, self.gps)
+                    self.waypoint_queue.insert(0, self.best_chunk.average_gps)
+                    return self.waypoint_queue[0]
+
         # A buoy is found and boat is heading towards it
-        if self.is_tracking_buoy:
+        elif self.state == "TRACKING":
             distance_to_buoy = distance_between(self.gps, self.waypoint_queue[0])
-            if distance_to_buoy < 3:
-                # TODO: How to detect that boat touches buoy?
-                #  Accelerometer?
-                #  Just hit the shit out of the general area?
+
+            if distance_to_buoy < self.ramming_distance:
                 # Boat is near the buoy, TIME TO RAM THAT SHIT
                 logging.info(f"TRACKING: {distance_to_buoy}m away from buoy! RAMMING TIME")
-
-                # TODO: Signal that boat touched buoy
-                raise EventFinished
-
+                self.state = "RAMMING"
             else:
                 # Boat is still far away from buoy
                 logging.info(f"TRACKING: {distance_to_buoy}m away from buoy! Closing in!")
-                try:
-                    self.camera.focus(self.waypoint_queue[0])
-                except RuntimeError as e:
-                    logging.warning(f"""TRACKING: Exception raised: {e}\n
-                    Camera can't focus on target!""")
-                    return self.waypoint_queue[0]
 
                 frame = self.camera.capture(context=True, detect=True)
 
                 # Abandon if boat can't find buoy multiple times in a row (hopefully VERY rare)
                 if len(frame.detections) == 0:
                     logging.info("TRACKING: Lost buoy")
-                    self.tracking_abandon_threshold -= 1
-                    if self.tracking_abandon_threshold == 0:
+                    self.missed_consecutive_detections += 1
+
+                    if self.missed_consecutive_detections == self.tracking_abandon_threshold:
                         logging.warning("TRACKING: Can't find buoy! Abandoning course and returning to search")
-                        self.is_tracking_buoy = False
-                        self.tracking_abandon_threshold = int(c.config["SEARCH"]["tracking_abandon_threshold"])
-                        # TODO: blacklist buoy gps from future tracking
+                        self.missed_consecutive_detections = 0
+                        # self.heatmap.blacklist(self.waypoint_queue[0])
+                        self.state = "SEARCHING"
                 else:
-                    self.tracking_abandon_threshold = int(c.config["SEARCH"]["tracking_abandon_threshold"])
+                    self.missed_consecutive_detections = 0
 
                     for detection in frame.detections:
                         distance_from_center = distance_between(self.search_center, detection.gps)
-                        if distance_from_center < self.search_radius + self.search_radius_tolerance:
-                            logging.info(f"TRACKING: Buoy found at: {detection.gps}")
-                            self.heatmap.append(detection)
-                        else:
+
+                        if distance_from_center > self.search_bounds:
                             logging.info(f"TRACKING: Dropped buoy at: {detection.gps}, {distance_from_center}m from center")
+                            continue
+
+                        logging.info(f"TRACKING: Buoy found at: {detection.gps}")
+                        self.heatmap.append(detection)
 
                     logging.info(f"TRACKING: Continuing course to buoy at: {self.best_chunk.average_gps}")
                     self.waypoint_queue[0] = self.best_chunk.average_gps
                     return self.waypoint_queue[0]
 
-        # SEARCHING STATE
-        # Either no buoys found yet or boat is gathering more confidence before committing to divert course
-        else:
-            # Capture panorama of surroundings
-            imgs = self.camera.survey(num_images=3, detect=True)
+        # Boat is very close to the buoy
+        elif self.state == "RAMMING":
+            # TODO: GPS is only so accurate. Use accelerometer instead!
+            distance_to_buoy = distance_between(self.gps, self.waypoint_queue[0])
 
-            # Error check detections & add to heatmap
-            detections = 0
-            for frame in imgs:
-                for detection in frame.detections:
-                    distance_from_center = distance_between(self.search_center, detection.gps)
-                    if distance_from_center < self.search_radius + self.search_radius_tolerance:
-                        logging.info(f"SEARCHING: Buoy found at: {detection.gps}")
-                        self.heatmap.append(detection)
-                    else:
-                        logging.info(f"SEARCHING: Dropped buoy at: {detection.gps}, {distance_from_center}m from center")
+            if distance_to_buoy < self.collision_sensitivity:
+                logging.info(f"Sailbot touched the buoy! Search event finished!")
+                self.transceiver.send("Sailbot touched the buoy!")
+                raise EventFinished
 
-            if detections == 0:
-                # No detections, continue along preset search path
-                logging.info("SEARCHING: No buoys spotted! Continuing along search path")
-                if distance_between(self.gps, self.waypoint_queue[0]) < 1:
-                    self.waypoint_queue.pop(0)
-                return self.waypoint_queue[0]
-
-            else:
-                # Detection! Check if boat is confident enough to move to a buoy
-                logging.info(f"SEARCHING: {detections} buoy(s) found!")
-                self.best_chunk = self.heatmap.get_highest_confidence_chunk()
-
-                if self.best_chunk.sum_confidence > self.divert_confidence_threshold:
-                    logging.info(f"""SEARCHING: Divert confidence level reached! 
-                    Bookmarking position and moving towards buoy at {self.best_chunk.average_gps}.""")
-                    self.is_tracking_buoy = True
-                    self.waypoint_queue.insert(0, self.gps)
-                    self.waypoint_queue.insert(0, self.best_chunk.average_gps)
-                    return self.waypoint_queue[0]
+        # Times up... fuck it and assume that we touched the buoy
+        if time.time() - self.start_time > self.event_duration:
+            logging.info(f"Sailbot totally touched the buoy... Search event finished!")
+            self.transceiver.send("Sailbot touched the buoy!")
+            raise EventFinished
 
     def create_search_pattern(self):
         """
-        Generates a 5-point zig-zag search pattern to maximimize area coverage 
-        
+        Generates a zig-zag search pattern to maximimize area coverage
+        Args:
+            - num_points (int): how many GPS points to generate (minimum is 2 for a straight line)
+                - More points means tighter search lines. Higher success chance but more distance to cover.
+                - Default is automatically determined by object detections max detection distance
         Returns:
-            - 5 gps coordinates stored as a list of Waypoints [Waypoint(lat, long), ...]
+            - list[Waypoint(lat, long), ...] gps coordinates of the search pattern
         """
-        # TODO: Fix
+        # TODO: Fix whatever went wrong at competition
+        # TODO: Adapt search pattern based on detection distance/windspeed/num-points
         # Metrics used to fine-tune optimal coverage
-        # TODO: test different values
         # Camera cone of vision from 
         BOAT_FOV = 242
         # Furthest distance object detection can reliably spot a buoy (m)
         MAX_DETECTION_DISTANCE = 20  # untested
 
         pattern = []
-
-        a = self.gps.latitude - self.search_center.lat
-        b = self.gps.longitude - self.search_center.lon
-        ang = math.atan(b / a)
+        for i in range(0, 30):
+            if self.gps.latitude is not None:
+                break
+            print("waiting for gps")
+        d_lat = self.gps.latitude - self.search_center.lat
+        d_lon = self.gps.longitude - self.search_center.lon
+        radius = math.sqrt(d_lat ** 2 + d_lon ** 2)
+        ang = math.atan(d_lon / d_lat)
         ang *= 180 / math.pi
 
-        if (a < 0): ang += 180
+        if (d_lat < 0): ang += 180
 
         tar_angs = [ang, ang + 72, ang - 72, ang - (72 * 3), ang - (72 * 2)]
-        for i in range(0, 5):
-            pattern.append(
-                Waypoint(
-                    lat=self.event_arr[0] + self.event_arr[2] * math.cos(tar_angs[i] * (math.pi / 180)),
-                    lon=self.event_arr[1] + self.event_arr[2] * math.sin(tar_angs[i] * (math.pi / 180))
-                )
-            )
+        for i in range(1, 5):
+            wp = Waypoint(self.search_center.lat, self.search_center.lon)
+            dx = self.search_center.lon + self.search_radius * math.cos(tar_angs[i] * (math.pi / 180))
+            dy = self.search_center.lat + self.search_radius * math.sin(tar_angs[i] * (math.pi / 180))
+            wp.add_meters(dx, dy)
+            pattern.append(wp)
 
         return pattern
-
-    def ROS_GPSCallback(self, string):
-        if string == "None, None, None":
-            self.gps.latitude = None
-            self.gps.longitude = None
-            self.gps.track_angle_deg = None
-            return
-
-        lat, long, trackangle = string.replace("(", "").replace(")", "").split(",")
-        self.gps.latitude = float(lat)
-        self.gps.longitude = float(long)
-        self.gps.track_angle_deg = float(trackangle)
 
 
 class Heatmap:
     """Datastructure which splits the search radius into X-meter circular 'chunks'
         - Each detection has its confidence pooled with all others inside the same chunk
-        - Lower chunk radius if two separate buoys are being grouped as one
-        - Raise chunk radius if the same buoy is creating multiple chunks (caused by GPS estimation error)
-        - NOTE: Chunks can overlap which may cause problems (if so, then use tri/square/hex chunks instead of circles)
+            - Decrease chunk radius if two separate buoys are being grouped as one
+            - Increase chunk radius if the same buoy is creating multiple chunks (caused by GPS estimation error)
+        - NOTE: Chunks can overlap which may cause problems (if so, then extend code to use tri/square/hex chunks instead of circles)
 
         Attributes:
             - chunks (list[HeatmapChunk])
             - chunk_radius (float)
+        Functions:
+            - visualize(): prints out a graphical representation of the heatmap
     """
 
     def __init__(self, chunk_radius):
@@ -257,7 +287,6 @@ class Heatmap:
         return False
 
     def append(self, detection):
-        # TODO (Low): Overload to support list[Detection]
         for chunk in self.chunks:
             if detection in chunk:
                 chunk.append(detection)
@@ -266,13 +295,29 @@ class Heatmap:
                                             detection=detection))
 
     def get_highest_confidence_chunk(self):
-        max_confidence = 0
-        max_chunk = None
+        return max(self.chunks, key=lambda heatmap_chunk: heatmap_chunk.sum_confidence)
+
+    def visualize(self):
+        """Creates a scatterplot of the lats and lons of each chunk.
+        Colors weighted by confidence value."""
+        lats = []
+        lons = []
+        sizes = []
+        confidences = []
+
         for chunk in self.chunks:
-            if chunk.sum_confidence > max_confidence:
-                max_confidence = chunk.sum_confidence
-                max_chunk = chunk
-        return max_chunk
+            lats.append(chunk.average_gps.lat)
+            lons.append(chunk.average_gps.lon)
+            sizes.append(chunk.radius)
+            confidences.append(chunk.sum_confidence)
+
+        fig, ax = plt.subplots()
+        ax.scatter(lats, lons, s=sizes, c=confidences, cmap="magma")
+
+        plt.title("Buoy Heatmap")
+        plt.show()
+
+        plt.savefig("test_plot")
 
 
 class HeatmapChunk:

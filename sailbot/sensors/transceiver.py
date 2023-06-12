@@ -15,7 +15,7 @@ I2C_SLAVE_ADDRESS = 0x10
 class Transceiver:
     def __init__(self, port_num):
         # connect to device on 'port_num'
-        self.ser1 = serial.Serial(port_num, c.config['MAIN']['baudrate'], timeout=.5)
+        self.ser1 = serial.Serial(port_num, int(c.config['MAIN']['baudrate']), timeout=.5)
         self.I2Cbus = smbus.SMBus(1)
 
         self.gps = None
